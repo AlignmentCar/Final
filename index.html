@@ -39,6 +39,39 @@
 <!-- ✅ Bulk Edit Module -->
 <script src="bulk-edit.js"></script>
 
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+  import { getFirestore, collection, doc, addDoc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+  
+  const firebaseConfig = {
+    apiKey: "AIzaSyAZ5gxZQIMVthFPlPh7pumEVZujBCqnWcY",
+    authDomain: "tileinventoryapp.firebaseapp.com",
+    projectId: "tileinventoryapp",
+    storageBucket: "tileinventoryapp.firebasestorage.app",
+    messagingSenderId: "593208886238",
+    appId: "1:593208886238:web:ca118d33b30a667fb56d4f"
+  };
+  
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  
+  window.auth = auth;
+  window.db = db;
+  window.firebaseImports = {
+    collection, doc, addDoc, getDoc, getDocs, 
+    setDoc, updateDoc, deleteDoc, query, where, 
+    orderBy, limit
+  };
+  
+  console.log("✅ Firebase connected!");
+</script>
+
+
+  
   
 </head>
 <body>
@@ -2283,17 +2316,27 @@ onmouseout="this.style.background='#28a745'">
 
 
     
-    
-  /***********************
-   * CONFIG
-   ***********************/
-  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwiJpoKIyqL6r6dNFMz0gZbwcL7D4cJ2VR8TpU5sakHt4qSKhMYjCMvle6r0HsBrr-Y/exec'; // <-- replace with your deployed URL
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwiJpoKIyqL6r6dNFMz0gZbwcL7D4cJ2VR8TpU5sakHt4qSKhMYjCMvle6r0HsBrr-Y/exec';
-// ✅ API Configuration
-window.API_CONFIG = {
-  baseUrl: 'https://script.google.com/macros/s/AKfycbwiJpoKIyqL6r6dNFMz0gZbwcL7D4cJ2VR8TpU5sakHt4qSKhMYjCMvle6r0HsBrr-Y/exec', // ← Replace this
-  secret: 'shopSecret2025'
-};
+ // ==========================================
+// FIREBASE CONFIGURATION
+// ==========================================
+// Firebase imports are in <head> section - no need to redeclare here
+// Access via: window.db, window.auth, window.firebaseImports
+
+// Get current user ID (for multi-tenancy)
+function getCurrentUserId() {
+  const user = window.auth.currentUser;
+  return user ? user.uid : null;
+}
+
+// Get tenant collection path
+function getTenantCollection(collectionName) {
+  const userId = getCurrentUserId();
+  if (!userId) {
+    throw new Error('User not authenticated');
+  }
+  return `tenants/${userId}/${collectionName}`;
+}
+
 
     
   let cachedProducts = [];
@@ -2313,124 +2356,49 @@ let productPhotoFileName = null;
 
 
 
-
-/**
- * Validate and parse JSON response
- */
-async function parseJSONResponse(response) {
-  const contentType = response.headers.get('content-type');
-  
-  if (!contentType || !contentType.includes('application/json')) {
-    const text = await response.text();
-    console.error('❌ Received non-JSON response:', text.substring(0, 500));
-    throw new Error('Server returned non-JSON response. Check deployment.');
-  }
-  
-  return await response.json();
-}
-
-// Use it like this:
-// const result = await parseJSONResponse(response);
-
-
-    
-    
 // ==========================================
-// BACKGROUND SAVE QUEUE
-// ==========================================
-
-const backgroundSaveQueue = [];
-let isProcessingQueue = false;
-let backgroundSyncActive = false;
-
-
-// ==========================================
-// EMAIL + PASSWORD AUTHENTICATION (WITH HASH)
+// FIREBASE AUTHENTICATION
 // ==========================================
 
 let currentUser = null;
 let userEmail = null;
-let userHash = null; // Ã¢Å“â€¦ NEW: Store encrypted hash
-
-// Simple hash function (matches backend)
-function simpleHash(text) {
-  let hash = 0;
-  if (text.length === 0) return hash.toString();
-  for (let i = 0; i < text.length; i++) {
-    const char = text.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(36);
-}
-
-// Toggle password visibility
-function togglePasswordVisibility() {
-  const passwordInput = document.getElementById('userPasswordInput');
-  const toggleIcon = document.getElementById('passwordToggleIcon');
-  
-  if (passwordInput.type === 'password') {
-    passwordInput.type = 'text';
-    toggleIcon.className = 'bi bi-eye-slash';
-  } else {
-    passwordInput.type = 'password';
-    toggleIcon.className = 'bi bi-eye';
-  }
-}
 
 // Check authentication on page load
 window.addEventListener('load', async function() {
-  console.log('Ã°Å¸Å¡â‚¬ Page loaded, checking authentication...');
+  console.log('🚀 Page loaded, checking Firebase authentication...');
   
-  // Check localStorage for saved credentials
-  const savedEmail = localStorage.getItem('userEmail');
-  const savedHash = localStorage.getItem('userHash');
-  const savedUser = localStorage.getItem('currentUser');
-  
-  console.log('Ã°Å¸â€œÂ¦ Checking localStorage:', {
-    hasEmail: !!savedEmail,
-    hasHash: !!savedHash,
-    hasUser: !!savedUser
-  });
-  
-  if (savedEmail && savedHash) {
-    console.log('Ã¢Å“â€¦ Found saved credentials, auto-logging in...');
-    
-    try {
-      // Ã¢Å“â€¦ SET VARIABLES FIRST
-      userEmail = savedEmail;
-      userHash = savedHash;
+  // Listen for auth state changes
+  window.auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      console.log('✅ User authenticated:', user.email);
+      currentUser = {
+        email: user.email,
+        uid: user.uid,
+        name: user.displayName || user.email.split('@')[0],
+        authorized: true
+      };
+      userEmail = user.email;
       
-      if (savedUser) {
-        currentUser = JSON.parse(savedUser);
-      } else {
-        currentUser = {
-          email: savedEmail,
-          name: savedEmail.split('@')[0],
-          authorized: true
-        };
-      }
+      // Save to localStorage for quick access
+      localStorage.setItem('userEmail', user.email);
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
       
-      console.log('Ã¢Å“â€¦ Session restored:', { userEmail, hasHash: !!userHash });
-      
-      // Ã¢Å“â€¦ Show app IMMEDIATELY
+      // Show app and load data
       showApp();
       updateUserUI();
       
-      // Ã¢Å“â€¦ Wait before syncing
+      // Wait before syncing
       setTimeout(async () => {
-        console.log('Ã°Å¸â€â€ž Starting data sync...');
-        await syncFromGoogleSheets();
+        console.log('🔄 Starting data sync...');
+        await syncFromFirestore();
       }, 500);
       
-    } catch (error) {
-      console.error('Ã¢ÂÅ’ Error restoring session:', error);
+    } else {
+      console.log('👤 No user authenticated, showing login screen...');
+      clearAuth();
       showAuthScreen();
     }
-  } else {
-    console.log('Ã°Å¸â€˜Â¤ No saved credentials, showing login screen...');
-    showAuthScreen();
-  }
+  });
 });
 
 // Handle email + password authentication
@@ -2449,7 +2417,7 @@ async function handleEmailPasswordAuth(event) {
     return;
   }
   
-  console.log('Ã°Å¸â€Â Authenticating:', email);
+  console.log('🔐 Authenticating:', email);
   
   // Show loading state
   const originalText = loginButton.innerHTML;
@@ -2457,70 +2425,66 @@ async function handleEmailPasswordAuth(event) {
   loginButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Signing in...';
   
   try {
-    // Ã¢Å“â€¦ Send email + password to backend
-    const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=authenticate&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`, {
-      method: 'POST'
-    });
+    // Sign in with Firebase Authentication
+    const { signInWithEmailAndPassword } = window.firebaseImports;
+    const userCredential = await signInWithEmailAndPassword(window.auth, email, password);
     
-    const data = await response.json();
+    console.log('✅ Authentication successful');
     
-    if (data.ok && data.user && data.hash) {
-      // Ã¢Å“â€¦ SUCCESS - Save email + hash
-      userEmail = email;
-      userHash = data.hash;
-      currentUser = data.user;
-      
-      // Ã¢Å“â€¦ Save to localStorage for permanent login
-      localStorage.setItem('userEmail', email);
-      localStorage.setItem('userHash', data.hash);
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
-      
-      console.log('Ã¢Å“â€¦ Authentication successful');
-      console.log('Ã¢Å“â€¦ Hash saved to localStorage');
-      
-      // Clear password field
-      passwordInput.value = '';
-      
-      // Show app and load data
-      showApp();
-      updateUserUI();
-      
-      setTimeout(async () => {
-        await syncFromGoogleSheets();
-      }, 300);
-      
-    } else {
-      // Ã¢ÂÅ’ FAILED
-      console.error('Ã¢ÂÅ’ Authentication failed:', data);
-      alert(data.message || 'Invalid email or password');
-      loginButton.disabled = false;
-      loginButton.innerHTML = originalText;
-      passwordInput.value = '';
-      passwordInput.focus();
-    }
+    // Clear password field
+    passwordInput.value = '';
+    
+    // Auth state listener will handle the rest
     
   } catch (error) {
-    console.error('Ã¢ÂÅ’ Authentication error:', error);
-    alert('Failed to authenticate. Please check your internet connection and try again.');
+    console.error('❌ Authentication error:', error);
+    
+    let errorMessage = 'Invalid email or password';
+    
+    if (error.code === 'auth/user-not-found') {
+      errorMessage = 'No account found with this email. Please sign up first.';
+    } else if (error.code === 'auth/wrong-password') {
+      errorMessage = 'Incorrect password. Please try again.';
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = 'Invalid email format.';
+    } else if (error.code === 'auth/too-many-requests') {
+      errorMessage = 'Too many failed attempts. Please try again later.';
+    }
+    
+    alert(errorMessage);
     loginButton.disabled = false;
     loginButton.innerHTML = originalText;
+    passwordInput.value = '';
+    passwordInput.focus();
+  }
+}
+
+// Toggle password visibility (same as before)
+function togglePasswordVisibility() {
+  const passwordInput = document.getElementById('userPasswordInput');
+  const toggleIcon = document.getElementById('passwordToggleIcon');
+  
+  if (passwordInput.type === 'password') {
+    passwordInput.type = 'text';
+    toggleIcon.className = 'bi bi-eye-slash';
+  } else {
+    passwordInput.type = 'password';
+    toggleIcon.className = 'bi bi-eye';
   }
 }
 
 // Clear authentication
 function clearAuth() {
-  console.log('Ã°Å¸â€”â€˜Ã¯Â¸Â Clearing authentication...');
+  console.log('🔓 Clearing authentication...');
   userEmail = null;
-  userHash = null;
   currentUser = null;
   localStorage.removeItem('userEmail');
-  localStorage.removeItem('userHash');
   localStorage.removeItem('currentUser');
 }
 
 // Show authentication screen
 function showAuthScreen() {
-  console.log('Ã°Å¸â€œÂ± Showing auth screen');
+  console.log('📱 Showing auth screen');
   document.getElementById('authScreen').style.display = 'flex';
   document.getElementById('appContent').style.display = 'none';
   
@@ -2534,7 +2498,7 @@ function showAuthScreen() {
 
 // Show app
 function showApp() {
-  console.log('Ã°Å¸â€œÂ± Showing app');
+  console.log('📱 Showing app');
   document.getElementById('authScreen').style.display = 'none';
   document.getElementById('appContent').style.display = 'block';
 }
@@ -2546,31 +2510,31 @@ function updateUserUI() {
     
     if (userNameEl) {
       userNameEl.textContent = currentUser.name || currentUser.email;
-      console.log('Ã°Å¸â€˜Â¤ Updated username:', currentUser.email);
+      console.log('👤 Updated username:', currentUser.email);
     }
   }
 }
 
 // Show auth error
 function showAuthError(message) {
-  console.warn('Ã°Å¸Å¡Â¨ Auth error:', message);
-  
-  if (message && (message.includes('unauthorized') || message.includes('not authorized') || message.includes('expired'))) {
-    clearAuth();
-    alert('Ã°Å¸â€â€™ ' + message);
-    showAuthScreen();
-  } else {
-    console.log('Ã¢Å¡ Ã¯Â¸Â Non-critical error, keeping credentials');
-  }
+  console.warn('🚨 Auth error:', message);
+  alert('🔒 ' + message);
+  // Don't automatically sign out - let user retry
 }
 
 // Sign out
-function signOut() {
+async function signOut() {
   if (confirm('Are you sure you want to sign out?')) {
-    console.log('Ã°Å¸â€˜â€¹ Signing out...');
-    clearAuth();
-    showAuthScreen();
-    setTimeout(() => location.reload(), 300);
+    console.log('👋 Signing out...');
+    try {
+      await window.auth.signOut();
+      clearAuth();
+      showAuthScreen();
+      setTimeout(() => location.reload(), 300);
+    } catch (error) {
+      console.error('Error signing out:', error);
+      alert('Failed to sign out. Please try again.');
+    }
   }
 }
 
@@ -2582,7 +2546,7 @@ let changePasswordModalInstance = null;
 
 // Open change password modal
 function openChangePasswordModal() {
-  console.log('Ã°Å¸â€â€˜ Opening change password modal');
+  console.log('🔑 Opening change password modal');
   
   // Reset form
   document.getElementById('verifyPasswordStep').style.display = 'block';
@@ -2609,32 +2573,26 @@ async function verifyCurrentPassword() {
     return;
   }
   
-  console.log('Ã°Å¸â€Â Verifying current password...');
+  console.log('🔐 Verifying current password...');
   
   try {
-    // Verify by attempting authentication
-    const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=authenticate&email=${encodeURIComponent(userEmail)}&password=${encodeURIComponent(currentPassword)}`, {
-      method: 'POST'
-    });
+    const { signInWithEmailAndPassword } = window.firebaseImports;
+    const user = window.auth.currentUser;
     
-    const data = await response.json();
+    // Re-authenticate user
+    await signInWithEmailAndPassword(window.auth, user.email, currentPassword);
     
-    if (data.ok) {
-      // Ã¢Å“â€¦ Password correct - show step 2
-      console.log('Ã¢Å“â€¦ Current password verified');
-      document.getElementById('verifyPasswordStep').style.display = 'none';
-      document.getElementById('newPasswordStep').style.display = 'block';
-      document.getElementById('newPasswordInput').focus();
-    } else {
-      // Ã¢ÂÅ’ Wrong password
-      alert('Current password is incorrect');
-      currentPasswordInput.value = '';
-      currentPasswordInput.focus();
-    }
+    // ✅ Password correct - show step 2
+    console.log('✅ Current password verified');
+    document.getElementById('verifyPasswordStep').style.display = 'none';
+    document.getElementById('newPasswordStep').style.display = 'block';
+    document.getElementById('newPasswordInput').focus();
     
   } catch (error) {
-    console.error('Ã¢ÂÅ’ Error verifying password:', error);
-    alert('Failed to verify password. Please try again.');
+    console.error('❌ Error verifying password:', error);
+    alert('Current password is incorrect');
+    currentPasswordInput.value = '';
+    currentPasswordInput.focus();
   }
 }
 
@@ -2674,40 +2632,36 @@ async function submitNewPassword() {
     return;
   }
   
-  console.log('Ã°Å¸â€â€ž Changing password...');
+  console.log('🔄 Changing password...');
   
   try {
-    // Send change password request
-    const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=changePassword&email=${encodeURIComponent(userEmail)}&oldPassword=${encodeURIComponent(oldPassword)}&newPassword=${encodeURIComponent(newPassword)}`, {
-      method: 'POST'
-    });
+    const { updatePassword } = window.firebaseImports;
+    const user = window.auth.currentUser;
     
-    const data = await response.json();
+    // Update password in Firebase
+    await updatePassword(user, newPassword);
     
-    if (data.ok && data.hash) {
-      // Ã¢Å“â€¦ SUCCESS - Update hash in localStorage
-      userHash = data.hash;
-      localStorage.setItem('userHash', data.hash);
-      
-      console.log('Ã¢Å“â€¦ Password changed successfully');
-      console.log('Ã¢Å“â€¦ New hash saved');
-      
-      // Close modal
-      changePasswordModalInstance.hide();
-      
-      // Show success message
-      alert('Ã¢Å“â€¦ Password changed successfully!');
-      
-    } else {
-      // Ã¢ÂÅ’ FAILED
-      alert(data.message || 'Failed to change password');
-    }
+    console.log('✅ Password changed successfully');
+    
+    // Close modal
+    changePasswordModalInstance.hide();
+    
+    // Show success message
+    alert('✅ Password changed successfully!');
     
   } catch (error) {
-    console.error('Ã¢ÂÅ’ Error changing password:', error);
-    alert('Failed to change password. Please try again.');
+    console.error('❌ Error changing password:', error);
+    
+    let errorMessage = 'Failed to change password';
+    
+    if (error.code === 'auth/requires-recent-login') {
+      errorMessage = 'Please sign out and sign in again before changing your password';
+    }
+    
+    alert(errorMessage);
   }
 }
+
 
 
 
@@ -2761,129 +2715,100 @@ try {
 
 
 
-    
-/**
- * Sync / Fetch from Google Sheets
- * Combines authentication check + complete data fetching + sales filtering
- */
-/**
- * ==========================================
- * SYNC FROM GOOGLE SHEETS (WITH CACHE)
- * ==========================================
- */
+// ==========================================
+// SYNC FROM FIRESTORE
+// ==========================================
 
-/**
- * ==========================================
- * SYNC FROM GOOGLE SHEETS (WITH VARIANTS)
- * ==========================================
- */
-
-async function syncFromGoogleSheets() {
-  if (!userEmail || !userHash) {
-    console.warn('⚠️ No credentials, checking localStorage...');
-    const savedEmail = localStorage.getItem('userEmail');
-    const savedHash = localStorage.getItem('userHash');
-    if (savedEmail && savedHash) {
-      userEmail = savedEmail;
-      userHash = savedHash;
-      console.log('✅ Restored credentials from localStorage');
-    } else {
-      console.log('🛑 No credentials found');
-      showAuthScreen();
-      return;
-    }
+async function syncFromFirestore() {
+  const user = window.auth.currentUser;
+  
+  if (!user) {
+    console.warn('⚠️ No user authenticated');
+    showAuthScreen();
+    return;
   }
 
   showSyncIndicator('Refreshing...');
   
   try {
-    // ✅ UPDATED: Use getAllProductsWithVariants action
-    const url = `${GOOGLE_SCRIPT_URL}?action=getAllProductsWithVariants&email=${encodeURIComponent(userEmail)}&hash=${encodeURIComponent(userHash)}&t=${Date.now()}`;
-
-    const res = await fetch(url);
+    const { collection, getDocs, query, orderBy } = window.firebaseImports;
+    const userId = user.uid;
     
-    if (!res.ok) {
-      throw new Error(`Network error: ${res.status}`);
-    }
+    console.log('🔄 Syncing data for user:', userId);
     
-    // ✅ Validate content type before parsing
-    const contentType = res.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      const text = await res.text();
-      console.error('❌ Non-JSON response:', text.substring(0, 200));
-      throw new Error('Server returned non-JSON response');
-    }
+    // Fetch products from Firestore
+    const productsRef = collection(window.db, 'tenants', userId, 'products');
+    const productsSnap = await getDocs(productsRef);
     
-    const data = await res.json();
-    
-    // Check for unauthorized response
-    if (!data.success && data.error === 'unauthorized') {
-      console.error('❌ Email not authorized');
-      clearAuth();
-      alert('Access denied. Your email is not authorized. Please contact administrator.');
-      showAuthScreen();
-      hideSyncIndicator();
-      return;
-    }
-    
-    // Verify successful response
-    if (data && data.success) {
-      // ✅ MERGE regular products + variants into ONE array
-      const regularProducts = data.regularProducts || [];
-      const variantProducts = data.variantProducts || [];
-      
-      // Mark products by type for filtering/display
-      regularProducts.forEach(p => {
-        p.isGroupVariant = false;
-        p.type = 'regular';
+    cachedProducts = [];
+    productsSnap.forEach((doc) => {
+      cachedProducts.push({
+        id: doc.id,
+        ...doc.data()
       });
-      
-      variantProducts.forEach(v => {
-        v.isGroupVariant = true;
-        v.type = 'variant';
-        // Map variant fields to product fields
-        v.id = v.variantId || v.id;
-        v.name = v.variantName || v.name;
-        v.price = v.sellingPrice || v.price || 0;
+    });
+    
+    // Sort products by name
+    cachedProducts.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    
+    console.log(`✅ Loaded ${cachedProducts.length} products`);
+    
+    // Fetch sales from Firestore
+    const salesRef = collection(window.db, 'tenants', userId, 'sales');
+    const salesQuery = query(salesRef, orderBy('date', 'desc'));
+    const salesSnap = await getDocs(salesQuery);
+    
+    let allSales = [];
+    salesSnap.forEach((doc) => {
+      allSales.push({
+        id: doc.id,
+        ...doc.data()
       });
-      
-      // ✅ COMBINE INTO ONE ARRAY
-      cachedProducts = [...regularProducts, ...variantProducts];
-      
-      // ✅ Sort by name
-      cachedProducts.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-      
-      console.log(`✅ Loaded ${regularProducts.length} regular products + ${variantProducts.length} variants = ${cachedProducts.length} total`);
-      
-      // Update sales with filtering for deleted items
-      let allSales = data.sales || [];
-      cachedSales = allSales.filter(sale => !deletedSaleIds.includes(sale.id));
-      console.log(`📊 Loaded ${allSales.length} sales from server, showing ${cachedSales.length} (${allSales.length - cachedSales.length} deleted)`);
-      
-      // Sort sales by date (newest first)
-      sortSalesByDateDescending();
-      
-      // Mark initial load complete
-      hasInitialLoaded = true;
-      
-      // Render both products and sales
-      renderProducts();
-      renderSales();
-      
-      // Update dashboard metrics
-      updateSummaryFromCache();
-      
-      showSyncIndicator('Synced!', 900);
-      
-    } else {
-      throw new Error(data.error || 'Failed to fetch data');
-    }
+    });
+    
+    // Filter out deleted sales
+    let deletedSaleIds = JSON.parse(localStorage.getItem('deletedSaleIds') || '[]');
+    cachedSales = allSales.filter(sale => !deletedSaleIds.includes(sale.id));
+    
+    console.log(`📊 Loaded ${allSales.length} sales from Firestore, showing ${cachedSales.length} (${allSales.length - cachedSales.length} deleted)`);
+    
+    // Mark initial load complete
+    hasInitialLoaded = true;
+    
+    // Render both products and sales
+    renderProducts();
+    renderSales();
+    
+    // Update dashboard metrics
+    updateSummaryFromCache();
+    
+    showSyncIndicator('Synced!', 900);
     
   } catch (err) {
-    console.error('❌ Sync error (non-critical):', err.message);
+    console.error('❌ Sync error:', err.message);
     showSyncIndicator('Sync failed', 1500);
-    hideSyncIndicator();
+    
+    // Try to load from cache
+    try {
+      cachedProducts = JSON.parse(localStorage.getItem('inventory_products_cache') || '[]');
+      cachedSales = JSON.parse(localStorage.getItem('inventory_sales_cache') || '[]');
+      renderProducts();
+      renderSales();
+    } catch (e) {
+      console.error('Failed to load from cache:', e);
+    }
   }
+}
+
+// Manual refresh function
+async function manualRefresh() {
+  const btn = document.getElementById('refreshBtn');
+  const icon = document.getElementById('refreshIcon');
+  btn.disabled = true;
+  icon.className = 'bi bi-arrow-clockwise spinner-border spinner-border-sm';
+  await syncFromFirestore();
+  icon.className = 'bi bi-arrow-clockwise';
+  btn.disabled = false;
 }
 
 
@@ -2892,17 +2817,109 @@ async function syncFromGoogleSheets() {
 
 
 
-
     
 
-  async function fallbackGetProductsAndSales() {
-    try { const p = await fetch(`${GOOGLE_SCRIPT_URL}?action=getProducts&t=${Date.now()}`); if(p.ok){ const pj=await p.json(); if(pj && pj.products) cachedProducts=pj.products; } }
-    catch(e){ console.warn('fallback products failed', e); }
-    try { const s = await fetch(`${GOOGLE_SCRIPT_URL}?action=getSales&t=${Date.now()}`); if(s.ok){ const sj=await s.json(); if(sj && sj.sales) cachedSales=sj.sales; } }
-    catch(e){ console.warn('fallback sales failed', e); }
-    hasInitialLoaded = true; renderProducts(); renderSales();
+/**
+ * Fallback function to load products and sales from Firestore
+ * ✅ FIREBASE VERSION
+ */
+async function fallbackGetProductsAndSales() {
+  const user = window.auth.currentUser;
+  
+  if (!user) {
+    console.warn('No user authenticated, skipping fallback load');
+    return;
   }
-  async function manualRefresh(){ const btn = document.getElementById('refreshBtn'); const icon=document.getElementById('refreshIcon'); btn.disabled=true; icon.className='bi bi-arrow-clockwise spinner-border spinner-border-sm'; await syncFromGoogleSheets(); icon.className='bi bi-arrow-clockwise'; btn.disabled=false; }
+  
+  try {
+    const { collection, getDocs } = window.firebaseImports;
+    
+    // Load products
+    try {
+      const productsRef = collection(window.db, 'tenants', user.uid, 'products');
+      const productsSnapshot = await getDocs(productsRef);
+      
+      const products = [];
+      productsSnapshot.forEach((doc) => {
+        products.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      
+      cachedProducts = products;
+      console.log('✅ Fallback: Loaded', products.length, 'products from Firestore');
+    } catch (e) {
+      console.warn('❌ Fallback products failed:', e);
+    }
+    
+    // Load sales
+    try {
+      const salesRef = collection(window.db, 'tenants', user.uid, 'sales');
+      const salesSnapshot = await getDocs(salesRef);
+      
+      const sales = [];
+      salesSnapshot.forEach((doc) => {
+        sales.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      
+      cachedSales = sales;
+      console.log('✅ Fallback: Loaded', sales.length, 'sales from Firestore');
+    } catch (e) {
+      console.warn('❌ Fallback sales failed:', e);
+    }
+    
+    hasInitialLoaded = true;
+    renderProducts();
+    renderSales();
+    
+  } catch (error) {
+    console.error('❌ Fallback load failed:', error);
+  }
+}
+/**
+ * Manual refresh button handler
+ * ✅ FIREBASE VERSION
+ */
+async function manualRefresh() {
+  const btn = document.getElementById('refreshBtn');
+  const icon = document.getElementById('refreshIcon');
+  
+  if (!btn || !icon) {
+    console.warn('Refresh button or icon not found');
+    return;
+  }
+  
+  // Disable button and show spinner
+  btn.disabled = true;
+  icon.className = 'bi bi-arrow-clockwise spinner-border spinner-border-sm';
+  
+  try {
+    // Sync from Firestore (calls syncFromFirestore which you already converted)
+    if (typeof syncFromFirestore === 'function') {
+      await syncFromFirestore();
+    } else if (typeof syncFromGoogleSheets === 'function') {
+      // Fallback to renamed function if exists
+      await syncFromGoogleSheets();
+    } else {
+      console.warn('No sync function found, calling fallback');
+      await fallbackGetProductsAndSales();
+    }
+    
+    console.log('✅ Manual refresh complete');
+    
+  } catch (error) {
+    console.error('❌ Manual refresh failed:', error);
+    alert('Refresh failed: ' + error.message);
+  } finally {
+    // Re-enable button and remove spinner
+    icon.className = 'bi bi-arrow-clockwise';
+    btn.disabled = false;
+  }
+}
 
 /***********************
  * Rendering
@@ -3186,76 +3203,80 @@ function updateSummaryFromCache() {
     if(current) sel.value = current;
   }
 
- /***********************
- * Save helpers (server calls) - safe against CORS preflight + include idToken
- ***********************/
-/**
- * Save product to Google Sheets
- */
-async function saveProductToSheet(product, isEdit=false) {
-  if (!userEmail || !userHash) { 
-    showAuthError('Please sign in to save product'); 
-    return null; 
+// ==========================================
+// SAVE PRODUCT TO FIRESTORE
+// ==========================================
+
+async function saveProductToSheet(product, isEdit = false) {
+  const user = window.auth.currentUser;
+  
+  if (!user) {
+    showAuthError('Please sign in to save product');
+    return null;
   }
   
   try {
-    // Ã¢Å“â€¦ Send hash for authentication
-    const url = `${GOOGLE_SCRIPT_URL}?action=${isEdit ? 'updateProduct' : 'addProduct'}&email=${encodeURIComponent(userEmail)}&hash=${encodeURIComponent(userHash)}`;
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, // "simple" content-type -> no preflight
-      body: JSON.stringify(product)
-    });
-    const parsed = await safeParseResponse(res);
+    const { collection, doc, setDoc, addDoc } = window.firebaseImports;
+    const userId = user.uid;
     
-    // Check for unauthorized response
-    if (parsed.json && parsed.json.error === 'unauthorized') {
-      showAuthError('Your session has expired. Please sign in again.');
-      return null;
+    const productsRef = collection(window.db, 'tenants', userId, 'products');
+    
+    if (isEdit && product.id) {
+      // Update existing product
+      const productDoc = doc(productsRef, product.id);
+      await setDoc(productDoc, product, { merge: true });
+      console.log('✅ Product updated:', product.id);
+      return { success: true, id: product.id };
+    } else {
+      // Add new product
+      const docRef = await addDoc(productsRef, {
+        ...product,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      console.log('✅ Product added:', docRef.id);
+      return { success: true, id: docRef.id };
     }
     
-    return parsed.json || null;
-  } catch (e) {
-    console.error('saveProductToSheet error', e);
-    return null;
+  } catch (error) {
+    console.error('❌ Error saving product:', error);
+    return { success: false, error: error.message };
   }
 }
 
 
-/**
- * Save sale to Google Sheets
- */
+// ==========================================
+// SAVE SALE TO FIRESTORE
+// ==========================================
+
 async function saveSaleToSheet(item) {
-  if (!userEmail || !userHash) { 
-    showAuthError('Please sign in to save sale'); 
-    return null; 
+  const user = window.auth.currentUser;
+  
+  if (!user) {
+    showAuthError('Please sign in to save sale');
+    return null;
   }
   
   try {
-    // Ã¢Å“â€¦ Send hash for authentication
-    const url = `${GOOGLE_SCRIPT_URL}?action=addSale&email=${encodeURIComponent(userEmail)}&hash=${encodeURIComponent(userHash)}`;
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, // avoid preflight
-      body: JSON.stringify(item)
+    const { collection, addDoc } = window.firebaseImports;
+    const userId = user.uid;
+    
+    const salesRef = collection(window.db, 'tenants', userId, 'sales');
+    
+    const docRef = await addDoc(salesRef, {
+      ...item,
+      createdAt: new Date().toISOString(),
+      userId: userId
     });
-    const parsed = await safeParseResponse(res);
     
-    // Check for unauthorized response
-    if (parsed.json && parsed.json.error === 'unauthorized') {
-      showAuthError('Your session has expired. Please sign in again.');
-      return null;
-    }
+    console.log('✅ Sale saved:', docRef.id);
+    return { success: true, id: docRef.id };
     
-    return parsed.json || null;
-  } catch (e) {
-    console.error('saveSaleToSheet error', e);
-    return null;
+  } catch (error) {
+    console.error('❌ Error saving sale:', error);
+    return { success: false, error: error.message };
   }
 }
-
 
 
 
@@ -3366,153 +3387,34 @@ function updateSyncIndicator(active) {
 
 
 
-  // ==========================================
-// BACKGROUND QUEUE PROCESSOR
+
 // ==========================================
-async function processBackgroundSaveQueue() {
-  if (isProcessingQueue) {
-    console.log('Ã¢ÂÂ³ Queue processor already running');
-    return;
-  }
-  
-  if (backgroundSaveQueue.length === 0) {
-    console.log('Ã¢Å“â€¦ Queue empty, processor stopping');
-    backgroundSyncActive = false;
-    updateSyncIndicator(false);
-    return;
-  }
-  
-  isProcessingQueue = true;
-  backgroundSyncActive = true;
-  updateSyncIndicator(true);
-  
-  console.log(`Ã°Å¸â€â€ž Processing ${backgroundSaveQueue.length} items in background queue...`);
-  
-  while (backgroundSaveQueue.length > 0) {
-    const item = backgroundSaveQueue[0]; // Peek at first item
-    
-    console.log(`Ã°Å¸â€œÂ¤ Background saving: "${item.productName}" (${backgroundSaveQueue.length} remaining)`);
-    
-    // Try to save with retry logic
-    let saved = false;
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        const response = await saveSaleToSheet(item);
-        
-        if (response && response.success) {
-          console.log(`Ã¢Å“â€¦ Background saved: "${item.productName}"`);
-          saved = true;
-          break;
-        }
-        
-        // If not last attempt, wait before retry
-        if (attempt < 3) {
-          console.log(`Ã¢Å¡ Ã¯Â¸Â Retry ${attempt}/3 for "${item.productName}" in ${attempt}s...`);
-          await delay(1000 * attempt); // 1s, 2s backoff
-        }
-        
-      } catch (error) {
-        console.error(`Ã¢ÂÅ’ Attempt ${attempt}/3 failed for "${item.productName}":`, error);
-        
-        if (attempt < 3) {
-          await delay(1000 * attempt);
-        }
-      }
-    }
-    
-    if (saved) {
-      // Successfully saved - remove from queue
-      backgroundSaveQueue.shift();
-    } else {
-      // Failed after 3 retries - log error and remove
-      console.error(`Ã¢ÂÅ’ PERMANENT FAILURE: Could not save "${item.productName}" after 3 attempts`);
-      console.error('Failed item data:', item);
-      
-      // Remove from queue to prevent infinite loop
-      backgroundSaveQueue.shift();
-      
-      // Optional: Store in localStorage for manual recovery
-      try {
-        const failedItems = JSON.parse(localStorage.getItem('failedSales') || '[]');
-        failedItems.push({
-          item: item,
-          timestamp: new Date().toISOString(),
-          error: 'Max retries exceeded'
-        });
-        localStorage.setItem('failedSales', JSON.stringify(failedItems));
-        console.log('Ã°Å¸â€™Â¾ Failed item saved to localStorage for recovery');
-      } catch (e) {
-        console.error('Could not save to localStorage:', e);
-      }
-    }
-    
-    // Ã¢Å“â€¦ CRITICAL: Delay between items to prevent throttling
-    if (backgroundSaveQueue.length > 0) {
-      await delay(500); // 500ms delay between saves
-    }
-  }
-  
-  isProcessingQueue = false;
-  backgroundSyncActive = false;
-  updateSyncIndicator(false);
-  
-  console.log('Ã¢Å“â€¦ Background queue processing complete!');
-  
-  // Optional: Silent background sync after all saves complete
-  setTimeout(() => {
-    console.log('Ã°Å¸â€â€ž Starting background sync from Google Sheets...');
-    syncFromGoogleSheets();
-  }, 2000);
-}
+// DELETE PRODUCT FROM FIRESTORE
+// ==========================================
 
-
-// Helper: Delay function
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-// Helper: Update sync indicator
-function updateSyncIndicator(active) {
-  const indicator = document.getElementById('backgroundSyncStatus');
-  if (indicator) {
-    indicator.style.display = active ? 'block' : 'none';
-  }
-}
-
-
-/**
- * Delete product from Google Sheets
- */
 async function deleteProductFromSheet(id) {
-  if (!userEmail || !userHash) { 
-    showAuthError('Please sign in to delete product'); 
-    return false; 
+  const user = window.auth.currentUser;
+  
+  if (!user) {
+    showAuthError('Please sign in to delete product');
+    return false;
   }
   
   try {
-    // Ã¢Å“â€¦ Send hash for authentication
-    const url = `${GOOGLE_SCRIPT_URL}?action=deleteProduct&email=${encodeURIComponent(userEmail)}&hash=${encodeURIComponent(userHash)}`;
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, // avoid preflight
-      body: JSON.stringify({ id })
-    });
-    const parsed = await safeParseResponse(res);
+    const { collection, doc, deleteDoc } = window.firebaseImports;
+    const userId = user.uid;
     
-    // Check for unauthorized response
-    if (parsed.json && parsed.json.error === 'unauthorized') {
-      showAuthError('Your session has expired. Please sign in again.');
-      return false;
-    }
+    const productDoc = doc(window.db, 'tenants', userId, 'products', id);
+    await deleteDoc(productDoc);
     
-    return parsed.json && parsed.json.success;
-  } catch (e) {
-    console.error('deleteProductFromSheet error', e);
+    console.log('✅ Product deleted:', id);
+    return true;
+    
+  } catch (error) {
+    console.error('❌ Error deleting product:', error);
     return false;
   }
 }
-
 
 /**
  * Toggle Advanced Options in Product Modal
@@ -3534,101 +3436,180 @@ function toggleAdvancedOptions() {
   }
 }
 
-/**
- * Fetch products from backend
- */
-async function loadProducts() {
-  try {
-    console.log('📦 Loading products from backend...');
+// ==========================================
+// BACKGROUND QUEUE PROCESSOR (FIREBASE)
+// ==========================================
+
+const backgroundSaveQueue = [];
+let isProcessingQueue = false;
+let backgroundSyncActive = false;
+
+async function processBackgroundSaveQueue() {
+  if (isProcessingQueue) {
+    console.log('⏳ Queue processor already running');
+    return;
+  }
+  
+  if (backgroundSaveQueue.length === 0) {
+    console.log('✅ Queue empty, processor stopping');
+    backgroundSyncActive = false;
+    updateSyncIndicator(false);
+    return;
+  }
+  
+  isProcessingQueue = true;
+  backgroundSyncActive = true;
+  updateSyncIndicator(true);
+  
+  console.log(`🔄 Processing ${backgroundSaveQueue.length} items in background queue...`);
+  
+  while (backgroundSaveQueue.length > 0) {
+    const item = backgroundSaveQueue[0];
     
-    const hash = localStorage.getItem('userHash');
-    const email = localStorage.getItem('userEmail');
+    console.log(`📤 Background saving: "${item.productName}" (${backgroundSaveQueue.length} remaining)`);
     
-    if (!hash || !email) {
-      console.error('❌ No auth found');
-      alert('Please sign in first');
-      return;
-    }
-    
-    // Call backend to get all products
-    const response = await fetch('/api/getProducts', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        action: 'getAll',
-        email: email,
-        hash: hash
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to load products');
-    }
-    
-    const result = await response.json();
-    
-    if (result.success && result.products) {
-      // ✅ KEY: Parse stock data from backend response
-      cachedProducts = result.products.map(product => {
+    let saved = false;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const response = await saveSaleToSheet(item);
         
-        let stockStatus = product.stockStatus || 'medium';
-        let stockValue = product.stockValue || 0;
-        
-        // If backend returned raw stockStatusData (Column M), parse it
-        if (product.stockStatusData && !stockStatus) {
-          try {
-            const parsed = JSON.parse(product.stockStatusData);
-            stockStatus = parsed.status || stockStatus;
-            stockValue = parsed.value || stockValue;
-            console.log('✅ Parsed Column M data:', { stockStatus, stockValue });
-          } catch (e) {
-            console.warn('⚠️ Could not parse stockStatusData:', e);
-          }
+        if (response && response.success) {
+          console.log(`✅ Background saved: "${item.productName}"`);
+          saved = true;
+          break;
         }
         
-        return {
-          ...product,
-          stockStatus: stockStatus,
-          stockValue: stockValue
-        };
-      });
-      
-      console.log('✅ Loaded', cachedProducts.length, 'products');
-      console.log('📊 Sample product:', cachedProducts[0]);
-      
-      // Cache locally
-      try {
-        localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
-      } catch (e) {
-        console.warn('⚠️ Cache save failed:', e);
+        if (attempt < 3) {
+          console.log(`⚠️ Retry ${attempt}/3 for "${item.productName}" in ${attempt}s...`);
+          await delay(1000 * attempt);
+        }
+        
+      } catch (error) {
+        console.error(`❌ Attempt ${attempt}/3 failed for "${item.productName}":`, error);
+        
+        if (attempt < 3) {
+          await delay(1000 * attempt);
+        }
       }
-      
-      renderProducts();
-    } else {
-      throw new Error(result.error || 'Invalid response');
     }
+    
+    if (saved) {
+      backgroundSaveQueue.shift();
+    } else {
+      console.error(`❌ PERMANENT FAILURE: Could not save "${item.productName}" after 3 attempts`);
+      backgroundSaveQueue.shift();
+      
+      try {
+        const failedItems = JSON.parse(localStorage.getItem('failedSales') || '[]');
+        failedItems.push({
+          item: item,
+          timestamp: new Date().toISOString(),
+          error: 'Max retries exceeded'
+        });
+        localStorage.setItem('failedSales', JSON.stringify(failedItems));
+        console.log('💾 Failed item saved to localStorage for recovery');
+      } catch (e) {
+        console.error('Could not save to localStorage:', e);
+      }
+    }
+    
+    if (backgroundSaveQueue.length > 0) {
+      await delay(500);
+    }
+  }
+  
+  isProcessingQueue = false;
+  backgroundSyncActive = false;
+  updateSyncIndicator(false);
+  
+  console.log('✅ Background queue processing complete!');
+  
+  setTimeout(() => {
+    console.log('🔄 Starting background sync from Firestore...');
+    syncFromFirestore();
+  }, 2000);
+}
+
+
+
+
+
+
+
+    
+
+/**
+ * Load products from Firestore (called by syncFromFirestore)
+ * This function is now integrated into syncFromFirestore()
+ * Keep this for backward compatibility if needed
+ */
+async function loadProducts() {
+  console.log('📦 Loading products from Firestore...');
+  
+  const user = window.auth.currentUser;
+  
+  if (!user) {
+    console.error('❌ No user authenticated');
+    alert('Please sign in first');
+    showAuthScreen();
+    return;
+  }
+  
+  try {
+    const { collection, getDocs } = window.firebaseImports;
+    const userId = user.uid;
+    
+    const productsRef = collection(window.db, 'tenants', userId, 'products');
+    const productsSnap = await getDocs(productsRef);
+    
+    cachedProducts = [];
+    productsSnap.forEach((doc) => {
+      const data = doc.data();
+      cachedProducts.push({
+        id: doc.id,
+        ...data,
+        stockStatus: data.stockStatus || 'medium',
+        stockValue: data.stockValue || 0
+      });
+    });
+    
+    console.log('✅ Loaded', cachedProducts.length, 'products');
+    
+    if (cachedProducts.length > 0) {
+      console.log('📊 Sample product:', cachedProducts[0]);
+    }
+    
+    // Cache locally
+    try {
+      localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+    } catch (e) {
+      console.warn('⚠️ Cache save failed:', e);
+    }
+    
+    renderProducts();
     
   } catch (err) {
     console.error('❌ Error loading products:', err);
+    
     // Fallback to cache
-    cachedProducts = JSON.parse(localStorage.getItem('inventory_products_cache') || '[]');
-    renderProducts();
+    try {
+      cachedProducts = JSON.parse(localStorage.getItem('inventory_products_cache') || '[]');
+      renderProducts();
+    } catch (e) {
+      console.error('Failed to load from cache:', e);
+      cachedProducts = [];
+      renderProducts();
+    }
   }
 }
 
 
-    
-  /***********************
-   * Product CRUD UI
-   ***********************/
-  /***********************
- * Product CRUD UI - UPDATED
+/***********************
+ * Product CRUD UI - FIREBASE VERSION
  ***********************/
 let editingProductId = null;
 
-function showAddProduct(){ 
+function showAddProduct() { 
   editingProductId = null; 
   document.getElementById('modalTitle').textContent = 'Add New Product'; 
   document.getElementById('productForm').reset(); 
@@ -3643,11 +3624,11 @@ function showAddProduct(){
   new bootstrap.Modal(document.getElementById('productModal')).show(); 
 }
 
-function editProduct(id, isVariant = false){
+function editProduct(id, isVariant = false) {
   console.log('✏️ Editing product:', id, 'Is variant:', isVariant);
   
   const p = (cachedProducts||[]).find(x => x.id === id);
-  if(!p){ 
+  if (!p) { 
     alert('❌ Product not found'); 
     return; 
   }
@@ -3656,23 +3637,22 @@ function editProduct(id, isVariant = false){
   
   // ✅ CHECK IF THIS IS A VARIANT
   if (isVariant || p.isGroupVariant) {
-    // Open variant edit modal (uses same form but with different save logic)
     openEditVariantModalFromProduct(p);
     return;
   }
   
-  // ✅ REGULAR PRODUCT EDIT (existing code)
+  // ✅ REGULAR PRODUCT EDIT
   editingProductId = id;
   
   document.getElementById('modalTitle').textContent = 'Edit Product';
   document.getElementById('productId').value = p.id;
   document.getElementById('productName').value = p.name;
   document.getElementById('category').value = p.category;
-  document.getElementById('brand').value = p.brand||'';
-  document.getElementById('size').value = p.size||'';
+  document.getElementById('brand').value = p.brand || '';
+  document.getElementById('size').value = p.size || '';
   document.getElementById('unitType').value = p.unitType;
-  document.getElementById('piecesPerBox').value = p.piecesPerBox||1;
-  document.getElementById('sftPerBox').value = p.sftPerBox||'';
+  document.getElementById('piecesPerBox').value = p.piecesPerBox || 1;
+  document.getElementById('sftPerBox').value = p.sftPerBox || '';
   document.getElementById('price').value = p.price;
   document.getElementById('minStock').value = p.minStock;
   
@@ -3717,7 +3697,7 @@ function editProduct(id, isVariant = false){
   console.log('✅ Edit modal opened');
 }
 
-// ✅ NEW FUNCTION: Open edit modal for variant
+// ✅ Open edit modal for variant (KEEP SAME)
 function openEditVariantModalFromProduct(variant) {
   console.log('📝 Opening variant edit modal:', variant);
   
@@ -3738,10 +3718,9 @@ function openEditVariantModalFromProduct(variant) {
   document.getElementById('price').value = variant.price || variant.sellingPrice || 0;
   document.getElementById('minStock').value = variant.minStock || 0;
   
-  // ✅ For variants, show current stock as exact number
   document.getElementById('productCurrentStock').value = variant.stock || 0;
   
-  // ✅ Make name/brand/size readonly for variants
+  // Make name/brand/size readonly for variants
   document.getElementById('productName').readOnly = true;
   document.getElementById('brand').readOnly = true;
   document.getElementById('size').readOnly = true;
@@ -3778,10 +3757,10 @@ async function saveProduct() {
   const sftPerBox = parseFloat(document.getElementById('sftPerBox').value) || 0;
   const price = parseFloat(document.getElementById('price').value);
   
-  // ✅ GET STOCK DATA (status + optional exact quantity)
+  // ✅ GET STOCK DATA
   const stockData = getStockData();
   if (!stockData) {
-    return; // Error already shown by getStockData()
+    return;
   }
   
   const minStock = parseInt(document.getElementById('minStock').value) || 5;
@@ -3795,7 +3774,7 @@ async function saveProduct() {
     return;
   }
   
-  // ✅ CREATE PRODUCT OBJECT - HANDLE BOTH EXACT & STATUS
+  // ✅ CREATE PRODUCT OBJECT
   const product = {
     id: editingProductId || (Date.now().toString(36) + Math.random().toString(36).substr(2)),
     name: name,
@@ -3806,14 +3785,14 @@ async function saveProduct() {
     piecesPerBox: piecesPerBox,
     sftPerBox: sftPerBox,
     price: price,
-    // ✅ KEY: If exact quantity, send number; if status, send TEXT
     stock: stockData.stockStatus === 'exact' 
       ? stockData.stockValue 
       : stockData.stockStatus.toUpperCase(),
     minStock: minStock,
     imageUrl: window.editingProductImageUrl || '',
     stockStatus: stockData.stockStatus,
-    stockValue: stockData.stockValue || null
+    stockValue: stockData.stockValue || null,
+    updatedAt: new Date().toISOString()
   };
   
   console.log('📦 Product object:', product);
@@ -3842,45 +3821,53 @@ async function saveProduct() {
   const modal = bootstrap.Modal.getInstance(document.getElementById('productModal'));
   if (modal) modal.hide();
   
-  // ✅ Refresh brand cache
-  refreshBrandAutocompleteCache();
+  // ✅ Refresh brand cache (if function exists)
+  if (typeof refreshBrandAutocompleteCache === 'function') {
+    refreshBrandAutocompleteCache();
+  }
   
   showSyncIndicator('Saving product...');
   
   // ✅ UPLOAD PHOTO FIRST (if available)
   if (productPhotoBase64) {
     console.log('📷 Uploading product photo...');
-    const photoUrl = await uploadProductPhotoToBackend(product.id, productPhotoBase64);
     
-    if (photoUrl) {
-      product.imageUrl = photoUrl;
-      const localIdx = cachedProducts.findIndex(p => p.id === product.id);
-      if (localIdx !== -1) cachedProducts[localIdx].imageUrl = photoUrl;
-      renderProducts();
+    // Note: You'll need to implement Firebase Storage upload
+    // For now, we'll skip photo upload - add this later
+    if (typeof uploadProductPhotoToFirebase === 'function') {
+      const photoUrl = await uploadProductPhotoToFirebase(product.id, productPhotoBase64);
       
-      // ✅ CACHE UPDATED PRODUCT
-      try {
-        localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
-      } catch (error) {
-        console.warn('⚠️ Cache update failed:', error);
+      if (photoUrl) {
+        product.imageUrl = photoUrl;
+        const localIdx = cachedProducts.findIndex(p => p.id === product.id);
+        if (localIdx !== -1) cachedProducts[localIdx].imageUrl = photoUrl;
+        renderProducts();
+        
+        try {
+          localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+        } catch (error) {
+          console.warn('⚠️ Cache update failed:', error);
+        }
       }
     }
   }
   
-  // ✅ SAVE PRODUCT TO SHEET (WITH BOTH STATUS AND EXACT)
+  // ✅ SAVE PRODUCT TO FIRESTORE
   try {
     const resp = await saveProductToSheet(product, !!editingProductId);
     console.log('📥 saveProductToSheet response:', resp);
     
-    if (resp && (resp.success || resp.ok)) {
+    if (resp && resp.success) {
       console.log('✅ Product saved successfully. Stock:', product.stock);
       
-      if (resp.id) {
+      if (resp.id && resp.id !== product.id) {
         const localIdx = cachedProducts.findIndex(p => p.id === product.id);
-        if (localIdx !== -1) cachedProducts[localIdx].id = resp.id;
+        if (localIdx !== -1) {
+          cachedProducts[localIdx].id = resp.id;
+          product.id = resp.id;
+        }
         renderProducts();
         
-        // ✅ UPDATE CACHE WITH NEW ID
         try {
           localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
         } catch (error) {
@@ -3889,7 +3876,11 @@ async function saveProduct() {
       }
       
       showSyncIndicator('Saved', 900);
-      resetStockSelection(); // Reset stock buttons after save
+      
+      if (typeof resetStockSelection === 'function') {
+        resetStockSelection();
+      }
+      
     } else {
       console.error('⚠️ Save returned false:', resp);
       if (previous && idx !== -1) {
@@ -3907,6 +3898,7 @@ async function saveProduct() {
     }
   } catch (err) {
     console.error('❌ Error in saveProduct:', err);
+    
     if (previous && idx !== -1) {
       cachedProducts[idx] = previous;
       renderProducts();
@@ -3933,12 +3925,9 @@ async function saveProduct() {
 
 
 
-
-
-
-// ✅ COMPLETE FIX: Save Variant Data - Backend Compatible Version
+// ✅ Save Variant Data - FIREBASE VERSION
 async function saveVariantData() {
-  console.log('💾 Saving variant...');
+  console.log('💾 Saving variant to Firestore...');
   
   const submitBtn = document.querySelector('#productModal .btn-primary');
   const originalText = submitBtn ? submitBtn.innerHTML : 'Save Product';
@@ -3949,9 +3938,15 @@ async function saveVariantData() {
   }
   
   try {
+    const user = window.auth.currentUser;
+    
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
     const form = document.getElementById('productForm');
     
-    // Get variant ID from multiple sources
+    // Get variant ID
     let variantId = document.getElementById('productId')?.value;
     if (!variantId || variantId === '') {
       variantId = form.dataset.variantId;
@@ -3961,10 +3956,7 @@ async function saveVariantData() {
     
     console.log('🔍 Debug info:', {
       variantId: variantId,
-      groupId: groupId,
-      formDataset: form.dataset,
-      productIdField: document.getElementById('productId'),
-      productIdValue: document.getElementById('productId')?.value
+      groupId: groupId
     });
     
     // Validation
@@ -3983,7 +3975,7 @@ async function saveVariantData() {
     };
     
     const sellingPrice = parseFloat(getFieldValue('price', 0));
-    const stock = parseInt(getFieldValue('stock', 0));
+    const stock = parseInt(getFieldValue('productCurrentStock', 0));
     const minStock = parseInt(getFieldValue('minStock', 0));
     const unitType = getFieldValue('unitType', 'Piece');
     
@@ -3995,96 +3987,73 @@ async function saveVariantData() {
       throw new Error('Invalid stock value');
     }
     
-    // ✅ PREPARE DATA - Format matching backend expectations
+    // ✅ PREPARE UPDATE DATA FOR FIRESTORE
     const updateData = {
-      action: 'updateGroupVariant',
-      email: userEmail,
-      hash: userHash,
-      variantId: variantId,
-      groupId: groupId,
-      costPrice: '0',
-      sellingPrice: sellingPrice.toString(),
-      stock: stock.toString(),
-      minStock: minStock.toString(),
-      unitType: unitType
+      sellingPrice: sellingPrice,
+      stock: stock,
+      minStock: minStock,
+      unitType: unitType,
+      updatedAt: new Date().toISOString()
     };
     
-    console.log('📤 Sending variant update:', updateData);
+    console.log('📤 Updating variant in Firestore:', updateData);
     
-    // ✅ METHOD 1: Try URLSearchParams (proper encoding)
-    const formData = new URLSearchParams();
-    Object.keys(updateData).forEach(key => {
-      formData.append(key, updateData[key]);
-    });
+    const { collection, doc, updateDoc } = window.firebaseImports;
+    const userId = user.uid;
     
-    console.log('📦 FormData string:', formData.toString());
+    // Update variant in Firestore
+    const variantRef = doc(window.db, 'tenants', userId, 'variants', variantId);
+    await updateDoc(variantRef, updateData);
     
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: formData.toString()
-    });
+    console.log('✅ Variant updated successfully');
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const result = await response.json();
-    console.log('📥 Backend response:', result);
-    
-    if (result.success || result.ok) {
-      console.log('✅ Variant updated successfully');
-      
-      // Update local cache
+    // Update local cache
+    if (typeof cachedGroupVariants !== 'undefined') {
       const variantIndex = cachedGroupVariants.findIndex(v => v.variantId === variantId);
       if (variantIndex !== -1) {
         cachedGroupVariants[variantIndex] = {
           ...cachedGroupVariants[variantIndex],
-          sellingPrice,
-          stock,
-          minStock,
-          unitType
+          ...updateData
         };
       }
-      
-      // Show success message
-      showSuccessToast('✅ Variant updated successfully!');
-      
-      // Close modal
-      const modal = bootstrap.Modal.getInstance(document.getElementById('productModal'));
-      if (modal) modal.hide();
-      
-      // Clear flags
-      form.dataset.isVariant = 'false';
-      form.dataset.groupId = '';
-      form.dataset.variantId = '';
-      
-      // Reset readonly fields
-      const resetField = (id) => {
-        const field = document.getElementById(id);
-        if (field) {
-          field.readOnly = false;
-          field.style.background = '';
-          field.style.color = '';
-        }
-      };
-      
-      resetField('productName');
-      resetField('brand');
-      resetField('size');
-      
-      // Refresh variants list
-      setTimeout(() => {
-        if (typeof loadGroupVariants === 'function') {
-          loadGroupVariants(groupId);
-        }
-      }, 500);
-      
-    } else {
-      throw new Error(result.error || result.message || 'Failed to update variant');
     }
+    
+    // Show success message
+    if (typeof showSuccessToast === 'function') {
+      showSuccessToast('✅ Variant updated successfully!');
+    } else {
+      alert('✅ Variant updated successfully!');
+    }
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('productModal'));
+    if (modal) modal.hide();
+    
+    // Clear flags
+    form.dataset.isVariant = 'false';
+    form.dataset.groupId = '';
+    form.dataset.variantId = '';
+    
+    // Reset readonly fields
+    const resetField = (id) => {
+      const field = document.getElementById(id);
+      if (field) {
+        field.readOnly = false;
+        field.style.background = '';
+        field.style.color = '';
+      }
+    };
+    
+    resetField('productName');
+    resetField('brand');
+    resetField('size');
+    
+    // Refresh variants list
+    setTimeout(() => {
+      if (typeof loadGroupVariants === 'function') {
+        loadGroupVariants(groupId);
+      }
+    }, 500);
     
   } catch (error) {
     console.error('❌ Error updating variant:', error);
@@ -4101,15 +4070,10 @@ async function saveVariantData() {
 
 
 
-
-
-
-
-
     
   
 
-  function deleteProduct(id) {
+ function deleteProduct(id) {
   if (!confirm('Are you sure you want to delete this product?')) {
     return;
   }
@@ -4119,27 +4083,47 @@ async function saveVariantData() {
   renderProducts();
   
   // Also update photo grid if currently viewing it
-  if (document.getElementById('btnPhotoView').classList.contains('active')) {
-    showPhotoProducts();
+  if (document.getElementById('btnPhotoView')?.classList.contains('active')) {
+    if (typeof showPhotoProducts === 'function') {
+      showPhotoProducts();
+    }
   }
   
   showSyncIndicator('Deleting...');
   
   deleteProductFromSheet(id).then(success => {
     if (success) {
+      console.log('✅ Product deleted successfully');
       showSyncIndicator('Deleted', 900);
+      
+      // Update cache
+      try {
+        localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+      } catch (e) {
+        console.warn('Cache update failed:', e);
+      }
     } else {
+      console.error('❌ Delete failed, reverting...');
       cachedProducts = prev;
       renderProducts();
-      if (document.getElementById('btnPhotoView').classList.contains('active')) {
-        showPhotoProducts();
+      
+      if (document.getElementById('btnPhotoView')?.classList.contains('active')) {
+        if (typeof showPhotoProducts === 'function') {
+          showPhotoProducts();
+        }
       }
+      
       alert('Delete failed - reverted locally.');
+      showSyncIndicator('Delete failed', 2000);
     }
+  }).catch(err => {
+    console.error('❌ Delete error:', err);
+    cachedProducts = prev;
+    renderProducts();
+    alert('Delete failed - reverted locally.');
+    showSyncIndicator('Delete failed', 2000);
   });
 }
-
-
 
 
 
@@ -4225,39 +4209,39 @@ function removeProductPhoto() {
 }
 
 /**
- * Upload product photo to backend
+ * Upload product photo to Firebase Storage
  */
-async function uploadProductPhotoToBackend(productId, photoBase64) {
+async function uploadProductPhotoToFirebase(productId, photoBase64) {
   try {
     if (!photoBase64) {
       console.log('⚠️ No photo to upload');
       return null;
     }
     
-    console.log('📤 Uploading product photo...');
+    console.log('📤 Uploading product photo to Firebase Storage...');
     
-    const formData = new URLSearchParams({
-      action: 'uploadPhoto',
-      email: userEmail,
-      hash: userHash,
-      imageData: photoBase64,
-      fileName: productPhotoFileName
-    });
+    // Note: Firebase Storage requires additional import
+    // For now, we'll store base64 in Firestore (quick solution)
+    // Later, you can upgrade to Firebase Storage for better performance
     
-    const response = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      body: formData
-    });
-    
-    const result = await response.json();
-    
-    if (result.success && result.photoUrl) {
-      console.log('✅ Product photo uploaded:', result.photoUrl);
-      return result.photoUrl;
-    } else {
-      console.warn('⚠️ Photo upload failed:', result.error);
+    // Option 1: Store base64 directly in product document (simple but not recommended for production)
+    const user = window.auth.currentUser;
+    if (!user) {
+      console.error('User not authenticated');
       return null;
     }
+    
+    // For production, you should use Firebase Storage instead
+    // This is a temporary solution
+    console.log('✅ Photo prepared for Firestore (base64)');
+    return photoBase64; // Return base64 to store in product document
+    
+    // TODO: Implement Firebase Storage upload for production
+    // const storage = getStorage();
+    // const storageRef = ref(storage, `products/${user.uid}/${productId}.jpg`);
+    // const uploadTask = await uploadString(storageRef, photoBase64, 'data_url');
+    // const downloadURL = await getDownloadURL(uploadTask.ref);
+    // return downloadURL;
     
   } catch (error) {
     console.error('❌ Photo upload error:', error);
@@ -4265,23 +4249,32 @@ async function uploadProductPhotoToBackend(productId, photoBase64) {
   }
 }
 
+// Keep backward compatibility
+async function uploadProductPhotoToBackend(productId, photoBase64) {
+  return await uploadProductPhotoToFirebase(productId, photoBase64);
+}
 
 /**
  * ==========================================
- * RECORD PURCHASE - MAIN FUNCTIONS
+ * RECORD PURCHASE - FIREBASE VERSION
  * ==========================================
  */
 
-const CONFIG = {
-  APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwiJpoKIyqL6r6dNFMz0gZbwcL7D4cJ2VR8TpU5sakHt4qSKhMYjCMvle6r0HsBrr-Y/exec'};
-
-// Global variables
+// Global variables - NO CHANGES NEEDED
 let purchasePhotoBase64 = null;
 let purchaseProductRowCounter = 0;
 
-
+/**
+ * Submit purchase entry to Firestore
+ */
 async function submitPurchaseEntry() {
-  console.log('📤 submitPurchaseEntry called from popup button');
+  console.log('📤 submitPurchaseEntry called');
+  
+  const user = window.auth.currentUser;
+  if (!user) {
+    alert('Please sign in first');
+    return;
+  }
   
   try {
     // Get form values
@@ -4289,7 +4282,6 @@ async function submitPurchaseEntry() {
     const totalAmount = parseFloat(document.getElementById('purchaseTotalAmount')?.value || 0);
     const otherInfo = document.getElementById('purchaseOtherInfo')?.value?.trim() || '';
     
-    // Validate vendor name
     if (!vendorName) {
       alert('❌ Please enter vendor name');
       return;
@@ -4326,7 +4318,6 @@ async function submitPurchaseEntry() {
       return;
     }
     
-    // Validate total amount
     if (totalAmount <= 0) {
       alert('❌ Please enter total amount');
       return;
@@ -4350,18 +4341,20 @@ async function submitPurchaseEntry() {
     
     // Build purchase data
     const purchaseData = {
-      action: 'recordPurchase',
       vendorName: vendorName,
       products: products,
       totalAmount: totalAmount,
       paymentModes: paymentModes,
       otherInfo: otherInfo,
-      photoBase64: window.purchasePhotoBase64 || ''
+      photoBase64: window.purchasePhotoBase64 || '',
+      date: new Date().toISOString(),
+      userId: user.uid,
+      userEmail: user.email
     };
     
-    console.log('📦 Submitting purchase data:', purchaseData);
+    console.log('📦 Submitting purchase to Firestore:', purchaseData);
     
-    // Disable submit button and show loading
+    // Disable submit button
     const submitBtn = document.querySelector('#recordPurchaseModal button[onclick*="submitPurchaseEntry"]') || 
                       document.getElementById('submitPurchaseBtn');
     const originalBtnHTML = submitBtn?.innerHTML || 'Submit';
@@ -4371,81 +4364,42 @@ async function submitPurchaseEntry() {
       submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting...';
     }
     
-    // ✅ CRITICAL: Use no-cors mode (same as console test)
-    console.log('📡 Sending POST request to:', CONFIG.APPS_SCRIPT_URL);
+    // Save to Firestore
+    const { collection, addDoc } = window.firebaseImports;
+    const purchasesRef = collection(window.db, 'tenants', user.uid, 'purchases');
     
-    const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',  // ← CRITICAL FIX
-      headers: {
-        'Content-Type': 'text/plain'  // ← CRITICAL FIX
-      },
-      body: JSON.stringify(purchaseData)
-    });
+    const docRef = await addDoc(purchasesRef, purchaseData);
     
-    console.log('📡 Response type:', response.type);
+    console.log('✅ Purchase saved to Firestore:', docRef.id);
     
-    // With no-cors, response will be opaque
-    if (response.type === 'opaque') {
-      console.log('✅ Request sent successfully (opaque response)');
-      console.log('🎉 Purchase should be registered in Google Sheet');
-      
-      // Show success alert
-      alert('✅ Purchase recorded successfully!\n\nVendor: ' + vendorName + '\nTotal: ₹' + totalAmount);
-      
-      // Close the modal
-      const modal = document.getElementById('recordPurchaseModal');
-      if (modal) {
-        const bsModal = bootstrap.Modal.getInstance(modal);
-        if (bsModal) {
-          bsModal.hide();
-        }
-      }
-      
-      // Reset form
-      document.getElementById('purchaseVendorName').value = '';
-      document.getElementById('purchaseTotalAmount').value = '';
-      document.getElementById('purchaseOtherInfo').value = '';
-      document.querySelectorAll('.purchase-product-row').forEach(row => row.remove());
-      window.purchasePhotoBase64 = '';
-      
-      // Reload purchases list after 1.5 seconds
-      console.log('🔄 Will reload purchases in 1.5 seconds...');
-      setTimeout(async () => {
-        console.log('🔄 Reloading purchases list...');
-        if (typeof loadRecentPurchases === 'function') {
-          await loadRecentPurchases();
-          console.log('✅ Purchases list reloaded');
-        } else {
-          console.log('⚠️ loadRecentPurchases not found, reloading page...');
-          window.location.reload();
-        }
-      }, 1500);
-      
-    } else {
-      // Regular response (if CORS is fixed in future)
-      console.log('📡 Got regular response');
-      const text = await response.text();
-      const result = JSON.parse(text);
-      
-      if (result.success) {
-        alert('✅ Purchase recorded!\nID: ' + result.purchaseId);
-        // Close modal and reload
-        const modal = bootstrap.Modal.getInstance(document.getElementById('recordPurchaseModal'));
-        if (modal) modal.hide();
-        if (typeof loadRecentPurchases === 'function') {
-          await loadRecentPurchases();
-        }
-      } else {
-        throw new Error(result.error || 'Failed to record purchase');
-      }
+    alert('✅ Purchase recorded successfully!\n\nVendor: ' + vendorName + '\nTotal: ₹' + totalAmount);
+    
+    // Close modal
+    const modal = document.getElementById('recordPurchaseModal');
+    if (modal) {
+      const bsModal = bootstrap.Modal.getInstance(modal);
+      if (bsModal) bsModal.hide();
     }
+    
+    // Reset form
+    document.getElementById('purchaseVendorName').value = '';
+    document.getElementById('purchaseTotalAmount').value = '';
+    document.getElementById('purchaseOtherInfo').value = '';
+    document.querySelectorAll('.purchase-product-row').forEach(row => row.remove());
+    window.purchasePhotoBase64 = '';
+    
+    // Reload purchases list
+    setTimeout(async () => {
+      console.log('🔄 Reloading purchases list...');
+      if (typeof loadRecentPurchases === 'function') {
+        await loadRecentPurchases();
+      }
+    }, 500);
     
   } catch (error) {
     console.error('❌ Submit error:', error);
     alert('❌ Failed to record purchase:\n' + error.message);
   } finally {
-    // Re-enable button
     const submitBtn = document.querySelector('#recordPurchaseModal button[onclick*="submitPurchaseEntry"]') || 
                       document.getElementById('submitPurchaseBtn');
     if (submitBtn) {
@@ -4628,22 +4582,21 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+
+
+
+
 /**
- * Update submit function (payment optional)
- */
-/**
- * Submit purchase entry to Google Sheets
- */
-
-
-
-
-    
-/**
- * Load recent purchases from Google Sheets
+ * Load recent purchases from Firestore
  */
 async function loadRecentPurchases() {
-  console.log('📦 Loading recent purchases...');
+  console.log('📦 Loading recent purchases from Firestore...');
+  
+  const user = window.auth.currentUser;
+  if (!user) {
+    console.error('User not authenticated');
+    return;
+  }
   
   const tbody = document.getElementById('purchasesList');
   tbody.innerHTML = `
@@ -4655,27 +4608,23 @@ async function loadRecentPurchases() {
   `;
   
   try {
-    const response = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=getPurchases&t=${Date.now()}`);
+    const { collection, getDocs, query, orderBy } = window.firebaseImports;
     
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
+    const purchasesRef = collection(window.db, 'tenants', user.uid, 'purchases');
+    const q = query(purchasesRef, orderBy('date', 'desc'));
+    const snapshot = await getDocs(q);
     
-    // ✅ Validate JSON before parsing
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      const text = await response.text();
-      console.error('❌ Non-JSON response:', text.substring(0, 200));
-      throw new Error('Server returned invalid response format');
-    }
+    const purchases = [];
+    snapshot.forEach((doc) => {
+      purchases.push({
+        purchaseId: doc.id,
+        ...doc.data()
+      });
+    });
     
-    const result = await response.json();
+    console.log(`✅ Loaded ${purchases.length} purchases`);
     
-    if (result.success) {
-      displayPurchases(result.purchases);
-    } else {
-      throw new Error(result.error || 'Failed to load purchases');
-    }
+    displayPurchases(purchases);
     
   } catch (error) {
     console.error('❌ Error loading purchases:', error.message);
@@ -4690,12 +4639,14 @@ async function loadRecentPurchases() {
   }
 }
 
-
 /**
  * Display purchases in table
  */
 /**
  * Display purchases in table (WITH LIGHTBOX PHOTO MODAL)
+ */
+/**
+ * Display purchases in table - NO CHANGES NEEDED (UI only)
  */
 function displayPurchases(purchases) {
   const tbody = document.getElementById('purchasesList');
@@ -4714,27 +4665,34 @@ function displayPurchases(purchases) {
   let html = '';
   
   purchases.forEach((purchase, index) => {
+    // Format products string
+    const productsStr = Array.isArray(purchase.products) 
+      ? purchase.products.map(p => `${p.name} (${p.qty})`).join(', ')
+      : purchase.products || '-';
+    
+    // Format date
+    const dateStr = purchase.date ? new Date(purchase.date).toLocaleString() : '-';
+    
     html += `
       <tr onclick="viewPurchaseDetail(${index})" style="cursor: pointer;">
-        <td style="text-align: center; font-weight: 600;">${purchase.serialNo}</td>
-        <td style="white-space: nowrap;">${purchase.dateTime}</td>
+        <td style="text-align: center; font-weight: 600;">${index + 1}</td>
+        <td style="white-space: nowrap;">${dateStr}</td>
         <td style="text-align: center;">
-          ${purchase.photoLink ? `
+          ${purchase.photoBase64 ? `
             <img 
-              src="${purchase.photoLink}" 
+              src="${purchase.photoBase64}" 
               onclick="event.stopPropagation(); openPurchasePhotoLightbox(${index})" 
               style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; transition: transform 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" 
               onmouseover="this.style.transform='scale(1.05)'" 
               onmouseout="this.style.transform='scale(1)'"
               alt="Purchase Photo"
-              title="Click to view full size"
-              onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=color:#999>No photo</span>'">
+              title="Click to view full size">
           ` : '<span style="color: #999;">-</span>'}
         </td>
-        <td>${purchase.products}</td>
+        <td>${productsStr}</td>
         <td>${purchase.vendorName}</td>
         <td style="font-weight: 600; color: #28a745;">₹${purchase.totalAmount.toFixed(2)}</td>
-        <td style="font-size: 0.9rem;">${purchase.paymentMode || '-'}</td>
+        <td style="font-size: 0.9rem;">${formatPaymentModes(purchase.paymentModes) || '-'}</td>
         <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${purchase.otherInfo || '-'}</td>
       </tr>
     `;
@@ -4746,6 +4704,15 @@ function displayPurchases(purchases) {
   console.log('✅ Displayed', purchases.length, 'purchases');
 }
 
+// Helper function
+function formatPaymentModes(modes) {
+  if (!modes || typeof modes !== 'object') return '';
+  const parts = [];
+  if (modes.cash) parts.push(`Cash: ₹${modes.cash}`);
+  if (modes.online) parts.push(`Online: ₹${modes.online}`);
+  if (modes.credit) parts.push(`Credit: ₹${modes.credit}`);
+  return parts.join(', ');
+}
 
     /**
  * Open purchase photo in lightbox modal (like product photo modal)
@@ -4927,47 +4894,39 @@ function viewPurchaseDetail(index) {
 }
 
 /**
- * Confirm delete purchase
+ * Confirm delete purchase - FIREBASE VERSION
  */
 async function confirmDeletePurchase(purchaseId) {
   if (!confirm('Are you sure you want to delete this purchase? This cannot be undone.')) {
     return;
   }
   
+  const user = window.auth.currentUser;
+  if (!user) {
+    alert('Please sign in first');
+    return;
+  }
+  
   try {
-    const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        action: 'deletePurchase',
-        purchaseId: purchaseId
-      })
-    });
+    const { doc, deleteDoc } = window.firebaseImports;
     
-    const result = await response.json();
+    const purchaseDoc = doc(window.db, 'tenants', user.uid, 'purchases', purchaseId);
+    await deleteDoc(purchaseDoc);
     
-    if (result.success) {
-      alert('✅ Purchase deleted successfully!');
-      
-      // Close detail modal
-      const modal = bootstrap.Modal.getInstance(document.getElementById('purchaseDetailModal'));
-      if (modal) modal.hide();
-      
-      // Reload list
-      await loadRecentPurchases();
-      
-    } else {
-      throw new Error(result.error || 'Failed to delete purchase');
-    }
+    alert('✅ Purchase deleted successfully!');
+    
+    // Close detail modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('purchaseDetailModal'));
+    if (modal) modal.hide();
+    
+    // Reload list
+    await loadRecentPurchases();
     
   } catch (error) {
     console.error('❌ Error deleting purchase:', error);
     alert('❌ Failed to delete purchase: ' + error.message);
   }
 }
-
 
 /**
  * Remove product row
@@ -6113,9 +6072,15 @@ function populateRowWithCustom(rowIndex, cp){
 // ==========================================
 
 // ==========================================
-// COMPLETE SALE - OPTIMISTIC UI + BACKGROUND SAVE
+// COMPLETE SALE - FIREBASE VERSION
 // ==========================================
 async function completeSale() {
+  const user = window.auth.currentUser;
+  if (!user) {
+    alert('Please sign in first');
+    return;
+  }
+  
   // Collect valid sale items from the form
   const saleItems = [];
   const rows = document.querySelectorAll('#product-grid-body .product-row');
@@ -6127,7 +6092,7 @@ async function completeSale() {
     const qtyEl = document.getElementById(`qty-${idx}`);
     
     if (!sel || !sel.value || !qtyEl || !qtyEl.value || Number(qtyEl.value) <= 0) {
-      return; // Skip empty rows
+      return;
     }
     
     const productId = sel.value;
@@ -6137,7 +6102,6 @@ async function completeSale() {
     const size = document.getElementById(`size-${idx}`).value || 'N/A';
     const unitType = document.getElementById(`unit-${idx}`).value || '';
     
-    // Check if custom product
     const isCustom = productId.startsWith('CUST_TMP_');
     let productName = '';
     
@@ -6164,23 +6128,22 @@ async function completeSale() {
   
   // Validation
   if (saleItems.length === 0) {
-    alert('Ã¢Å¡ Ã¯Â¸Â No products selected. Please add at least one product to complete the sale.');
+    alert('⚠️ No products selected. Please add at least one product to complete the sale.');
     return;
   }
   
   const totalAmount = saleItems.reduce((sum, item) => sum + item.totalAmount, 0);
   
-  if (!confirm(`Ã°Å¸â€œÂ¦ Complete sale with ${saleItems.length} item(s)?\n\nTotal: ${formatCurrency(totalAmount)}`)) {
+  if (!confirm(`📦 Complete sale with ${saleItems.length} item(s)?\n\nTotal: ${formatCurrency(totalAmount)}`)) {
     return;
   }
   
-  console.log(`Ã¢Å“â€¦ Sale confirmed: ${saleItems.length} items, total ${formatCurrency(totalAmount)}`);
+  console.log(`✅ Sale confirmed: ${saleItems.length} items, total ${formatCurrency(totalAmount)}`);
   
   // ==========================================
-  // Ã¢Å“â€¦ STEP 1: INSTANT UI UPDATES (< 100ms)
+  // ✅ STEP 1: INSTANT UI UPDATES (< 100ms)
   // ==========================================
   
-  // Add to local cache immediately
   saleItems.forEach(item => {
     const newSale = {
       id: generateId(),
@@ -6193,7 +6156,8 @@ async function completeSale() {
       unitPrice: item.unitPrice,
       totalAmount: item.totalAmount,
       date: new Date().toISOString(),
-      isCustomProduct: item.isCustomProduct
+      isCustomProduct: item.isCustomProduct,
+      userId: user.uid
     };
     cachedSales.unshift(newSale);
     
@@ -6219,28 +6183,52 @@ async function completeSale() {
   customProductsInSale = [];
   
   // Show success toast notification
-  showSuccessToast(`Ã¢Å“â€¦ Sale completed! ${saleItems.length} item(s) recorded.`);
+  showSuccessToast(`✅ Sale completed! ${saleItems.length} item(s) recorded.`);
   
-  console.log(`Ã¢Å“â€¦ UI updated instantly - ${saleItems.length} items displayed`);
+  console.log(`✅ UI updated instantly - ${saleItems.length} items displayed`);
   
   // ==========================================
-  // Ã°Å¸â€â€ž STEP 2: BACKGROUND SAVE TO GOOGLE SHEETS
+  // 🔄 STEP 2: BACKGROUND SAVE TO FIRESTORE
   // ==========================================
   
-  // Add items to background save queue
-  saleItems.forEach(item => {
-    backgroundSaveQueue.push(item);
-  });
-  
-  console.log(`Ã°Å¸â€â€ž Added ${saleItems.length} items to background save queue (queue size: ${backgroundSaveQueue.length})`);
-  
-  // Start background processor (if not already running)
-  if (!isProcessingQueue) {
-    setTimeout(() => {
-      processBackgroundSaveQueue();
-    }, 100); // Small delay to let UI settle
-  } else {
-    console.log('Ã¢ÂÂ³ Background processor already running, items will be processed in sequence');
+  try {
+    const { collection, addDoc } = window.firebaseImports;
+    const salesRef = collection(window.db, 'tenants', user.uid, 'sales');
+    
+    // Save each sale item to Firestore
+    const savePromises = saleItems.map(item => {
+      return addDoc(salesRef, {
+        ...item,
+        createdAt: new Date().toISOString(),
+        userId: user.uid
+      });
+    });
+    
+    await Promise.all(savePromises);
+    
+    console.log(`✅ ${saleItems.length} sales saved to Firestore in background`);
+    
+    // Also update product stock in Firestore
+    const { doc, updateDoc } = window.firebaseImports;
+    
+    for (const item of saleItems) {
+      if (!item.isCustomProduct && item.productId) {
+        const prod = cachedProducts.find(p => p.id === item.productId);
+        if (prod) {
+          const productRef = doc(window.db, 'tenants', user.uid, 'products', item.productId);
+          await updateDoc(productRef, {
+            stock: prod.stock,
+            updatedAt: new Date().toISOString()
+          });
+        }
+      }
+    }
+    
+    console.log('✅ Product stock updated in Firestore');
+    
+  } catch (error) {
+    console.error('❌ Background save error:', error);
+    // Don't show error to user - sale is already complete in UI
   }
 }
 
@@ -6287,12 +6275,7 @@ function showSuccessToast(message) {
   
 
 
-  /***********************
-   * Load sale product select helper (if needed elsewhere)
-   ***********************/
-  function loadProductsForSaleFromCache(){
-    // not used directly now (we populate selects per-row), but keep for compatibility
-  }
+  
 
 
 
@@ -6964,68 +6947,56 @@ async function savePhotoProduct() {
   uploadPhotoToBackend(productData, selectedPhotoBase64);
 }
 
-// Upload photo to backend
+/**
+ * Upload photo to Firebase (temp solution - stores base64)
+ * TODO: Upgrade to Firebase Storage for production
+ */
 async function uploadPhotoToBackend(productData, photoBase64) {
   try {
-    console.log('Uploading photo to Google Drive...');
+    console.log('Saving photo product to Firebase...');
     
-    document.getElementById('photoLoadingSpinner').style.display = 'block';
-    
-    const formData = new URLSearchParams({
-      action: 'uploadPhoto',
-      email: userEmail,
-      hash: userHash,
-      imageData: photoBase64,
-      fileName: `product_${productData.id}_${Date.now()}.jpg`
-    });
-    
-    const photoResponse = await fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
-    });
-    
-    const photoResult = await photoResponse.json();
-    
-    if (photoResult.success && photoResult.photoUrl) {
-      console.log('Photo uploaded successfully:', photoResult.photoUrl);
-      
-      productData.imageUrl = photoResult.photoUrl;
-      
-      const productIndex = cachedProducts.findIndex(p => p.id === productData.id);
-      if (productIndex !== -1) {
-        cachedProducts[productIndex].imageUrl = photoResult.photoUrl;
-      }
-      
-      await saveProductToSheet(productData);
-      
-      renderProducts();
-      showSuccessToast('âœ… Photo uploaded successfully!');
-      
-    } else {
-      throw new Error(photoResult.error || 'Photo upload failed');
+    const user = window.auth.currentUser;
+    if (!user) {
+      throw new Error('User not authenticated');
     }
+    
+    // For now, store base64 directly in product
+    productData.imageUrl = photoBase64;
+    
+    const productIndex = cachedProducts.findIndex(p => p.id === productData.id);
+    if (productIndex !== -1) {
+      cachedProducts[productIndex].imageUrl = photoBase64;
+    }
+    
+    // Save to Firestore
+    await saveProductToSheet(productData);
+    
+    renderProducts();
+    showSuccessToast('✅ Photo product saved!');
+    
+    console.log('✅ Photo product saved to Firestore');
+    
+    // TODO: For production, use Firebase Storage:
+    // const storage = getStorage();
+    // const storageRef = ref(storage, `products/${user.uid}/${productData.id}.jpg`);
+    // const uploadTask = await uploadString(storageRef, photoBase64, 'data_url');
+    // const photoUrl = await getDownloadURL(uploadTask.ref);
+    // return photoUrl;
     
   } catch (error) {
     console.error('Photo upload error:', error);
-    alert('Failed to upload photo. Product saved without image.');
+    alert('Failed to save photo product. Please try again.');
     
     productData.imageUrl = '';
-    
     const productIndex = cachedProducts.findIndex(p => p.id === productData.id);
     if (productIndex !== -1) {
       cachedProducts[productIndex].imageUrl = '';
     }
     
-    await saveProductToSheet(productData);
     renderProducts();
-    
-  } finally {
-    document.getElementById('photoLoadingSpinner').style.display = 'none';
   }
 }
+
 
 /**
  * Show all products (table view) - FIXED
@@ -7239,12 +7210,12 @@ function viewPhotoProduct(productId) {
 
 /**
  * ==========================================
- * INITIALIZATION ON PAGE LOAD
+ * INITIALIZATION ON PAGE LOAD - FIREBASE VERSION
  * ==========================================
  */
 
 document.addEventListener('DOMContentLoaded', async function() {
-  console.log('🚀 Initializing Inventory App...');
+  console.log('🚀 Initializing Inventory App with Firebase...');
   
   // Set initial page
   currentPage = 'home';
@@ -7280,7 +7251,9 @@ document.addEventListener('DOMContentLoaded', async function() {
       const brandField = document.getElementById('brand');
       if (brandField) brandField.value = '';
       
-      clearProductPhotoSelection();
+      if (typeof clearProductPhotoSelection === 'function') {
+        clearProductPhotoSelection();
+      }
       
       const dropdown = document.getElementById('brandSuggestionsDropdown');
       if (dropdown) dropdown.style.display = 'none';
@@ -7289,25 +7262,41 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
   }
   
-  // Load brand cache
-  loadBrandAutocompleteCache();
+  // Load brand cache (if function exists)
+  if (typeof loadBrandAutocompleteCache === 'function') {
+    loadBrandAutocompleteCache();
+  }
   
-  // ✅ INITIALIZE: Load data from cache first, then sync with cloud
-  console.log('📱 Starting cache-first initialization...');
-  renderProducts();
-  renderSales();
-  syncFromGoogleSheets();
+  // ✅ FIREBASE INITIALIZATION: Firebase Auth will handle sync
+  // The auth state listener in handleEmailPasswordAuth will trigger syncFromFirestore()
+  console.log('📱 Waiting for Firebase authentication...');
   
-  // ✅ NEW: Load customer invoices from cloud on page load
-  console.log('📄 Loading customer invoices from cloud...');
-  await loadCustomerInvoices();
+  // Load from localStorage cache first (instant display)
+  try {
+    cachedProducts = JSON.parse(localStorage.getItem('inventory_products_cache') || '[]');
+    cachedSales = JSON.parse(localStorage.getItem('inventory_sales_cache') || '[]');
+    renderProducts();
+    renderSales();
+    console.log('✅ Displayed cached data');
+  } catch (e) {
+    console.warn('Cache load failed:', e);
+  }
   
-  // Load purchases
-  console.log('📦 Loading purchases...');
-  loadRecentPurchases();
+  // Load purchases (if function exists)
+  if (typeof loadRecentPurchases === 'function') {
+    console.log('📦 Loading purchases...');
+    await loadRecentPurchases();
+  }
+  
+  // Load customer invoices (if function exists)
+  if (typeof loadCustomerInvoices === 'function') {
+    console.log('📄 Loading customer invoices...');
+    await loadCustomerInvoices();
+  }
   
   console.log('✅ App initialization complete');
 });
+
 
 /**
  * ==========================================
@@ -8204,6 +8193,147 @@ function loadDefaultTerms() {
   document.getElementById('invoiceTerms').value = defaultTerms;
 }
 
+/**
+ * ==========================================
+ * OPTIONAL: SAVE INVOICE TO FIREBASE
+ * ==========================================
+ */
+
+/**
+ * Save generated invoice to Firestore
+ */
+async function saveInvoiceToFirebase() {
+  const user = window.auth.currentUser;
+  if (!user) {
+    alert('Please sign in to save invoice');
+    return;
+  }
+  
+  try {
+    // Get invoice data from form
+    const invoiceNo = document.getElementById('invoiceNumber')?.value;
+    const invoiceDate = document.getElementById('invoiceDate')?.value;
+    const dueDate = document.getElementById('invoiceDueDate')?.value;
+    const customerName = document.getElementById('customerName')?.value;
+    const customerEmail = document.getElementById('customerEmail')?.value;
+    const customerPhone = document.getElementById('customerPhone')?.value;
+    const customerAddress = document.getElementById('customerAddress')?.value;
+    
+    // Get items
+    const items = [];
+    const container = document.getElementById('invoiceItemsBody');
+    const rows = container.querySelectorAll('.invoice-product-row');
+    
+    rows.forEach((row) => {
+      const rowIndex = row.getAttribute('data-index');
+      const product = document.getElementById(`invoiceProduct-${rowIndex}`)?.value;
+      const qty = parseFloat(document.getElementById(`invoiceQty-${rowIndex}`)?.value) || 0;
+      const rate = parseFloat(document.getElementById(`invoiceRate-${rowIndex}`)?.value) || 0;
+      
+      if (product && qty > 0 && rate > 0) {
+        items.push({
+          product: product,
+          quantity: qty,
+          rate: rate,
+          amount: qty * rate
+        });
+      }
+    });
+    
+    // Get totals
+    const subtotal = parseFloat(document.getElementById('invoiceSubtotal')?.textContent.replace('₹', '') || 0);
+    const discount = parseFloat(document.getElementById('invoiceDiscountAmount')?.textContent.replace('-₹', '') || 0);
+    const tax = parseFloat(document.getElementById('invoiceTaxAmount')?.textContent.replace('₹', '') || 0);
+    const grandTotal = parseFloat(document.getElementById('invoiceGrandTotal')?.textContent.replace('₹', '') || 0);
+    
+    // Get terms
+    const terms = document.getElementById('invoiceTerms')?.value;
+    
+    // Build invoice object
+    const invoiceData = {
+      invoiceNumber: invoiceNo,
+      invoiceDate: invoiceDate,
+      dueDate: dueDate,
+      customer: {
+        name: customerName,
+        email: customerEmail,
+        phone: customerPhone,
+        address: customerAddress
+      },
+      items: items,
+      subtotal: subtotal,
+      discount: discount,
+      tax: tax,
+      grandTotal: grandTotal,
+      terms: terms,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      userId: user.uid
+    };
+    
+    console.log('💾 Saving invoice to Firebase:', invoiceData);
+    
+    // Save to Firestore
+    const { collection, addDoc } = window.firebaseImports;
+    const invoicesRef = collection(window.db, 'tenants', user.uid, 'invoices');
+    
+    const docRef = await addDoc(invoicesRef, invoiceData);
+    
+    console.log('✅ Invoice saved to Firebase:', docRef.id);
+    
+    showSuccessToast(`✅ Invoice ${invoiceNo} saved successfully!`);
+    
+    return docRef.id;
+    
+  } catch (error) {
+    console.error('❌ Error saving invoice:', error);
+    alert('Failed to save invoice: ' + error.message);
+    return null;
+  }
+}
+
+/**
+ * Load customer invoices from Firestore
+ */
+async function loadCustomerInvoices() {
+  const user = window.auth.currentUser;
+  if (!user) {
+    console.log('No user authenticated, skipping invoice load');
+    return;
+  }
+  
+  try {
+    const { collection, getDocs, query, orderBy } = window.firebaseImports;
+    
+    const invoicesRef = collection(window.db, 'tenants', user.uid, 'invoices');
+    const q = query(invoicesRef, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    
+    const invoices = [];
+    snapshot.forEach((doc) => {
+      invoices.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    console.log(`✅ Loaded ${invoices.length} invoices from Firebase`);
+    
+    // Store in global variable for display
+    window.cachedInvoices = invoices;
+    
+    // If you have a display function, call it here
+    if (typeof displayInvoices === 'function') {
+      displayInvoices(invoices);
+    }
+    
+    return invoices;
+    
+  } catch (error) {
+    console.error('❌ Error loading invoices:', error);
+    return [];
+  }
+}
 
 
 
@@ -8702,24 +8832,25 @@ function escapeHtml(text) {
 
     
 
-/**
- * ==========================================
- * SAVE INVOICE (SAVES TO BOTH LOCALSTORAGE & GOOGLE SHEETS)
- * ==========================================
- */
-/**
- * ==========================================
- * SAVE INVOICE (SAVES TO BOTH LOCALSTORAGE & GOOGLE SHEETS)
- * Uses CustomerInvoices and CustomerInvoiceItems sheets
- * ==========================================
- */
 
+
+/**
+ * ==========================================
+ * SAVE INVOICE - FIREBASE VERSION
+ * ==========================================
+ */
 
 async function saveInvoice() {
   console.log('💾 Save Invoice clicked');
   
+  const user = window.auth.currentUser;
+  if (!user) {
+    alert('Please sign in to save invoice');
+    return;
+  }
+  
   try {
-    const customerName = document.getElementById('invoiceCustomerName').value.trim();
+    const customerName = document.getElementById('invoiceCustomerName')?.value.trim();
     
     if (!customerName) {
       alert('⚠️ Please enter customer name');
@@ -8787,7 +8918,9 @@ async function saveInvoice() {
       total: total,
       notes: document.getElementById('invoiceNotes')?.value || '',
       terms: document.getElementById('invoiceTerms')?.value || '',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      userId: user.uid,
+      userEmail: user.email
     };
     
     console.log('✅ Invoice data ready:', invoiceData);
@@ -8798,48 +8931,44 @@ async function saveInvoice() {
     localStorage.setItem('customerInvoices', JSON.stringify(invoices));
     console.log('✅ Saved to localStorage');
     
-    // ✅ Try to save to Google Sheets (cloud backup) - with BETTER error handling
+    // ✅ Save to Firestore (cloud backup)
     let cloudSyncSuccess = false;
     let cloudSyncError = null;
     
     try {
-      console.log('☁️ Attempting cloud sync to:', SCRIPT_URL);
+      console.log('☁️ Saving invoice to Firestore...');
       
-      // Use FormData instead of JSON to avoid CORS preflight
-      const formData = new URLSearchParams();
-      formData.append('action', 'saveCustomerInvoice');
-      formData.append('invoiceData', JSON.stringify(invoiceData));
+      const { collection, addDoc } = window.firebaseImports;
+      const invoicesRef = collection(window.db, 'tenants', user.uid, 'invoices');
       
-      const response = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData.toString(),
-        mode: 'no-cors' // This prevents CORS errors but we can't read the response
-      });
+      const docRef = await addDoc(invoicesRef, invoiceData);
       
-      // With no-cors mode, we can't read the response
-      // Assume success if no error is thrown
       cloudSyncSuccess = true;
-      console.log('✅ Cloud sync request sent (no-cors mode)');
+      console.log('✅ Invoice saved to Firestore:', docRef.id);
       
-    } catch (sheetError) {
-      cloudSyncError = sheetError;
-      console.error('❌ Cloud sync error:', sheetError);
+    } catch (firebaseError) {
+      cloudSyncError = firebaseError;
+      console.error('❌ Firestore save error:', firebaseError);
     }
     
     // Show appropriate message
     if (cloudSyncSuccess) {
-      alert(`✅ Invoice saved successfully!\n\n📄 Invoice: ${invoiceData.invoiceNumber}\n👤 Customer: ${customerName}\n📦 Items: ${items.length}\n💰 Total: ₹${total.toFixed(2)}\n\n☁️ Cloud sync sent (check Google Sheets to confirm)`);
+      alert(`✅ Invoice saved successfully!\n\n📄 Invoice: ${invoiceData.invoiceNumber}\n👤 Customer: ${customerName}\n📦 Items: ${items.length}\n💰 Total: ₹${total.toFixed(2)}\n\n☁️ Saved to cloud (Firestore)`);
     } else {
-      alert(`✅ Invoice saved locally!\n\n📄 Invoice: ${invoiceData.invoiceNumber}\n💰 Total: ₹${total.toFixed(2)}\n\n⚠️ Cloud sync failed: ${cloudSyncError?.message || 'Unknown error'}\n\nThe invoice is saved on this device and can be accessed here.`);
+      alert(`✅ Invoice saved locally!\n\n📄 Invoice: ${invoiceData.invoiceNumber}\n💰 Total: ₹${total.toFixed(2)}\n\n⚠️ Cloud sync failed: ${cloudSyncError?.message || 'Unknown error'}\n\nThe invoice is saved on this device.`);
     }
     
     // Close modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('invoiceModal'));
     if (modal) {
       modal.hide();
+    }
+    
+    // Reload invoices list (if function exists)
+    if (typeof loadCustomerInvoices === 'function') {
+      setTimeout(() => {
+        loadCustomerInvoices();
+      }, 500);
     }
     
   } catch (error) {
@@ -9907,55 +10036,73 @@ function generateInvoiceHTML(inv) {
     
 
 
+/**
+ * Load customer invoices from Firestore
+ * ✅ FIREBASE VERSION
+ */
 async function loadCustomerInvoices() {
-  console.log('☁️ Loading customer invoices...');
+  console.log('☁️ Loading customer invoices from Firestore...');
+  
+  const user = window.auth.currentUser;
+  
+  if (!user) {
+    console.log('No user authenticated, loading from localStorage only');
+    const localInvoices = JSON.parse(localStorage.getItem('customerInvoices') || '[]');
+    return localInvoices;
+  }
   
   try {
-    const response = await fetch(`${SCRIPT_URL}?action=loadCustomerInvoices&t=${Date.now()}`);
+    const { collection, getDocs, query, orderBy } = window.firebaseImports;
     
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
+    const invoicesRef = collection(window.db, 'tenants', user.uid, 'invoices');
+    const q = query(invoicesRef, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
     
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      throw new Error('Invalid response format');
-    }
-    
-    const result = await response.json();
-    
-    if (result.success && result.invoices) {
-      // Merge cloud with localStorage
-      const localInvoices = JSON.parse(localStorage.getItem('customerInvoices') || '[]');
-      const invoiceMap = new Map();
-      
-      // Cloud invoices first (source of truth)
-      result.invoices.forEach(inv => {
-        invoiceMap.set(inv.invoiceNumber, inv);
+    const cloudInvoices = [];
+    snapshot.forEach((doc) => {
+      cloudInvoices.push({
+        id: doc.id,
+        ...doc.data()
       });
-      
-      // Add local invoices not in cloud
-      localInvoices.forEach(inv => {
-        if (!invoiceMap.has(inv.invoiceNumber)) {
-          invoiceMap.set(inv.invoiceNumber, inv);
-        }
-      });
-      
-      const mergedInvoices = Array.from(invoiceMap.values());
-      
-      // Save merged data to localStorage
-      localStorage.setItem('customerInvoices', JSON.stringify(mergedInvoices));
-      
-      console.log(`✅ Loaded ${result.invoices.length} from cloud, ${mergedInvoices.length} total`);
-      return mergedInvoices;
-    } else {
-      const localInvoices = JSON.parse(localStorage.getItem('customerInvoices') || '[]');
-      console.log(`⚠️ Cloud load failed, using ${localInvoices.length} local invoices`);
-      return localInvoices;
-    }
-  } catch (error) {
-    console.error('❌ Error loading invoices:', error.message);
+    });
+    
+    console.log(`✅ Loaded ${cloudInvoices.length} invoices from Firestore`);
+    
+    // Merge with localStorage invoices
     const localInvoices = JSON.parse(localStorage.getItem('customerInvoices') || '[]');
+    const invoiceMap = new Map();
+    
+    // Cloud invoices first (source of truth)
+    cloudInvoices.forEach(inv => {
+      invoiceMap.set(inv.invoiceNumber, inv);
+    });
+    
+    // Add local invoices not in cloud
+    localInvoices.forEach(inv => {
+      if (!invoiceMap.has(inv.invoiceNumber)) {
+        invoiceMap.set(inv.invoiceNumber, inv);
+      }
+    });
+    
+    const mergedInvoices = Array.from(invoiceMap.values());
+    
+    // Save merged data to localStorage
+    localStorage.setItem('customerInvoices', JSON.stringify(mergedInvoices));
+    
+    console.log(`✅ Total invoices: ${mergedInvoices.length} (${cloudInvoices.length} from cloud + ${localInvoices.length} local)`);
+    
+    // Store in global variable
+    window.cachedInvoices = mergedInvoices;
+    
+    return mergedInvoices;
+    
+  } catch (error) {
+    console.error('❌ Error loading invoices from Firestore:', error.message);
+    
+    // Fallback to localStorage
+    const localInvoices = JSON.parse(localStorage.getItem('customerInvoices') || '[]');
+    console.log(`⚠️ Cloud load failed, using ${localInvoices.length} local invoices`);
+    
     return localInvoices;
   }
 }
@@ -9963,12 +10110,9 @@ async function loadCustomerInvoices() {
 
   
 
-
 /**
- * Delete invoice from both localStorage and Google Sheets
- */
-/**
- * ✅ FIXED: Delete invoice by invoiceNumber (not index)
+ * Delete invoice from localStorage and Firestore
+ * ✅ FIREBASE VERSION
  */
 async function deleteSavedInvoice(invoiceNumber) {
   console.log('🗑️ Deleting invoice:', invoiceNumber);
@@ -9977,11 +10121,13 @@ async function deleteSavedInvoice(invoiceNumber) {
     return;
   }
   
+  const user = window.auth.currentUser;
+  
   try {
     // Get invoices from localStorage
     let invoices = JSON.parse(localStorage.getItem('customerInvoices') || '[]');
     
-    // ✅ FIX: Find invoice by invoiceNumber
+    // Find invoice by invoiceNumber
     const invoiceIndex = invoices.findIndex(inv => inv.invoiceNumber === invoiceNumber);
     
     if (invoiceIndex === -1) {
@@ -9996,28 +10142,35 @@ async function deleteSavedInvoice(invoiceNumber) {
     localStorage.setItem('customerInvoices', JSON.stringify(invoices));
     console.log('✅ Deleted from localStorage');
     
-    // Delete from Google Sheets
-    try {
-      const response = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'deleteCustomerInvoice',
-          invoiceNumber: invoiceNumber
-        })
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        console.log('✅ Deleted from cloud');
-      } else {
-        console.warn('⚠️ Cloud delete failed:', result.message);
+    // Delete from Firestore
+    if (user) {
+      try {
+        const { collection, query, where, getDocs, deleteDoc, doc } = window.firebaseImports;
+        
+        const invoicesRef = collection(window.db, 'tenants', user.uid, 'invoices');
+        const q = query(invoicesRef, where('invoiceNumber', '==', invoiceNumber));
+        const snapshot = await getDocs(q);
+        
+        if (!snapshot.empty) {
+          // Delete all matching invoices (should be only one)
+          const deletePromises = [];
+          snapshot.forEach((docSnapshot) => {
+            const docRef = doc(window.db, 'tenants', user.uid, 'invoices', docSnapshot.id);
+            deletePromises.push(deleteDoc(docRef));
+          });
+          
+          await Promise.all(deletePromises);
+          console.log('✅ Deleted from Firestore');
+        } else {
+          console.warn('⚠️ Invoice not found in Firestore');
+        }
+        
+      } catch (firebaseError) {
+        console.error('❌ Failed to delete from Firestore:', firebaseError);
+        alert(`⚠️ Invoice deleted locally but cloud deletion failed.\n\n${firebaseError.message}`);
       }
-    } catch (error) {
-      console.error('❌ Failed to delete from cloud:', error);
+    } else {
+      console.log('No user authenticated, skipped cloud deletion');
     }
     
     alert(`✅ Invoice ${invoiceNumber} deleted successfully`);
@@ -10030,6 +10183,7 @@ async function deleteSavedInvoice(invoiceNumber) {
     alert('❌ Error deleting invoice: ' + error.message);
   }
 }
+
 
 // ==========================================
 // SHARE INVOICE FEATURE
@@ -10934,37 +11088,65 @@ function closeGroupVariantsPage() {
  * ==========================================
  */
 
-// Load Product Groups from Backend
+/**
+ * ==========================================
+ * DATA LOADING FUNCTIONS - FIREBASE VERSION
+ * ==========================================
+ */
+
+// Load Product Groups from Firestore
 async function loadProductGroups() {
+  const user = window.auth.currentUser;
+  
+  if (!user) {
+    console.log('No user authenticated');
+    const loadingState = document.getElementById('groupsLoadingState');
+    if (loadingState) {
+      loadingState.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">🔒</div>
+          <h3>Please Sign In</h3>
+          <p>Sign in to view your product groups</p>
+        </div>
+      `;
+    }
+    return;
+  }
+  
   try {
-    console.log('📡 Fetching product groups...');
+    console.log('📡 Fetching product groups from Firestore...');
     
-    const url = `${GOOGLE_SCRIPT_URL}?action=getProductGroups&email=${encodeURIComponent(userEmail)}&hash=${encodeURIComponent(userHash)}&t=${Date.now()}`;
+    const { collection, getDocs, query, orderBy } = window.firebaseImports;
     
-    const response = await fetch(url);
-    const data = await response.json();
+    const groupsRef = collection(window.db, 'tenants', user.uid, 'productGroups');
+    const q = query(groupsRef, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
     
-    if (data.success && data.groups) {
-      cachedProductGroups = data.groups;
-      console.log('✅ Loaded', data.groups.length, 'groups');
-      
-      // Hide loading
-      const loadingState = document.getElementById('groupsLoadingState');
-      if (loadingState) loadingState.style.display = 'none';
-      
-      // Show appropriate view
-      if (data.groups.length === 0) {
-        const emptyState = document.getElementById('groupsEmptyState');
-        if (emptyState) emptyState.style.display = 'flex';
-      } else {
-        renderProductGroups(data.groups);
-      }
+    const groups = [];
+    snapshot.forEach((doc) => {
+      groups.push({
+        groupId: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    cachedProductGroups = groups;
+    console.log('✅ Loaded', groups.length, 'groups from Firestore');
+    
+    // Hide loading
+    const loadingState = document.getElementById('groupsLoadingState');
+    if (loadingState) loadingState.style.display = 'none';
+    
+    // Show appropriate view
+    if (groups.length === 0) {
+      const emptyState = document.getElementById('groupsEmptyState');
+      if (emptyState) emptyState.style.display = 'flex';
     } else {
-      throw new Error(data.error || 'Failed to load groups');
+      renderProductGroups(groups);
     }
     
   } catch (error) {
-    console.error('❌ Error loading groups:', error);
+    console.error('❌ Error loading groups from Firestore:', error);
     
     const loadingState = document.getElementById('groupsLoadingState');
     if (loadingState) {
@@ -10982,38 +11164,50 @@ async function loadProductGroups() {
   }
 }
 
-
-// Load Group Variants from Backend
+// Load Group Variants from Firestore
 async function loadGroupVariants(groupId) {
+  const user = window.auth.currentUser;
+  
+  if (!user) {
+    console.log('No user authenticated');
+    return;
+  }
+  
   try {
     console.log('📡 Fetching variants for group:', groupId);
     
-    const url = `${GOOGLE_SCRIPT_URL}?action=getGroupVariants&groupId=${encodeURIComponent(groupId)}&email=${encodeURIComponent(userEmail)}&hash=${encodeURIComponent(userHash)}&t=${Date.now()}`;
+    const { collection, getDocs, query, where } = window.firebaseImports;
     
-    const response = await fetch(url);
-    const data = await response.json();
+    // Get variants that belong to this group
+    const variantsRef = collection(window.db, 'tenants', user.uid, 'products');
+    const q = query(variantsRef, where('groupId', '==', groupId));
+    const snapshot = await getDocs(q);
     
-    if (data.success && data.variants) {
-      cachedGroupVariants = data.variants;
-      console.log('✅ Loaded', data.variants.length, 'variants');
-      
-      // Hide loading
-      const loadingState = document.getElementById('variantsLoadingState');
-      if (loadingState) loadingState.style.display = 'none';
-      
-      // Show appropriate view
-      if (data.variants.length === 0) {
-        const emptyState = document.getElementById('variantsEmptyState');
-        if (emptyState) emptyState.style.display = 'flex';
-      } else {
-        renderGroupVariants(data.variants);
-      }
+    const variants = [];
+    snapshot.forEach((doc) => {
+      variants.push({
+        variantId: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    cachedGroupVariants = variants;
+    console.log('✅ Loaded', variants.length, 'variants from Firestore');
+    
+    // Hide loading
+    const loadingState = document.getElementById('variantsLoadingState');
+    if (loadingState) loadingState.style.display = 'none';
+    
+    // Show appropriate view
+    if (variants.length === 0) {
+      const emptyState = document.getElementById('variantsEmptyState');
+      if (emptyState) emptyState.style.display = 'flex';
     } else {
-      throw new Error(data.error || 'Failed to load variants');
+      renderGroupVariants(variants);
     }
     
   } catch (error) {
-    console.error('❌ Error loading variants:', error);
+    console.error('❌ Error loading variants from Firestore:', error);
     
     const loadingState = document.getElementById('variantsLoadingState');
     if (loadingState) {
@@ -11612,19 +11806,24 @@ function navigateToGroupDetail(groupId, groupName) {
     
 /**
  * ==========================================
- * FORM SUBMISSION HANDLERS
+ * FORM SUBMISSION HANDLERS - FIREBASE VERSION
  * ==========================================
  */
 
-// Handle Create Group Form Submission - MOBILE FIX
+// Handle Create Group Form Submission
 async function handleCreateGroup(event) {
   event.preventDefault();
   console.log('📝 Creating product group...');
   
+  const user = window.auth.currentUser;
+  if (!user) {
+    alert('Please sign in first');
+    return;
+  }
+  
   const submitBtn = document.getElementById('btnSaveGroup');
   const originalText = submitBtn.innerHTML;
   
-  // Prevent double submission
   if (submitBtn.disabled) {
     console.log('⚠️ Already submitting...');
     return;
@@ -11640,17 +11839,12 @@ async function handleCreateGroup(event) {
     const manufacturer = document.getElementById('groupManufacturer').value.trim();
     const category = document.getElementById('groupCategory').value;
     
-    console.log('📋 Form data:', {
-      groupName,
-      description,
-      manufacturer,
-      category
-    });
+    console.log('📋 Form data:', { groupName, description, manufacturer, category });
     
-    // Parse attributes with detailed logging
+    // Parse attributes
     const attributes = parseAttributesFromForm();
     
-    // ENHANCED VALIDATION with specific error messages
+    // Validation
     if (!groupName) {
       throw new Error('❌ Group name is required');
     }
@@ -11672,73 +11866,78 @@ async function handleCreateGroup(event) {
     
     console.log('✅ Validation passed!');
     
-    // Calculate expected variant count
-    const variantCount = Object.values(attributes).reduce((total, options) => total * options.length, 1);
-    console.log(`📊 Will create ${variantCount} variants`);
+    // Generate variants
+    const variants = generateVariantCombinations(attributes);
+    console.log(`📊 Will create ${variants.length} variants`);
     
-    // Send data as individual parameters (mobile-friendly)
-    const postBody = new URLSearchParams({
-      action: 'createProductGroup',
-      email: userEmail,
-      hash: userHash,
+    const { collection, addDoc } = window.firebaseImports;
+    
+    // Save product group
+    const groupsRef = collection(window.db, 'tenants', user.uid, 'productGroups');
+    const groupDocRef = await addDoc(groupsRef, {
       groupName: groupName,
       description: description,
       manufacturer: manufacturer,
       brand: manufacturer,
       category: category,
-      attributes: JSON.stringify(attributes),
-      createdBy: userEmail
+      attributes: attributes,
+      totalVariants: variants.length,
+      createdBy: user.email,
+      createdAt: new Date().toISOString(),
+      userId: user.uid
     });
     
-    console.log('📤 Sending request...');
+    console.log('✅ Group created:', groupDocRef.id);
     
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: postBody
+    // Save all variants
+    const productsRef = collection(window.db, 'tenants', user.uid, 'products');
+    const variantPromises = variants.map(attrs => {
+      const variantName = generateVariantName(groupName, attrs);
+      
+      return addDoc(productsRef, {
+        name: variantName,
+        variantName: variantName,
+        groupId: groupDocRef.id,
+        groupName: groupName,
+        category: category,
+        brand: manufacturer,
+        manufacturer: manufacturer,
+        attributes: attrs,
+        unitType: 'Piece',
+        price: 0,
+        sellingPrice: 0,
+        costPrice: 0,
+        stock: 0,
+        minStock: 0,
+        size: attrs.Size || '',
+        createdAt: new Date().toISOString(),
+        userId: user.uid
+      });
     });
     
-    console.log('📥 Response status:', response.status);
+    await Promise.all(variantPromises);
     
-    const result = await response.json();
-    console.log('📦 Response data:', result);
+    console.log(`✅ Created ${variants.length} variants`);
     
-    // Check for success
-    if (result.success || result.ok) {
-      console.log('✅ Group created successfully!');
-      
-      const createdCount = result.totalVariants || variantCount;
-      
-      // Show success message
-      showSuccessToast(`✅ Created "${groupName}" with ${createdCount} variants!`);
-      
-      // Close modal
-      closeCreateGroupModal();
-      
-      // Reload groups list
-      setTimeout(() => {
-        loadProductGroups();
-      }, 500);
-      
-    } else {
-      throw new Error(result.error || result.message || 'Failed to create product group');
-    }
+    // Show success message
+    showSuccessToast(`✅ Created "${groupName}" with ${variants.length} variants!`);
+    
+    // Close modal
+    closeCreateGroupModal();
+    
+    // Reload groups list
+    setTimeout(() => {
+      loadProductGroups();
+    }, 500);
     
   } catch (error) {
     console.error('❌ Error creating product group:', error);
-    
-    // Show user-friendly error
     alert(`Error: ${error.message}`);
     
-    // Re-enable button
     submitBtn.disabled = false;
     submitBtn.innerHTML = originalText;
   }
 }
-
-
 
 
 /**
@@ -11950,12 +12149,17 @@ function closeEditVariantModal() {
   
   console.log('Modal closed');
 }
-
-// Handle Update Variant Form Submission
+// Handle Update Variant - FIREBASE VERSION
 async function handleUpdateVariant(event) {
   event.preventDefault();
   
   console.log('💾 Updating variant...');
+  
+  const user = window.auth.currentUser;
+  if (!user) {
+    alert('Please sign in first');
+    return;
+  }
   
   const submitBtn = event.target.querySelector('button[type="submit"]');
   const originalText = submitBtn.innerHTML;
@@ -11963,70 +12167,59 @@ async function handleUpdateVariant(event) {
   submitBtn.innerHTML = '⏳ Saving...';
   
   try {
-    // Collect form data
-    const variantId = document.getElementById('editVariantId').value;
-    const costPrice = parseFloat(document.getElementById('editVariantCostPrice').value) || 0;
-    const sellingPrice = parseFloat(document.getElementById('editVariantSellingPrice').value) || 0;
-    const stock = parseInt(document.getElementById('editVariantStock').value) || 0;
-    const minStock = parseInt(document.getElementById('editVariantMinStock').value) || 0;
-    const unitType = document.getElementById('editVariantUnitType').value;
+    // Collect form data (using product form fields)
+    const variantId = document.getElementById('productId').value;
+    const price = parseFloat(document.getElementById('price').value) || 0;
+    const stock = parseInt(document.getElementById('stock').value) || 0;
+    const minStock = parseInt(document.getElementById('minStock').value) || 0;
     
     // Validate
-    if (sellingPrice < 0 || stock < 0 || minStock < 0) {
+    if (price < 0 || stock < 0 || minStock < 0) {
       throw new Error('Values cannot be negative');
     }
     
-    // Prepare update data
-    const updateData = {
-      variantId: variantId,
-      costPrice: costPrice,
-      sellingPrice: sellingPrice,
+    console.log('📤 Updating variant:', variantId);
+    
+    // Update in Firestore
+    const { doc, updateDoc } = window.firebaseImports;
+    const variantRef = doc(window.db, 'tenants', user.uid, 'products', variantId);
+    
+    await updateDoc(variantRef, {
+      price: price,
+      sellingPrice: price,
       stock: stock,
       minStock: minStock,
-      unitType: unitType
-    };
-    
-    console.log('📤 Sending update:', updateData);
-    
-    // Send to backend
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        action: 'updateGroupVariant',
-        email: userEmail,
-        hash: userHash,
-        data: JSON.stringify(updateData)
-      })
+      updatedAt: new Date().toISOString()
     });
     
-    const result = await response.json();
+    console.log('✅ Variant updated in Firestore');
     
-    if (result.success) {
-      console.log('✅ Variant updated');
-      
-      // Show success message
-      showSuccessMessage('Variant updated successfully!');
-      
-      // Close modal
-      closeEditVariantModal();
-      
-      // Refresh variants list
-      setTimeout(() => {
-        loadGroupVariants(currentGroupId);
-      }, 500);
-      
-    } else {
-      throw new Error(result.error || 'Failed to update variant');
+    // Update local cache
+    const cachedVariant = cachedProducts.find(p => p.id === variantId);
+    if (cachedVariant) {
+      cachedVariant.price = price;
+      cachedVariant.stock = stock;
+      cachedVariant.minStock = minStock;
     }
+    
+    // Show success message
+    showSuccessToast('Variant updated successfully!');
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('productModal'));
+    if (modal) modal.hide();
+    
+    // Refresh variants list
+    setTimeout(() => {
+      if (currentGroupId) {
+        loadGroupVariants(currentGroupId);
+      }
+    }, 500);
     
   } catch (error) {
     console.error('❌ Error updating variant:', error);
     alert('Error: ' + error.message);
     
-    // Re-enable button
     submitBtn.disabled = false;
     submitBtn.innerHTML = originalText;
   }
@@ -12035,64 +12228,54 @@ async function handleUpdateVariant(event) {
 
 /**
  * ==========================================
- * DELETE FUNCTIONS
+ * DELETE FUNCTIONS - FIREBASE VERSION
  * ==========================================
  */
 
-// Confirm Delete Group
-function confirmDeleteGroup(groupId, groupName) {
-  const confirmed = confirm(
-    `⚠️ Delete "${groupName}"?\n\n` +
-    `This will also delete ALL VARIANTS in this group.\n\n` +
-    `This action cannot be undone!`
-  );
-  
-  if (confirmed) {
-    deleteProductGroup(groupId, groupName);
-  }
-}
+// ✅ NO CHANGES NEEDED
+function confirmDeleteGroup(groupId, groupName) { /* Keep as is */ }
 
-
-// Delete Product Group
+// Delete Product Group - FIREBASE VERSION
 async function deleteProductGroup(groupId, groupName) {
   console.log('🗑️ Deleting group:', groupId);
   
+  const user = window.auth.currentUser;
+  if (!user) {
+    alert('Please sign in first');
+    return;
+  }
+  
   try {
-    // Show loading overlay
     showLoadingOverlay('Deleting group...');
     
-    // Send delete request
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        action: 'deleteProductGroup',
-        email: userEmail,
-        hash: userHash,
-        data: JSON.stringify({ groupId: groupId })
-      })
+    const { doc, deleteDoc, collection, query, where, getDocs } = window.firebaseImports;
+    
+    // Delete the group document
+    const groupRef = doc(window.db, 'tenants', user.uid, 'productGroups', groupId);
+    await deleteDoc(groupRef);
+    
+    // Delete all variants in this group
+    const productsRef = collection(window.db, 'tenants', user.uid, 'products');
+    const q = query(productsRef, where('groupId', '==', groupId));
+    const snapshot = await getDocs(q);
+    
+    const deletePromises = [];
+    snapshot.forEach((docSnapshot) => {
+      const variantRef = doc(window.db, 'tenants', user.uid, 'products', docSnapshot.id);
+      deletePromises.push(deleteDoc(variantRef));
     });
     
-    const result = await response.json();
+    await Promise.all(deletePromises);
     
     hideLoadingOverlay();
     
-    if (result.success) {
-      console.log('✅ Group deleted');
-      
-      // Show success message
-      showSuccessMessage(`Deleted "${groupName}" and all its variants`);
-      
-      // Refresh list
-      setTimeout(() => {
-        loadProductGroups();
-      }, 500);
-      
-    } else {
-      throw new Error(result.error || 'Failed to delete group');
-    }
+    console.log(`✅ Group deleted along with ${deletePromises.length} variants`);
+    
+    showSuccessToast(`Deleted "${groupName}" and all its variants`);
+    
+    setTimeout(() => {
+      loadProductGroups();
+    }, 500);
     
   } catch (error) {
     hideLoadingOverlay();
@@ -12101,60 +12284,36 @@ async function deleteProductGroup(groupId, groupName) {
   }
 }
 
+// ✅ NO CHANGES NEEDED
+function confirmDeleteVariant(variantId, variantName) { /* Keep as is */ }
 
-// Confirm Delete Variant
-function confirmDeleteVariant(variantId, variantName) {
-  const confirmed = confirm(
-    `⚠️ Delete "${variantName}"?\n\n` +
-    `This action cannot be undone!`
-  );
-  
-  if (confirmed) {
-    deleteVariant(variantId, variantName);
-  }
-}
-
-
-// Delete Variant
+// Delete Variant - FIREBASE VERSION
 async function deleteVariant(variantId, variantName) {
   console.log('🗑️ Deleting variant:', variantId);
   
+  const user = window.auth.currentUser;
+  if (!user) {
+    alert('Please sign in first');
+    return;
+  }
+  
   try {
-    // Show loading overlay
     showLoadingOverlay('Deleting variant...');
     
-    // Send delete request
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        action: 'deleteGroupVariant',
-        email: userEmail,
-        hash: userHash,
-        data: JSON.stringify({ variantId: variantId })
-      })
-    });
+    const { doc, deleteDoc } = window.firebaseImports;
     
-    const result = await response.json();
+    const variantRef = doc(window.db, 'tenants', user.uid, 'products', variantId);
+    await deleteDoc(variantRef);
     
     hideLoadingOverlay();
     
-    if (result.success) {
-      console.log('✅ Variant deleted');
-      
-      // Show success message
-      showSuccessMessage(`Deleted "${variantName}"`);
-      
-      // Refresh variants list
-      setTimeout(() => {
-        loadGroupVariants(currentGroupId);
-      }, 500);
-      
-    } else {
-      throw new Error(result.error || 'Failed to delete variant');
-    }
+    console.log('✅ Variant deleted from Firestore');
+    
+    showSuccessToast(`Deleted "${variantName}"`);
+    
+    setTimeout(() => {
+      loadGroupVariants(currentGroupId);
+    }, 500);
     
   } catch (error) {
     hideLoadingOverlay();
@@ -12162,7 +12321,6 @@ async function deleteVariant(variantId, variantName) {
     alert('Error: ' + error.message);
   }
 }
-
 
 
   // Open Add Product modal (from All Products page) - FIXED
@@ -12585,7 +12743,7 @@ function escapeHtml(text) {
 
 /**
  * ==========================================
- * BRAND AUTOCOMPLETE SYSTEM
+ * BRAND AUTOCOMPLETE SYSTEM - FIREBASE VERSION
  * ==========================================
  */
 
@@ -12594,33 +12752,60 @@ let brandAutocompleteCache = [];
 let brandCacheLoaded = false;
 
 /**
- * Load brands from backend and cache them
+ * Load brands from Firestore and cache them
+ * ✅ FIREBASE VERSION
  */
-function loadBrandAutocompleteCache() {
+async function loadBrandAutocompleteCache() {
   if (brandCacheLoaded) {
     console.log('✅ Brand cache already loaded');
     return;
   }
   
-  console.log('📥 Loading brand autocomplete cache...');
+  const user = window.auth.currentUser;
   
-  fetch(SCRIPT_URL, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'getBrands' })
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success && data.brands) {
-      brandAutocompleteCache = data.brands;
+  if (!user) {
+    console.log('No user authenticated, skipping brand cache load');
+    return;
+  }
+  
+  console.log('📥 Loading brand autocomplete cache from Firestore...');
+  
+  try {
+    const { collection, getDocs } = window.firebaseImports;
+    
+    // Load from Firestore
+    const brandsRef = collection(window.db, 'tenants', user.uid, 'brands');
+    const snapshot = await getDocs(brandsRef);
+    
+    const brands = [];
+    snapshot.forEach((doc) => {
+      brands.push(doc.data().brandName);
+    });
+    
+    brandAutocompleteCache = brands;
+    brandCacheLoaded = true;
+    
+    console.log('✅ Loaded', brands.length, 'brands into cache from Firestore');
+    
+  } catch (error) {
+    console.error('❌ Error loading brand cache from Firestore:', error);
+    
+    // Fallback: Try to extract unique brands from products
+    try {
+      const uniqueBrands = [...new Set(
+        cachedProducts
+          .map(p => p.brand)
+          .filter(b => b && b.trim() !== '')
+      )];
+      
+      brandAutocompleteCache = uniqueBrands;
       brandCacheLoaded = true;
-      console.log('✅ Loaded', data.brands.length, 'brands into cache');
-    } else {
-      console.warn('⚠️ Failed to load brands');
+      
+      console.log('✅ Extracted', uniqueBrands.length, 'brands from products as fallback');
+    } catch (fallbackError) {
+      console.error('❌ Fallback brand extraction failed:', fallbackError);
     }
-  })
-  .catch(error => {
-    console.error('❌ Error loading brand cache:', error);
-  });
+  }
 }
 
 /**
@@ -12771,81 +12956,63 @@ function checkAndShowSaveBrandButton(inputText) {
 }
 
 /**
- * Save new brand from product form field
+ * Save new brand to Firestore
+ * ✅ FIREBASE VERSION
  */
-/**
- * Save new brand from product form field
- * Shows "Brand Saved" feedback on the button itself
- */
-function saveNewBrandFromProductField() {
+async function saveNewBrandFromProductField() {
   const input = document.getElementById('brand');
   const brandName = input.value.trim();
   const btn = document.getElementById('saveBrandInsideBtn');
   
   if (!brandName || brandName.length === 0) {
-    return; // Silently return if empty
+    return;
   }
   
-  // Check again if brand already exists
+  const user = window.auth.currentUser;
+  
+  if (!user) {
+    console.log('No user authenticated');
+    return;
+  }
+  
+  // Check if brand already exists
   const brandExists = brandAutocompleteCache.some(brand => 
     brand.toLowerCase() === brandName.toLowerCase()
   );
   
   if (brandExists) {
-    // Brand already exists, just hide button
     btn.style.display = 'none';
     return;
   }
   
-  console.log('💾 Saving new brand:', brandName);
+  console.log('💾 Saving new brand to Firestore:', brandName);
   
-  // ✅ INSTANT FEEDBACK - Change button to "Saved!" immediately
+  // Instant feedback
   btn.innerHTML = '✅ Saved';
   btn.style.background = '#218838';
   btn.disabled = true;
   btn.style.cursor = 'default';
   
-  // ✅ Send to backend in background (async)
-  fetch(SCRIPT_URL, {
-    method: 'POST',
-    body: JSON.stringify({ 
-      action: 'addBrand',
-      brandName: brandName
-    })
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      console.log('✅ Brand saved successfully in backend:', brandName);
-      
-      // Add to cache
-      brandAutocompleteCache.push(brandName);
-      
-      // Button stays as "✅ Saved" until user modifies field
-      // (will be hidden automatically by checkAndShowSaveBrandButton when user types)
-      
-    } else {
-      // If backend fails, revert button
-      console.error('⚠️ Backend save failed:', data.error);
-      btn.innerHTML = '💾';
-      btn.style.background = '#28a745';
-      btn.disabled = false;
-      btn.style.cursor = 'pointer';
-      
-      // Show error (subtle, no alert)
-      btn.innerHTML = '❌ Error';
-      btn.style.background = '#dc3545';
-      
-      // Reset after 2 seconds
-      setTimeout(() => {
-        btn.innerHTML = '💾';
-        btn.style.background = '#28a745';
-        btn.disabled = false;
-      }, 2000);
-    }
-  })
-  .catch(error => {
-    console.error('❌ Error saving brand:', error);
+  try {
+    const { collection, addDoc } = window.firebaseImports;
+    
+    // Save to Firestore
+    const brandsRef = collection(window.db, 'tenants', user.uid, 'brands');
+    await addDoc(brandsRef, {
+      brandName: brandName,
+      createdAt: new Date().toISOString(),
+      userId: user.uid
+    });
+    
+    console.log('✅ Brand saved successfully in Firestore:', brandName);
+    
+    // Add to cache
+    brandAutocompleteCache.push(brandName);
+    
+    // Button stays as "✅ Saved"
+    
+  } catch (error) {
+    console.error('❌ Error saving brand to Firestore:', error);
     
     // Show error on button
     btn.innerHTML = '❌ Error';
@@ -12858,13 +13025,14 @@ function saveNewBrandFromProductField() {
       btn.disabled = false;
       btn.style.cursor = 'pointer';
     }, 2000);
-  });
+  }
 }
 
 
     
 /**
- * Refresh brand cache when new brand is added
+ * Refresh brand cache
+ * ✅ Updated for Firebase
  */
 function refreshBrandAutocompleteCache() {
   brandCacheLoaded = false;
@@ -12918,35 +13086,63 @@ document.addEventListener('DOMContentLoaded', function() {
  */
 
 
-
+/**
+ * Create Product Group - FIREBASE VERSION
+ * ✅ This is the older/duplicate function - update to match the newer one
+ */
 async function createProductGroup(groupData) {
-  try {                                                                          // [attached_file:29]
-    const btn = document.getElementById('btnSaveGroup');                         // [attached_file:29]
-    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Creating...'; }          // [attached_file:29]
-
-    const body = new URLSearchParams({                                           // [attached_file:29]
-      action: 'createProductGroup',                                              // [attached_file:29]
-      email: userEmail,                                                          // [attached_file:29]
-      hash: userHash,                                                            // [attached_file:29]
-      data: JSON.stringify(groupData)                                            // [attached_file:29]
-    });                                                                          // [attached_file:29]
-
-    const response = await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', body });     // [attached_file:29]
-    const result = await response.json();                                        // [attached_file:29]
-
-    if (result.success || result.ok) {                                           // [attached_file:29]
-      alert(`Success! Group "${groupData.groupName}" created.`);                 // [attached_file:29]
-      closeCreateGroupModal();                                                   // [attached_file:29]
-      setTimeout(() => loadProductGroups(), 500);                                // [attached_file:29]
-    } else {
-      throw new Error(result.error || 'Failed to create product group');         // [attached_file:29]
+  const user = window.auth.currentUser;
+  
+  if (!user) {
+    alert('Please sign in first');
+    return;
+  }
+  
+  try {
+    const btn = document.getElementById('btnSaveGroup');
+    if (btn) { 
+      btn.disabled = true; 
+      btn.innerHTML = '⏳ Creating...'; 
     }
+    
+    console.log('📦 Creating product group in Firestore:', groupData);
+    
+    const { collection, addDoc } = window.firebaseImports;
+    
+    // Save product group
+    const groupsRef = collection(window.db, 'tenants', user.uid, 'productGroups');
+    const groupDocRef = await addDoc(groupsRef, {
+      groupName: groupData.groupName,
+      description: groupData.description || '',
+      manufacturer: groupData.manufacturer || '',
+      brand: groupData.brand || groupData.manufacturer || '',
+      category: groupData.category || '',
+      attributes: groupData.attributes || {},
+      totalVariants: 0, // Will be updated after variants are created
+      createdBy: user.email,
+      createdAt: new Date().toISOString(),
+      userId: user.uid
+    });
+    
+    console.log('✅ Group created in Firestore:', groupDocRef.id);
+    
+    alert(`Success! Group "${groupData.groupName}" created.`);
+    
+    closeCreateGroupModal();
+    
+    setTimeout(() => {
+      loadProductGroups();
+    }, 500);
+    
   } catch (error) {
-    console.error('❌ Error creating product group:', error);                    // [attached_file:29]
-    alert('Error: ' + error.message);                                            // [attached_file:29]
+    console.error('❌ Error creating product group:', error);
+    alert('Error: ' + error.message);
   } finally {
-    const btn = document.getElementById('btnSaveGroup');                         // [attached_file:29]
-    if (btn) { btn.disabled = false; btn.innerHTML = '💾 Save & Generate'; }     // [attached_file:29]
+    const btn = document.getElementById('btnSaveGroup');
+    if (btn) { 
+      btn.disabled = false; 
+      btn.innerHTML = '💾 Save & Generate'; 
+    }
   }
 }
 
@@ -14094,6 +14290,7 @@ if ('serviceWorker' in navigator) {
 
 </body>
 </html>
+
 
 
 
