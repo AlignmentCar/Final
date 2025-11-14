@@ -2405,7 +2405,8 @@ let userEmail = null;
 window.addEventListener('load', async function() {
   console.log('🚀 Page loaded, checking Firebase authentication...');
   
-  // Listen for auth state changes
+  // TEMP DISABLED - Skip authentication for testing
+/*
   window.auth.onAuthStateChanged(async (user) => {
     if (user) {
       console.log('✅ User authenticated:', user.email);
@@ -14328,6 +14329,7 @@ if ('serviceWorker' in navigator) {
 
 </body>
 </html>
+
 
 
 
