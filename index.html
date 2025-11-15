@@ -85,6 +85,55 @@
   };
   
   console.log("✅ Firebase connected successfully!");
+  // ✅ Handle Authentication State
+  const { onAuthStateChanged } = window.firebaseImports;
+  
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // User is signed in
+      console.log('✅ User signed in:', user.email);
+      window.currentUser = {
+        email: user.email,
+        uid: user.uid
+      };
+      
+      // Show app
+      showApp();
+      
+      // Load data
+      if (typeof syncFromFirestore === 'function') {
+        syncFromFirestore();
+      }
+    } else {
+      // No user signed in
+      console.log('❌ No user signed in - showing login screen');
+      window.currentUser = null;
+      
+      // Show login screen
+      showAuthScreen();
+    }
+  });
+  
+  // Helper functions
+  function showApp() {
+    const authScreen = document.getElementById('authScreen');
+    const loginPage = document.getElementById('loginPage');
+    const mainApp = document.getElementById('mainApp');
+    
+    if (authScreen) authScreen.style.display = 'none';
+    if (loginPage) loginPage.style.display = 'none';
+    if (mainApp) mainApp.style.display = 'block';
+  }
+  
+  function showAuthScreen() {
+    const authScreen = document.getElementById('authScreen');
+    const loginPage = document.getElementById('loginPage');
+    const mainApp = document.getElementById('mainApp');
+    
+    if (authScreen) authScreen.style.display = 'block';
+    if (loginPage) loginPage.style.display = 'block';
+    if (mainApp) mainApp.style.display = 'none';
+  }
 </script>
 
   
@@ -14308,6 +14357,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 </body>
 </html>
+
 
 
 
