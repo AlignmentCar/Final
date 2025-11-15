@@ -3259,6 +3259,135 @@ try {
 
 
 
+/**
+ * Handle Email + Password Sign In
+ */
+async function handleEmailPasswordAuth(event) {
+  event.preventDefault();
+  
+  const emailInput = document.getElementById('userEmailInput');
+  const passwordInput = document.getElementById('userPasswordInput');
+  const signInBtn = document.getElementById('signInBtn');
+  
+  const email = emailInput?.value?.trim();
+  const password = passwordInput?.value;
+  
+  // Validation
+  if (!email || !password) {
+    alert('Please enter both email and password');
+    return;
+  }
+  
+  // Disable button during login
+  if (signInBtn) {
+    signInBtn.disabled = true;
+    signInBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Signing in...';
+  }
+  
+  try {
+    console.log('🔐 Attempting to sign in with:', email);
+    
+    // Use Firebase Auth from window.firebaseImports
+    const { signInWithEmailAndPassword } = window.firebaseImports;
+    const userCredential = await signInWithEmailAndPassword(window.auth, email, password);
+    
+    console.log('✅ Sign in successful!', userCredential.user.email);
+    
+    // Auth state listener will handle showing the app automatically
+    // No need to manually call showApp() here
+    
+  } catch (error) {
+    console.error('❌ Sign in error:', error);
+    
+    // User-friendly error messages
+    let errorMessage = 'Login failed. Please try again.';
+    
+    if (error.code === 'auth/wrong-password') {
+      errorMessage = 'Incorrect password. Please try again.';
+    } else if (error.code === 'auth/user-not-found') {
+      errorMessage = 'No account found with this email. Please sign up first.';
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = 'Invalid email address.';
+    } else if (error.code === 'auth/too-many-requests') {
+      errorMessage = 'Too many failed attempts. Please try again later.';
+    } else if (error.code === 'auth/invalid-credential') {
+      errorMessage = 'Invalid email or password. Please check and try again.';
+    }
+    
+    alert(errorMessage);
+    
+    // Re-enable button
+    if (signInBtn) {
+      signInBtn.disabled = false;
+      signInBtn.innerHTML = '<i class="bi bi-box-arrow-in-right me-2"></i>Sign In';
+    }
+  }
+}
+
+
+    /**
+ * Handle Sign Up (Create Account)
+ */
+async function handleSignUp(event) {
+  event.preventDefault();
+  
+  const emailInput = document.getElementById('signUpEmailInput');
+  const passwordInput = document.getElementById('signUpPasswordInput');
+  const signUpBtn = document.getElementById('signUpBtn');
+  
+  const email = emailInput?.value?.trim();
+  const password = passwordInput?.value;
+  
+  // Validation
+  if (!email || !password) {
+    alert('Please enter both email and password');
+    return;
+  }
+  
+  if (password.length < 6) {
+    alert('Password must be at least 6 characters long');
+    return;
+  }
+  
+  // Disable button
+  if (signUpBtn) {
+    signUpBtn.disabled = true;
+    signUpBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating account...';
+  }
+  
+  try {
+    console.log('📝 Creating account for:', email);
+    
+    const { createUserWithEmailAndPassword } = window.firebaseImports;
+    const userCredential = await createUserWithEmailAndPassword(window.auth, email, password);
+    
+    console.log('✅ Account created successfully!', userCredential.user.email);
+    alert('Account created successfully! Welcome!');
+    
+    // Auth state listener will handle showing the app automatically
+    
+  } catch (error) {
+    console.error('❌ Sign up error:', error);
+    
+    let errorMessage = 'Failed to create account.';
+    
+    if (error.code === 'auth/email-already-in-use') {
+      errorMessage = 'An account with this email already exists. Please sign in instead.';
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = 'Invalid email address.';
+    } else if (error.code === 'auth/weak-password') {
+      errorMessage = 'Password is too weak. Please use at least 6 characters.';
+    }
+    
+    alert(errorMessage);
+    
+    // Re-enable button
+    if (signUpBtn) {
+      signUpBtn.disabled = false;
+      signUpBtn.innerHTML = '<i class="bi bi-person-plus me-2"></i>Sign Up';
+    }
+  }
+}
 
 
 
@@ -14048,6 +14177,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 </body>
 </html>
+
 
 
 
