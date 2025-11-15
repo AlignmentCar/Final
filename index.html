@@ -14175,8 +14175,803 @@ document.addEventListener('DOMContentLoaded', function() {
 </body>
 </html>
 
+ <!-- Ã¢Å“â€¦ NEW: Change Password Modal -->
+  <div id="changePasswordModal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-key me-2"></i>Change Password
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Step 1: Verify Current Password -->
+          <div id="verifyPasswordStep">
+            <p class="text-muted">Enter your current password to continue</p>
+            <div class="mb-3">
+              <label class="form-label">Current Password</label>
+              <input 
+                type="password" 
+                id="currentPasswordInput" 
+                class="form-control" 
+                placeholder="Enter current password"
+                required
+              >
+            </div>
+            <div class="d-grid">
+              <button class="btn btn-primary" onclick="verifyCurrentPassword()">
+                Continue
+              </button>
+            </div>
+          </div>
+          
+          <!-- Step 2: Enter New Password -->
+          <div id="newPasswordStep" style="display: none;">
+            <p class="text-muted">Choose a new password (minimum 6 characters)</p>
+            <div class="mb-3">
+              <label class="form-label">New Password</label>
+              <input 
+                type="password" 
+                id="newPasswordInput" 
+                class="form-control" 
+                placeholder="Enter new password"
+                minlength="6"
+                required
+              >
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Confirm New Password</label>
+              <input 
+                type="password" 
+                id="confirmPasswordInput" 
+                class="form-control" 
+                placeholder="Re-enter new password"
+                minlength="6"
+                required
+              >
+            </div>
+            <div class="d-grid">
+              <button class="btn btn-success" onclick="submitNewPassword()">
+                <i class="bi bi-check-circle me-2"></i>Change Password
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- âœ… NEW: WhatsApp Number Input Modal -->
+<div class="modal fade" id="whatsappNumberModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-whatsapp"></i> Share Invoice on WhatsApp
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i> Enter the recipient's WhatsApp number (with country code)
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label">WhatsApp Number</label>
+          <div class="input-group">
+            <span class="input-group-text">+91</span>
+            <input type="tel" 
+                   class="form-control" 
+                   id="whatsappNumberInput" 
+                   placeholder="9876543210" 
+                   maxlength="10"
+                   pattern="[0-9]{10}"
+                   required>
+          </div>
+          <small class="text-muted">Enter 10-digit mobile number (without +91)</small>
+        </div>
+        
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="saveWhatsAppNumber">
+          <label class="form-check-label" for="saveWhatsAppNumber">
+            Remember this number for next time
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-success" onclick="sendInvoiceToWhatsApp()">
+          <i class="bi bi-whatsapp"></i> Send to WhatsApp
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Product Detail Modal -->
+<div class="modal fade" id="productDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Product Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="productDetailModalBody">
+        <!-- Content will be inserted here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ✅✅✅ CUSTOMER MODAL (Add/Edit) ✅✅✅ -->
+<div class="modal fade" id="customerModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="customerFormTitle">Add Customer</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="customerForm">
+          <input type="hidden" id="customerId">
+          
+          <!-- Customer Type -->
+          <div class="mb-3">
+            <label class="form-label">Customer Type *</label>
+            <div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="customerType" id="typeBusiness" value="Business" checked>
+                <label class="form-check-label" for="typeBusiness">
+                  🏢 Business
+                </label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="customerType" id="typeIndividual" value="Individual">
+                <label class="form-check-label" for="typeIndividual">
+                  👤 Individual
+                </label>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Customer Name -->
+          <div class="mb-3">
+            <label for="customerName" class="form-label">Customer Name *</label>
+            <input type="text" class="form-control" id="customerName" required>
+          </div>
+          
+          <!-- Advanced Options Toggle -->
+          <div class="mb-3">
+            <a href="javascript:void(0)" onclick="toggleAdvancedOptions()" class="text-primary">
+              <i class="bi bi-chevron-down"></i> Advanced Options
+            </a>
+          </div>
+          
+          <!-- Advanced Options Container (Hidden by default) -->
+          <div id="advancedOptionsContainer" style="display:none;">
+            <!-- Phone Number -->
+            <div class="mb-3">
+              <label for="customerPhone" class="form-label">Phone Number</label>
+              <input type="tel" class="form-control" id="customerPhone" placeholder="+91-9876543210">
+            </div>
+            
+            <!-- Email -->
+            <div class="mb-3">
+              <label for="customerEmail" class="form-label">Email Address</label>
+              <input type="email" class="form-control" id="customerEmail" placeholder="customer@example.com">
+            </div>
+            
+            <!-- Address -->
+            <div class="mb-3">
+              <label for="customerAddress" class="form-label">Billing/Shipping Address</label>
+              <textarea class="form-control" id="customerAddress" rows="3" placeholder="Enter complete address"></textarea>
+            </div>
+            
+            <!-- Other Info -->
+            <div class="mb-3">
+              <label for="customerOtherInfo" class="form-label">Any Other Information</label>
+              <textarea class="form-control" id="customerOtherInfo" rows="2" placeholder="Additional notes, preferences, etc."></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveCustomer()">Save Customer</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ✅✅✅ CUSTOMER DETAIL MODAL ✅✅✅ -->
+<div class="modal fade" id="customerDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detailCustomerName">Customer Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Tab Navigation -->
+        <ul class="nav nav-tabs mb-3">
+          <li class="nav-item">
+            <a class="nav-link active customer-tab-btn" href="javascript:void(0)" onclick="showCustomerTab('info')">
+              <i class="bi bi-info-circle"></i> Info
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link customer-tab-btn" href="javascript:void(0)" onclick="showCustomerTab('transactions')">
+              <i class="bi bi-receipt"></i> Transactions
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link customer-tab-btn" href="javascript:void(0)" onclick="showCustomerTab('invoices')">
+              <i class="bi bi-file-text"></i> Invoices
+            </a>
+          </li>
+        </ul>
+        
+        <!-- Tab Content -->
+        <div id="customerInfoTab">
+          <table class="table">
+            <tr>
+              <th width="30%">Type:</th>
+              <td id="detailCustomerType">-</td>
+            </tr>
+            <tr>
+              <th>Phone:</th>
+              <td id="detailCustomerPhone">-</td>
+            </tr>
+            <tr>
+              <th>Email:</th>
+              <td id="detailCustomerEmail">-</td>
+            </tr>
+            <tr>
+              <th>Address:</th>
+              <td id="detailCustomerAddress">-</td>
+            </tr>
+          </table>
+        </div>
+        
+        <div id="customerTransactionsTab" style="display:none;">
+          <div id="customerTransactionsList">
+            <p class="text-center text-muted">Loading transactions...</p>
+          </div>
+        </div>
+        
+        <div id="customerInvoicesTab" style="display:none;">
+          <div id="customerInvoicesList">
+            <p class="text-center text-muted">No invoices yet</p>
+          </div>
+          <button class="btn btn-success mt-3" onclick="createInvoiceForCustomer()">
+            <i class="bi bi-plus-lg"></i> Create New Invoice
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="openEditCustomerModal(currentCustomerId)">
+          <i class="bi bi-pencil"></i> Edit
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Brands Modal -->
+<div class="modal fade" id="addBrandsModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">➕ Add New Brands</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Instructions -->
+        <p style="color: #666; margin-bottom: 15px; font-size: 14px;">
+          Enter brand names below. Press <strong>Enter</strong> or <strong>Comma (,)</strong> after each brand:
+        </p>
+        
+        <!-- Input Field -->
+        <input id="brandInput" type="text" class="form-control" placeholder="e.g., Somany"
+          onkeydown="handleBrandInputKeydown(event)">
+        
+        <!-- Preview Section -->
+        <div style="margin-top: 20px;">
+          <p style="font-weight: bold; margin-bottom: 10px; font-size: 14px;" id="previewCount">
+            📝 Brands to Save (0):
+          </p>
+          <div id="brandPreviewList" style="
+            background: #f8f9fa; border: 1px solid #e0e0e0;
+            border-radius: 5px; max-height: 200px; overflow-y: auto;
+            min-height: 60px; padding: 10px;
+          ">
+            <div style="padding: 10px; color: #999; text-align: center; font-size: 14px;">
+              No brands added yet
+            </div>
+          </div>
+        </div>
+        
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveAllBrands()">💾 Save All</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- BULK MODAL FOR INVOICE -->
+<div class="modal fade" id="bulkAddModal" tabindex="-1" backdrop="static">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-collection"></i> Add Items in Bulk - Invoice
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      
+      <div class="modal-body">
+        <input type="text" class="form-control mb-3" id="bulkSearchInput" 
+               placeholder="Type to search products..."
+               oninput="filterBulkProducts(this.value)">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-height: 400px;">
+          <div>
+            <h6 class="border-bottom pb-2"><i class="bi bi-box"></i> Products</h6>
+            <div id="bulkProductsList" style="overflow-y: auto; max-height: 350px; border: 1px solid #ddd; border-radius: 4px; background: white;"></div>
+          </div>
+          <div>
+            <h6 class="border-bottom pb-2">
+              <i class="bi bi-check-circle"></i> Selected 
+              <span class="badge bg-info" id="bulkSelectedCount">0</span>
+            </h6>
+            <div style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">
+              Total Qty: <strong id="bulkTotalQty">0</strong>
+            </div>
+            <div id="bulkSelectedItems" style="overflow-y: auto; max-height: 320px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9;"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-info" onclick="addBulkProductsToInvoice()">
+          <i class="bi bi-plus-circle"></i> Add Items
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+<!-- BULK MODAL FOR SALE -->
+<div class="modal fade" id="bulkAddModalForSale" tabindex="-1" backdrop="static">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-collection"></i> Add Items in Bulk - Sale
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      
+      <div class="modal-body">
+        <input type="text" class="form-control mb-3" id="bulkSearchInputSale" 
+               placeholder="Type to search products..."
+               oninput="filterBulkProductsSale(this.value)">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-height: 400px;">
+          <div>
+            <h6 class="border-bottom pb-2"><i class="bi bi-box"></i> Products</h6>
+            <div id="bulkProductsListSale" style="overflow-y: auto; max-height: 350px; border: 1px solid #ddd; border-radius: 4px; background: white;"></div>
+          </div>
+          <div>
+            <h6 class="border-bottom pb-2">
+              <i class="bi bi-check-circle"></i> Selected 
+              <span class="badge bg-primary" id="bulkSelectedCountSale">0</span>
+            </h6>
+            <div style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">
+              Total Qty: <strong id="bulkTotalQtySale">0</strong>
+            </div>
+            <div id="bulkSelectedItemsSale" style="overflow-y: auto; max-height: 320px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9;"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="addBulkProductsToSale()">
+          <i class="bi bi-plus-circle"></i> Add Items
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+  
+
+<!-- BULK MODAL -->
+<div class="modal fade" id="bulkAddModalForPurchase" tabindex="-1" backdrop="static">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-collection"></i> Add Items in Bulk
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      
+      <div class="modal-body">
+        <input type="text" class="form-control mb-3" id="bulkSearchInputPurchase" 
+               placeholder="Type to search products..."
+               oninput="filterBulkProductsPurchase(this.value)">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-height: 400px;">
+          <div>
+            <h6 class="border-bottom pb-2"><i class="bi bi-box"></i> Products</h6>
+            <div id="bulkProductsListPurchase" style="overflow-y: auto; max-height: 350px; border: 1px solid #ddd; border-radius: 4px; background: white;"></div>
+          </div>
+          <div>
+            <h6 class="border-bottom pb-2">
+              <i class="bi bi-check-circle"></i> Selected 
+              <span class="badge bg-primary" id="bulkSelectedCountPurchase">0</span>
+            </h6>
+            <div style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">
+              Total Qty: <strong id="bulkTotalQtyPurchase">0</strong>
+            </div>
+            <div id="bulkSelectedItemsPurchase" style="overflow-y: auto; max-height: 320px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9;"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" onclick="addBulkProductsToPurchase()">
+          <i class="bi bi-plus-circle"></i> Add Items
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+  
+
+<!-- ==========================================
+     RECORD PURCHASE MODAL (FINAL)
+     ========================================== -->
+<div class="modal fade" id="recordPurchaseModal" tabindex="-1" backdrop="static" keyboard="false">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content">
+      
+      <!-- Header -->
+      <div class="modal-header" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 8px 12px;">
+        <h6 class="modal-title" style="font-size: 0.95rem; font-weight: 600; margin: 0;">
+          📦 RECORD PURCHASE
+        </h6>
+        <button type="button" class="btn-close btn-close-white btn-sm" onclick="closeRecordPurchaseModal()" style="padding: 4px;"></button>
+      </div>
+      
+      <!-- Body -->
+      <div class="modal-body" style="background: #fff; padding: 10px; overflow-y: auto;">
+        
+     <!-- Styles -->
+<style>
+  #recordPurchaseModal .form-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #333;
+    margin: 0 0 3px 0;
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  #recordPurchaseModal .form-control,
+  #recordPurchaseModal .form-select {
+    font-size: 14px;
+    padding: 5px 8px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    height: 32px;
+  }
+  #recordPurchaseModal .form-control:focus,
+  #recordPurchaseModal .form-select:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.15rem rgba(40, 167, 69, 0.2);
+    outline: none;
+  }
+  #recordPurchaseModal .btn-sm {
+    font-size: 12px;
+    padding: 4px 10px;
+    height: 28px;
+  }
+  #recordPurchaseModal .section-gap {
+    height: 8px;
+  }
+  #purchasePhotoPreview {
+    border: 1.5px dashed #ccc;
+    border-radius: 4px;
+    padding: 6px;
+    text-align: center;
+    background: #fafafa;
+    cursor: pointer;
+    min-height: 50px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  #purchasePhotoPreview i {
+    font-size: 1.5rem;
+    color: #999;
+  }
+  #purchasePhotoPreview p {
+    font-size: 10px;
+    color: #666;
+    margin: 2px 0 0 0;
+  }
+  /* Product rows - DARKER GRAY */
+  .purchase-product-row {
+    padding: 8px 0;
+    margin-bottom: 10px;
+    background: #e0e0e0;
+    border: 1px solid #bdbdbd;
+    border-radius: 5px;
+    position: relative;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  /* Mobile: 3 separate lines */
+  @media (max-width: 767px) {
+    .purchase-product-row {
+      display: block;
+      padding: 8px;
+    }
+    .product-name-line { margin-bottom: 6px; }
+    .product-details-line {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .product-amount-line { display: block; }
+    .purchase-field-label {
+      font-size: 9px; font-weight: 600; color: #666; margin-bottom: 2px; text-transform: uppercase;
+    }
+    .purchase-remove-btn {
+      position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; padding: 0; font-size: 14px; border-radius: 3px;
+    }
+  }
+  /* Desktop - FORCE WIDE GRID & CONTAINER */
+  @media (min-width: 768px) {
+    #recordPurchaseModal .modal-dialog {
+      max-width: 1400px !important;
+      min-width: 900px !important;
+      width: 95vw !important;
+      margin: 1.75rem auto !important;
+    }
+    #recordPurchaseModal .modal-content,
+    #recordPurchaseModal .modal-body {
+      width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+      padding: 16px 30px !important;
+    }
+    .purchase-product-row {
+      display: grid;
+      grid-template-columns: 7fr 2fr 2fr 2.2fr 2.2fr 80px;
+      gap: 16px;
+      align-items: center;
+      padding: 10px 12px;
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    .purchase-field-label { display: none; }
+    .product-name-line,
+    .product-details-line,
+    .product-amount-line { display: contents; }
+    /* All product row inputs full width */
+    .purchase-product-row input,
+    .purchase-product-row select {
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: none !important;
+    }
+    /* Product grid container and parent always full width */
+    #purchaseProductRows,
+    .desktop-product-layout,
+    .desktop-product-layout > div {
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    /* Desktop header columns - match exactly */
+    .desktop-header > div {
+      display: grid !important;
+      grid-template-columns: 7fr 2fr 2fr 2.2fr 2.2fr 80px !important;
+      gap: 16px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+  }
+  /* Payment hidden by default */
+  #paymentSection { display: none; }
+  #paymentSection.show { display: block; }
+  .payment-toggle {
+    font-size: 12px; color: #28a745; cursor: pointer; text-decoration: underline; margin-top: 4px; display: inline-block;
+  }
+</style>
+
+        
+      <!-- Photo -->
+<label class="form-label">📷 Photo (Optional)</label>
+<div id="purchasePhotoPreview" onclick="triggerPhotoInput()" style="
+  border: 2px dashed #ccc;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  border-radius: 8px;
+  background: #f8f9fa;
+  transition: all 0.2s;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+">
+  <i class="bi bi-camera" style="font-size: 2rem; color: #999;"></i>
+  <p style="color: #999; margin: 8px 0 0 0; font-size: 0.9rem;">Tap or paste photo</p>
+</div>
+
+<input type="file" id="purchasePhotoInput" accept="image/*" style="display: none;" onchange="handlePurchasePhotoUpload(this)">
+
+<div style="margin-top: 8px; display: flex; gap: 8px;">
+  <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearPurchasePhoto()" id="clearPurchasePhotoBtn" style="display: none;">
+    <i class="bi bi-x"></i> Remove
+  </button>
+</div>
+
+<div class="section-gap"></div>
+
+<!-- Vendor -->
+<label class="form-label">🏢 Vendor Name</label>
+<input type="text" class="form-control" id="purchaseVendorName" placeholder="Vendor name">
+
+        <div class="section-gap"></div>
+        
+        <!-- Products -->
+        <label class="form-label">📦 Products Purchased</label>
+        <div id="purchaseProductRows" style="margin-bottom: 6px;">
+          <!-- Dynamic rows -->
+        </div>
+        <div style="display: flex; gap: 4px;">
+          <button type="button" class="btn btn-sm btn-outline-primary" onclick="addPurchaseProductRow()">
+            <i class="bi bi-plus"></i> Row
+          </button>
+
+<button type="button" class="btn btn-success" onclick="openBulkAddModalForPurchase()">
+  <i class="bi bi-box-seam"></i> Bulk
+</button>
+
+
+          
+        </div>
+        
+        <div class="section-gap"></div>
+        
+        <!-- Total -->
+        <label class="form-label">💰 Total Amount</label>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text" style="padding: 5px 8px; font-size: 13px;">₹</span>
+          <input type="number" class="form-control" id="purchaseTotalAmount" placeholder="0.00" step="0.01" min="0" style="font-weight: 600;">
+        </div>
+        
+        <!-- Optional Payment Toggle -->
+        <span class="payment-toggle" onclick="togglePaymentSection()">+ Add payment details</span>
+        
+        <!-- Payment Section (Hidden) -->
+        <div id="paymentSection">
+          <div class="section-gap"></div>
+          <label class="form-label">💳 Payment Mode (Optional)</label>
+          
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+            <div style="position: relative; flex-shrink: 0;">
+              <input type="checkbox" id="purchasePaymentCash" 
+                     onchange="togglePaymentModeCheckmark(this, 'cashCheckmark')"
+                     style="width: 20px; height: 20px; cursor: pointer; accent-color: #28a745;">
+              <span id="cashCheckmark" style="display: none; position: absolute; top: 1px; left: 3px; font-size: 15px; color: white; pointer-events: none;">✓</span>
+            </div>
+            <label for="purchasePaymentCash" style="flex: 0 0 50px; font-size: 12px; font-weight: 600; margin: 0;">Cash</label>
+            <div style="flex: 1; display: flex;">
+              <span style="padding: 5px 8px; background: #f5f5f5; border: 1px solid #ccc; border-right: none; border-radius: 3px 0 0 3px; font-size: 13px;">₹</span>
+              <input type="number" class="form-control" id="purchasePaymentCashAmount" placeholder="0" step="0.01" min="0" style="border-radius: 0 3px 3px 0; flex: 1;">
+            </div>
+          </div>
+          
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+            <div style="position: relative; flex-shrink: 0;">
+              <input type="checkbox" id="purchasePaymentOnline"
+                     onchange="togglePaymentModeCheckmark(this, 'onlineCheckmark')"
+                     style="width: 20px; height: 20px; cursor: pointer; accent-color: #28a745;">
+              <span id="onlineCheckmark" style="display: none; position: absolute; top: 1px; left: 3px; font-size: 15px; color: white; pointer-events: none;">✓</span>
+            </div>
+            <label for="purchasePaymentOnline" style="flex: 0 0 50px; font-size: 12px; font-weight: 600; margin: 0;">Online</label>
+            <div style="flex: 1; display: flex;">
+              <span style="padding: 5px 8px; background: #f5f5f5; border: 1px solid #ccc; border-right: none; border-radius: 3px 0 0 3px; font-size: 13px;">₹</span>
+              <input type="number" class="form-control" id="purchasePaymentOnlineAmount" placeholder="0" step="0.01" min="0" style="border-radius: 0 3px 3px 0; flex: 1;">
+            </div>
+          </div>
+          
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="position: relative; flex-shrink: 0;">
+              <input type="checkbox" id="purchasePaymentCredit"
+                     onchange="togglePaymentModeCheckmark(this, 'creditCheckmark')"
+                     style="width: 20px; height: 20px; cursor: pointer; accent-color: #28a745;">
+              <span id="creditCheckmark" style="display: none; position: absolute; top: 1px; left: 3px; font-size: 15px; color: white; pointer-events: none;">✓</span>
+            </div>
+            <label for="purchasePaymentCredit" style="flex: 0 0 50px; font-size: 12px; font-weight: 600; margin: 0;">Credit</label>
+            <div style="flex: 1; display: flex;">
+              <span style="padding: 5px 8px; background: #f5f5f5; border: 1px solid #ccc; border-right: none; border-radius: 3px 0 0 3px; font-size: 13px;">₹</span>
+              <input type="number" class="form-control" id="purchasePaymentCreditAmount" placeholder="0" step="0.01" min="0" style="border-radius: 0 3px 3px 0; flex: 1;">
+            </div>
+          </div>
+          
+          <div class="section-gap"></div>
+          
+          <!-- Notes -->
+          <label class="form-label">📝 Notes</label>
+          <textarea class="form-control" id="purchaseOtherInfo" rows="2" placeholder="Optional" style="font-size: 13px; padding: 5px 8px; resize: none;"></textarea>
+        </div>
+        
+      </div>
+      
+      <!-- Footer -->
+      <div class="modal-footer" style="padding: 6px 10px; gap: 6px; background: #f8f9fa; border-top: 1px solid #ddd;">
+        <button type="button" class="btn btn-sm btn-secondary" onclick="closeRecordPurchaseModal()" style="flex: 1; height: 32px;">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-sm btn-success" onclick="submitPurchaseEntry()" style="flex: 1; height: 32px;">
+          <i class="bi bi-check"></i> Submit
+        </button>
+      </div>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
 </body>
 </html>
+
 
 
 
