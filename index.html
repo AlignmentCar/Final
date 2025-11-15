@@ -61,7 +61,7 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
   
-  // Make available globally (CRITICAL!)
+  // Make available globally
   window.auth = auth;
   window.db = db;
   window.firebaseImports = {
@@ -77,44 +77,35 @@
     where, 
     orderBy, 
     limit,
-    // Auth functions
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     onAuthStateChanged,
     signOut
   };
   
-  console.log("✅ Firebase connected successfully!");
-  // ✅ Handle Authentication State
-  const { onAuthStateChanged } = window.firebaseImports;
+  console.log("✅ Firebase SDK loaded successfully!");
   
+  // ✅ Authentication state handler (using already imported onAuthStateChanged)
   onAuthStateChanged(auth, (user) => {
     if (user) {
-      // User is signed in
       console.log('✅ User signed in:', user.email);
       window.currentUser = {
         email: user.email,
         uid: user.uid
       };
       
-      // Show app
       showApp();
       
-      // Load data
       if (typeof syncFromFirestore === 'function') {
-        syncFromFirestore();
+        setTimeout(() => syncFromFirestore(), 500);
       }
     } else {
-      // No user signed in
-      console.log('❌ No user signed in - showing login screen');
+      console.log('❌ No user signed in');
       window.currentUser = null;
-      
-      // Show login screen
       showAuthScreen();
     }
   });
   
-  // Helper functions
   function showApp() {
     const authScreen = document.getElementById('authScreen');
     const loginPage = document.getElementById('loginPage');
@@ -3195,7 +3186,12 @@ onmouseout="this.style.background='#28a745'">
 
   <script>
 
+// ==========================================
+// FIREBASE AUTHENTICATION
+// ==========================================
 
+let currentUser = null;
+let userEmail = null;
     
  // ==========================================
 // FIREBASE CONFIGURATION
@@ -3237,312 +3233,7 @@ let productPhotoFileName = null;
 
 
 
-// ==========================================
-// FIREBASE AUTHENTICATION
-// ==========================================
 
-let currentUser = null;
-let userEmail = null;
-
-// Check authentication on page load
-window.addEventListener('load', async function() {
-  console.log('🚀 Page loaded, checking Firebase authentication...');
-  
-  // TEMP DISABLED - Skip authentication for testing
-/*
-  window.auth.onAuthStateChanged(async (user) => {
-    if (user) {
-      console.log('✅ User authenticated:', user.email);
-      currentUser = {
-        email: user.email,
-        uid: user.uid,
-        name: user.displayName || user.email.split('@')[0],
-        authorized: true
-      };
-      userEmail = user.email;
-      
-      // Save to localStorage for quick access
-      localStorage.setItem('userEmail', user.email);
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
-      
-      // Show app and load data
-      showApp();
-      updateUserUI();
-      
-      // Wait before syncing
-      setTimeout(async () => {
-        console.log('🔄 Starting data sync...');
-        await syncFromFirestore();
-      }, 500);
-      
-    } else {
-      console.log('👤 No user authenticated, showing login screen...');
-      clearAuth();
-      showAuthScreen();
-    }
-  });
-});
-
-// Handle email + password authentication
-async function handleEmailPasswordAuth(event) {
-  event.preventDefault();
-  
-  const emailInput = document.getElementById('userEmailInput');
-  const passwordInput = document.getElementById('userPasswordInput');
-  const loginButton = document.getElementById('loginButton');
-  
-  const email = emailInput.value.trim().toLowerCase();
-  const password = passwordInput.value;
-  
-  if (!email || !password) {
-    alert('Please enter both email and password');
-    return;
-  }
-  
-  console.log('🔐 Authenticating:', email);
-  
-  // Show loading state
-  const originalText = loginButton.innerHTML;
-  loginButton.disabled = true;
-  loginButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Signing in...';
-  
-  try {
-    // Sign in with Firebase Authentication
-    const { signInWithEmailAndPassword } = window.firebaseImports;
-    const userCredential = await signInWithEmailAndPassword(window.auth, email, password);
-    
-    console.log('✅ Authentication successful');
-    
-    // Clear password field
-    passwordInput.value = '';
-    
-    // Auth state listener will handle the rest
-    
-  } catch (error) {
-    console.error('❌ Authentication error:', error);
-    
-    let errorMessage = 'Invalid email or password';
-    
-    if (error.code === 'auth/user-not-found') {
-      errorMessage = 'No account found with this email. Please sign up first.';
-    } else if (error.code === 'auth/wrong-password') {
-      errorMessage = 'Incorrect password. Please try again.';
-    } else if (error.code === 'auth/invalid-email') {
-      errorMessage = 'Invalid email format.';
-    } else if (error.code === 'auth/too-many-requests') {
-      errorMessage = 'Too many failed attempts. Please try again later.';
-    }
-    
-    alert(errorMessage);
-    loginButton.disabled = false;
-    loginButton.innerHTML = originalText;
-    passwordInput.value = '';
-    passwordInput.focus();
-  }
-}
-
-// Toggle password visibility (same as before)
-function togglePasswordVisibility() {
-  const passwordInput = document.getElementById('userPasswordInput');
-  const toggleIcon = document.getElementById('passwordToggleIcon');
-  
-  if (passwordInput.type === 'password') {
-    passwordInput.type = 'text';
-    toggleIcon.className = 'bi bi-eye-slash';
-  } else {
-    passwordInput.type = 'password';
-    toggleIcon.className = 'bi bi-eye';
-  }
-}
-
-// Clear authentication
-function clearAuth() {
-  console.log('🔓 Clearing authentication...');
-  userEmail = null;
-  currentUser = null;
-  localStorage.removeItem('userEmail');
-  localStorage.removeItem('currentUser');
-}
-
-// Show authentication screen
-function showAuthScreen() {
-  console.log('📱 Showing auth screen');
-  document.getElementById('authScreen').style.display = 'flex';
-  document.getElementById('appContent').style.display = 'none';
-  
-  // Pre-fill email if saved
-  const savedEmail = localStorage.getItem('userEmail');
-  if (savedEmail) {
-    document.getElementById('userEmailInput').value = savedEmail;
-    document.getElementById('userPasswordInput').focus();
-  }
-}
-
-// Show app
-function showApp() {
-  console.log('📱 Showing app');
-  document.getElementById('authScreen').style.display = 'none';
-  document.getElementById('appContent').style.display = 'block';
-}
-
-// Update user UI
-function updateUserUI() {
-  if (currentUser) {
-    const userNameEl = document.getElementById('userName');
-    
-    if (userNameEl) {
-      userNameEl.textContent = currentUser.name || currentUser.email;
-      console.log('👤 Updated username:', currentUser.email);
-    }
-  }
-}
-
-// Show auth error
-function showAuthError(message) {
-  console.warn('🚨 Auth error:', message);
-  alert('🔒 ' + message);
-  // Don't automatically sign out - let user retry
-}
-
-// Sign out
-async function signOut() {
-  if (confirm('Are you sure you want to sign out?')) {
-    console.log('👋 Signing out...');
-    try {
-      await window.auth.signOut();
-      clearAuth();
-      showAuthScreen();
-      setTimeout(() => location.reload(), 300);
-    } catch (error) {
-      console.error('Error signing out:', error);
-      alert('Failed to sign out. Please try again.');
-    }
-  }
-}
-
-// ==========================================
-// CHANGE PASSWORD FUNCTIONALITY
-// ==========================================
-
-let changePasswordModalInstance = null;
-
-// Open change password modal
-function openChangePasswordModal() {
-  console.log('🔑 Opening change password modal');
-  
-  // Reset form
-  document.getElementById('verifyPasswordStep').style.display = 'block';
-  document.getElementById('newPasswordStep').style.display = 'none';
-  document.getElementById('currentPasswordInput').value = '';
-  document.getElementById('newPasswordInput').value = '';
-  document.getElementById('confirmPasswordInput').value = '';
-  
-  // Show modal
-  const modalEl = document.getElementById('changePasswordModal');
-  if (!changePasswordModalInstance) {
-    changePasswordModalInstance = new bootstrap.Modal(modalEl);
-  }
-  changePasswordModalInstance.show();
-}
-
-// Verify current password (Step 1)
-async function verifyCurrentPassword() {
-  const currentPasswordInput = document.getElementById('currentPasswordInput');
-  const currentPassword = currentPasswordInput.value;
-  
-  if (!currentPassword) {
-    alert('Please enter your current password');
-    return;
-  }
-  
-  console.log('🔐 Verifying current password...');
-  
-  try {
-    const { signInWithEmailAndPassword } = window.firebaseImports;
-    const user = window.auth.currentUser;
-    
-    // Re-authenticate user
-    await signInWithEmailAndPassword(window.auth, user.email, currentPassword);
-    
-    // ✅ Password correct - show step 2
-    console.log('✅ Current password verified');
-    document.getElementById('verifyPasswordStep').style.display = 'none';
-    document.getElementById('newPasswordStep').style.display = 'block';
-    document.getElementById('newPasswordInput').focus();
-    
-  } catch (error) {
-    console.error('❌ Error verifying password:', error);
-    alert('Current password is incorrect');
-    currentPasswordInput.value = '';
-    currentPasswordInput.focus();
-  }
-}
-
-// Submit new password (Step 2)
-async function submitNewPassword() {
-  const currentPasswordInput = document.getElementById('currentPasswordInput');
-  const newPasswordInput = document.getElementById('newPasswordInput');
-  const confirmPasswordInput = document.getElementById('confirmPasswordInput');
-  
-  const oldPassword = currentPasswordInput.value;
-  const newPassword = newPasswordInput.value;
-  const confirmPassword = confirmPasswordInput.value;
-  
-  // Validate inputs
-  if (!newPassword || !confirmPassword) {
-    alert('Please fill in all fields');
-    return;
-  }
-  
-  if (newPassword.length < 6) {
-    alert('New password must be at least 6 characters');
-    return;
-  }
-  
-  if (newPassword !== confirmPassword) {
-    alert('Passwords do not match');
-    confirmPasswordInput.value = '';
-    confirmPasswordInput.focus();
-    return;
-  }
-  
-  if (newPassword === oldPassword) {
-    alert('New password must be different from current password');
-    newPasswordInput.value = '';
-    confirmPasswordInput.value = '';
-    newPasswordInput.focus();
-    return;
-  }
-  
-  console.log('🔄 Changing password...');
-  
-  try {
-    const { updatePassword } = window.firebaseImports;
-    const user = window.auth.currentUser;
-    
-    // Update password in Firebase
-    await updatePassword(user, newPassword);
-    
-    console.log('✅ Password changed successfully');
-    
-    // Close modal
-    changePasswordModalInstance.hide();
-    
-    // Show success message
-    alert('✅ Password changed successfully!');
-    
-  } catch (error) {
-    console.error('❌ Error changing password:', error);
-    
-    let errorMessage = 'Failed to change password';
-    
-    if (error.code === 'auth/requires-recent-login') {
-      errorMessage = 'Please sign out and sign in again before changing your password';
-    }
-    
-    alert(errorMessage);
-  }
-}
 
 
 
@@ -14357,6 +14048,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 </body>
 </html>
+
 
 
 
