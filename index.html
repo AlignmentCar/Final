@@ -13493,6 +13493,295 @@ window.addEventListener('load', function() {
   }, 15000);
 });
 
+/**
+ * ==========================================
+ * LOAD RECENT SALES FROM FIRESTORE
+ * ==========================================
+ */
+async function loadRecentSales() {
+  console.log('🛒 Loading recent sales from Firestore...');
+  
+  const user = window.auth?.currentUser;
+  if (!user) {
+    console.error('❌ User not authenticated');
+    return;
+  }
+  
+  const tbody = document.getElementById('recent-sales-list');
+  if (!tbody) {
+    console.error('❌ Sales table body not found (id: recent-sales-list)');
+    return;
+  }
+  
+  // Show loading state
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="5" style="text-align: center; padding: 20px; color: #999;">
+        <span class="spinner-border spinner-border-sm"></span> Loading sales...
+      </td>
+    </tr>
+  `;
+  
+  try {
+    const { collection, getDocs, query, orderBy, limit } = window.firebaseImports;
+    
+    // Get sales from Firestore
+    const salesRef = collection(window.db, 'tenants', user.uid, 'sales');
+    const q = query(salesRef, orderBy('date', 'desc'), limit(10)); // Latest 10 sales
+    const snapshot = await getDocs(q);
+    
+    const sales = [];
+    snapshot.forEach((doc) => {
+      sales.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    console.log(`✅ Loaded ${sales.length} sales from Firestore`);
+    
+    // Display sales in table
+    displayRecentSales(sales);
+    
+    // Also update cachedSales for other functions
+    window.cachedSales = sales;
+    
+  } catch (error) {
+    console.error('❌ Error loading sales:', error.message);
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: center; padding: 20px; color: #dc3545;">
+          <i class="bi bi-exclamation-triangle"></i> Failed to load sales<br>
+          <small style="color: #666;">${error.message}</small>
+        </td>
+      </tr>
+    `;
+  }
+}
+
+/**
+ * Display sales in Recent Sales table
+ */
+function displayRecentSales(sales) {
+  const tbody = document.getElementById('recent-sales-list');
+  
+  if (!tbody) {
+    console.error('❌ Sales table body not found');
+    return;
+  }
+  
+  if (!sales || sales.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: center; padding: 20px; color: #999;">
+          <i class="bi bi-inbox"></i> No sales recorded yet
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  let html = '';
+  
+  sales.forEach((sale, index) => {
+    // Format date
+    const dateStr = sale.date ? new Date(sale.date).toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }) : '-';
+    
+    // Format products (show first 2, then "..." if more)
+    let productsStr = '-';
+    if (Array.isArray(sale.products) && sale.products.length > 0) {
+      const firstTwo = sale.products.slice(0, 2).map(p => p.name || p.product).join(', ');
+      productsStr = sale.products.length > 2 ? `${firstTwo}... (+${sale.products.length - 2} more)` : firstTwo;
+    } else if (typeof sale.products === 'string') {
+      productsStr = sale.products;
+    }
+    
+    // Calculate total quantity
+    let totalQty = 0;
+    if (Array.isArray(sale.products)) {
+      totalQty = sale.products.reduce((sum, p) => sum + (Number(p.quantity) || Number(p.qty) || 0), 0);
+    } else {
+      totalQty = sale.totalQuantity || 0;
+    }
+    
+    // Get unit type (use first product's unit)
+    let unit = 'pcs';
+    if (Array.isArray(sale.products) && sale.products.length > 0) {
+      unit = sale.products[0].unitType || sale.products[0].unit || 'pcs';
+    }
+    
+    // Calculate total amount
+    const amount = sale.grandTotal || sale.totalAmount || 0;
+    
+    html += `
+      <tr onclick="viewSaleDetail('${sale.id}')" style="cursor: pointer;">
+        <td style="white-space: nowrap;">${dateStr}</td>
+        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${productsStr}">
+          ${productsStr}
+        </td>
+        <td style="text-align: center;">${totalQty}</td>
+        <td>${unit}</td>
+        <td style="font-weight: 600; color: #28a745;">₹${Number(amount).toFixed(2)}</td>
+      </tr>
+    `;
+  });
+  
+  tbody.innerHTML = html;
+  
+  console.log('✅ Displayed', sales.length, 'sales in Recent Sales table');
+}
+
+/**
+ * View sale detail (optional - opens modal with details)
+ */
+function viewSaleDetail(saleId) {
+  console.log('📄 Viewing sale detail:', saleId);
+  
+  const sale = window.cachedSales?.find(s => s.id === saleId);
+  
+  if (!sale) {
+    alert('❌ Sale not found');
+    return;
+  }
+  
+  // Build detail HTML
+  let html = `
+    <div style="padding: 15px;">
+      <div class="card mb-3">
+        <div class="card-header bg-primary text-white">
+          <strong>Sale Information</strong>
+        </div>
+        <div class="card-body">
+          <div class="row mb-2">
+            <div class="col-6"><strong>Date:</strong></div>
+            <div class="col-6">${new Date(sale.date).toLocaleString('en-IN')}</div>
+          </div>
+          <div class="row mb-2">
+            <div class="col-6"><strong>Total Amount:</strong></div>
+            <div class="col-6" style="font-size: 1.3rem; color: #28a745; font-weight: 700;">
+              ₹${Number(sale.grandTotal || sale.totalAmount).toFixed(2)}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <strong>Products</strong>
+        </div>
+        <div class="card-body">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Unit</th>
+                <th>Price</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+  `;
+  
+  if (Array.isArray(sale.products)) {
+    sale.products.forEach(p => {
+      const qty = p.quantity || p.qty || 0;
+      const price = p.price || 0;
+      const total = qty * price;
+      html += `
+        <tr>
+          <td>${escapeHtml(p.name || p.product || '-')}</td>
+          <td>${qty}</td>
+          <td>${p.unitType || p.unit || 'pcs'}</td>
+          <td>₹${Number(price).toFixed(2)}</td>
+          <td>₹${total.toFixed(2)}</td>
+        </tr>
+      `;
+    });
+  }
+  
+  html += `
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <div class="text-center mt-3">
+        <button class="btn btn-danger" onclick="confirmDeleteSale('${sale.id}')">
+          <i class="bi bi-trash"></i> Delete Sale
+        </button>
+      </div>
+    </div>
+  `;
+  
+  // Create or update modal
+  let modal = document.getElementById('saleDetailModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.id = 'saleDetailModal';
+    modal.innerHTML = `
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title">
+              <i class="bi bi-receipt"></i> Sale Details
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body" id="saleDetailContent"></div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  
+  document.getElementById('saleDetailContent').innerHTML = html;
+  
+  const bsModal = new bootstrap.Modal(modal);
+  bsModal.show();
+}
+
+/**
+ * Confirm delete sale
+ */
+async function confirmDeleteSale(saleId) {
+  if (!confirm('Are you sure you want to delete this sale? This cannot be undone.')) {
+    return;
+  }
+  
+  const user = window.auth?.currentUser;
+  if (!user) {
+    alert('Please sign in first');
+    return;
+  }
+  
+  try {
+    const { doc, deleteDoc } = window.firebaseImports;
+    
+    const saleDoc = doc(window.db, 'tenants', user.uid, 'sales', saleId);
+    await deleteDoc(saleDoc);
+    
+    alert('✅ Sale deleted successfully!');
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('saleDetailModal'));
+    if (modal) modal.hide();
+    
+    // Reload sales list
+    await loadRecentSales();
+    
+  } catch (error) {
+    console.error('❌ Error deleting sale:', error);
+    alert('❌ Failed to delete sale: ' + error.message);
+  }
+}
 
 
 
@@ -13594,6 +13883,15 @@ window.loadRecentPurchases = loadRecentPurchases;
 
 console.log('✅ Navigation functions made globally available');
 
+/**
+ * Make sales functions globally available
+ */
+window.loadRecentSales = loadRecentSales;
+window.displayRecentSales = displayRecentSales;
+window.viewSaleDetail = viewSaleDetail;
+window.confirmDeleteSale = confirmDeleteSale;
+
+console.log('✅ Sales functions made globally available');
 
     
   </script>
@@ -14395,6 +14693,7 @@ console.log('✅ Navigation functions made globally available');
   
 </body>
 </html>
+
 
 
 
