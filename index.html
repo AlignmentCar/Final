@@ -13507,9 +13507,10 @@ async function loadRecentSales() {
     return;
   }
   
-  const tbody = document.getElementById('recent-sales-list');
+  const tbody = document.getElementById('salesList'); // ✅ CORRECT ID
+  
   if (!tbody) {
-    console.error('❌ Sales table body not found (id: recent-sales-list)');
+    console.error('❌ Sales table body not found (id: salesList)');
     return;
   }
   
@@ -13525,9 +13526,8 @@ async function loadRecentSales() {
   try {
     const { collection, getDocs, query, orderBy, limit } = window.firebaseImports;
     
-    // Get sales from Firestore
     const salesRef = collection(window.db, 'tenants', user.uid, 'sales');
-    const q = query(salesRef, orderBy('date', 'desc'), limit(10)); // Latest 10 sales
+    const q = query(salesRef, orderBy('date', 'desc'), limit(10));
     const snapshot = await getDocs(q);
     
     const sales = [];
@@ -13540,10 +13540,10 @@ async function loadRecentSales() {
     
     console.log(`✅ Loaded ${sales.length} sales from Firestore`);
     
-    // Display sales in table
+    // Display sales
     displayRecentSales(sales);
     
-    // Also update cachedSales for other functions
+    // Cache sales
     window.cachedSales = sales;
     
   } catch (error) {
@@ -13560,10 +13560,10 @@ async function loadRecentSales() {
 }
 
 /**
- * Display sales in Recent Sales table
+ * Display sales in table
  */
 function displayRecentSales(sales) {
-  const tbody = document.getElementById('recent-sales-list');
+  const tbody = document.getElementById('salesList'); // ✅ CORRECT ID
   
   if (!tbody) {
     console.error('❌ Sales table body not found');
@@ -13583,7 +13583,7 @@ function displayRecentSales(sales) {
   
   let html = '';
   
-  sales.forEach((sale, index) => {
+  sales.forEach((sale) => {
     // Format date
     const dateStr = sale.date ? new Date(sale.date).toLocaleString('en-IN', {
       day: '2-digit',
@@ -13593,37 +13593,33 @@ function displayRecentSales(sales) {
       minute: '2-digit'
     }) : '-';
     
-    // Format products (show first 2, then "..." if more)
+    // Format products
     let productsStr = '-';
     if (Array.isArray(sale.products) && sale.products.length > 0) {
       const firstTwo = sale.products.slice(0, 2).map(p => p.name || p.product).join(', ');
       productsStr = sale.products.length > 2 ? `${firstTwo}... (+${sale.products.length - 2} more)` : firstTwo;
-    } else if (typeof sale.products === 'string') {
-      productsStr = sale.products;
     }
     
-    // Calculate total quantity
+    // Total quantity
     let totalQty = 0;
     if (Array.isArray(sale.products)) {
       totalQty = sale.products.reduce((sum, p) => sum + (Number(p.quantity) || Number(p.qty) || 0), 0);
-    } else {
-      totalQty = sale.totalQuantity || 0;
     }
     
-    // Get unit type (use first product's unit)
+    // Unit
     let unit = 'pcs';
     if (Array.isArray(sale.products) && sale.products.length > 0) {
       unit = sale.products[0].unitType || sale.products[0].unit || 'pcs';
     }
     
-    // Calculate total amount
+    // Amount
     const amount = sale.grandTotal || sale.totalAmount || 0;
     
     html += `
-      <tr onclick="viewSaleDetail('${sale.id}')" style="cursor: pointer;">
+      <tr onclick="viewSaleDetail('${sale.id}')" style="cursor: pointer; transition: background 0.2s;">
         <td style="white-space: nowrap;">${dateStr}</td>
-        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${productsStr}">
-          ${productsStr}
+        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(productsStr)}">
+          ${escapeHtml(productsStr)}
         </td>
         <td style="text-align: center;">${totalQty}</td>
         <td>${unit}</td>
@@ -14693,6 +14689,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
