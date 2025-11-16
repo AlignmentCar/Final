@@ -6104,22 +6104,7 @@ function populateRowWithCustom(rowIndex, cp){
     return null;
   }
 
-  /***********************
-   * COMPLETE SALE (fire-and-forget background saves)
-   ***********************/
- /**
- * ==========================================
- * Ã¢Å“â€¦ FIXED: Sequential sale saving with delay
- * ==========================================
- */
 
-// ==========================================
-// COMPLETE SALE - OPTIMISTIC UI + BACKGROUND SAVE
-// ==========================================
-
-// ==========================================
-// COMPLETE SALE - FIREBASE VERSION
-// ==========================================
 /**
  * ==========================================
  * COMPLETE SALE - SAFE VERSION WITH AUTO-RELOAD
@@ -13836,9 +13821,10 @@ function displayRecentSales(sales) {
   
   console.log('✅ Displayed', sales.length, 'sales in Recent Sales table');
 }
-
 /**
- * View sale detail (optional - opens modal with details)
+ * ==========================================
+ * VIEW SALE DETAIL - FIXED FOR BOTH STRUCTURES
+ * ==========================================
  */
 function viewSaleDetail(saleId) {
   console.log('📄 Viewing sale detail:', saleId);
@@ -13850,6 +13836,45 @@ function viewSaleDetail(saleId) {
     return;
   }
   
+  console.log('📊 Sale data:', sale); // Debug log
+  
+  // ✅ Extract products from different possible structures
+  let products = [];
+  
+  if (Array.isArray(sale.products) && sale.products.length > 0) {
+    // Structure 1: Array of products
+    products = sale.products;
+  } else if (sale.productName) {
+    // Structure 2: Single product fields (productName, quantity, etc.)
+    products = [{
+      name: sale.productName,
+      product: sale.productName,
+      quantity: sale.quantity,
+      qty: sale.quantity,
+      unitType: sale.unitType,
+      unit: sale.unitType,
+      price: sale.unitPrice || (sale.totalAmount / (sale.quantity || 1)),
+      unitPrice: sale.unitPrice
+    }];
+  } else if (typeof sale.products === 'string') {
+    // Structure 3: Products as string
+    products = [{
+      name: sale.products,
+      product: sale.products,
+      quantity: sale.quantity || 1,
+      qty: sale.quantity || 1,
+      unitType: sale.unitType || 'pcs',
+      unit: sale.unitType || 'pcs',
+      price: sale.totalAmount || 0,
+      unitPrice: sale.unitPrice || 0
+    }];
+  }
+  
+  console.log('📦 Extracted products:', products);
+  
+  // ✅ Get total amount
+  const totalAmount = sale.totalAmount || sale.grandTotal || sale.amount || 0;
+  
   // Build detail HTML
   let html = `
     <div style="padding: 15px;">
@@ -13860,12 +13885,12 @@ function viewSaleDetail(saleId) {
         <div class="card-body">
           <div class="row mb-2">
             <div class="col-6"><strong>Date:</strong></div>
-            <div class="col-6">${new Date(sale.date).toLocaleString('en-IN')}</div>
+            <div class="col-6">${new Date(sale.date || sale.createdAt).toLocaleString('en-IN')}</div>
           </div>
           <div class="row mb-2">
             <div class="col-6"><strong>Total Amount:</strong></div>
             <div class="col-6" style="font-size: 1.3rem; color: #28a745; font-weight: 700;">
-              ₹${Number(sale.grandTotal || sale.totalAmount).toFixed(2)}
+              ₹${Number(totalAmount).toFixed(2)}
             </div>
           </div>
         </div>
@@ -13876,8 +13901,12 @@ function viewSaleDetail(saleId) {
           <strong>Products</strong>
         </div>
         <div class="card-body">
-          <table class="table table-sm">
-            <thead>
+  `;
+  
+  if (products.length > 0) {
+    html += `
+          <table class="table table-sm table-bordered">
+            <thead class="table-light">
               <tr>
                 <th>Product</th>
                 <th>Qty</th>
@@ -13887,28 +13916,37 @@ function viewSaleDetail(saleId) {
               </tr>
             </thead>
             <tbody>
-  `;
-  
-  if (Array.isArray(sale.products)) {
-    sale.products.forEach(p => {
-      const qty = p.quantity || p.qty || 0;
-      const price = p.price || 0;
+    `;
+    
+    products.forEach(p => {
+      const qty = Number(p.quantity || p.qty || 1);
+      const price = Number(p.unitPrice || p.price || 0);
       const total = qty * price;
+      const productName = p.name || p.product || p.productName || 'Unknown Product';
+      const unit = p.unitType || p.unit || 'pcs';
+      
       html += `
         <tr>
-          <td>${escapeHtml(p.name || p.product || '-')}</td>
+          <td>${escapeHtml(productName)}</td>
           <td>${qty}</td>
-          <td>${p.unitType || p.unit || 'pcs'}</td>
-          <td>₹${Number(price).toFixed(2)}</td>
-          <td>₹${total.toFixed(2)}</td>
+          <td>${unit}</td>
+          <td>₹${price.toFixed(2)}</td>
+          <td style="font-weight: 600;">₹${total.toFixed(2)}</td>
         </tr>
       `;
     });
+    
+    html += `
+            </tbody>
+          </table>
+    `;
+  } else {
+    html += `
+          <p class="text-muted text-center mb-0">No product details available</p>
+    `;
   }
   
   html += `
-            </tbody>
-          </table>
         </div>
       </div>
       
@@ -14894,6 +14932,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
