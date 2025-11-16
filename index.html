@@ -3161,11 +3161,6 @@ async function saveProductToSheet(product, isEdit = false) {
 }
 
 
-/**
- * ==========================================
- * SAVE SALE TO FIRESTORE - UPDATED
- * ==========================================
- */
 async function saveSaleToSheet(item) {
   const user = window.auth.currentUser;
   
@@ -3175,11 +3170,11 @@ async function saveSaleToSheet(item) {
   }
   
   try {
-    const { collection, addDoc } = window.firebaseImports;
+    const { collection, addDoc, doc, updateDoc, getDoc } = window.firebaseImports;
     const userId = user.uid;
     
+    // Save sale
     const salesRef = collection(window.db, 'tenants', userId, 'sales');
-    
     const docRef = await addDoc(salesRef, {
       ...item,
       createdAt: new Date().toISOString(),
@@ -3188,7 +3183,31 @@ async function saveSaleToSheet(item) {
     
     console.log('✅ Sale saved:', docRef.id);
     
-    // ✅ AUTO-RELOAD SALES LIST AFTER SAVING
+    // ✅ UPDATE PRODUCT STOCK (if product ID exists)
+    if (item.productId) {
+      try {
+        const productRef = doc(window.db, 'tenants', userId, 'products', item.productId);
+        const productSnap = await getDoc(productRef);
+        
+        if (productSnap.exists()) {
+          const currentStock = productSnap.data().stock || 0;
+          const newStock = currentStock - (item.quantity || 0);
+          
+          await updateDoc(productRef, {
+            stock: Math.max(0, newStock) // Don't go negative
+          });
+          
+          console.log(`✅ Stock updated: ${currentStock} → ${newStock}`);
+        } else {
+          console.warn(`⚠️ Product ${item.productId} not found, skipping stock update`);
+        }
+      } catch (stockError) {
+        console.warn('⚠️ Could not update stock:', stockError.message);
+        // Don't fail the sale if stock update fails
+      }
+    }
+    
+    // ✅ AUTO-RELOAD SALES LIST
     setTimeout(() => {
       if (typeof loadRecentSales === 'function') {
         loadRecentSales();
@@ -3202,7 +3221,6 @@ async function saveSaleToSheet(item) {
     return { success: false, error: error.message };
   }
 }
-
 
     
     // ==========================================
@@ -14759,6 +14777,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
