@@ -4181,6 +4181,32 @@ let purchasePhotoBase64 = null;
 let purchaseProductRowCounter = 0;
 
 /**
+ * Initialize purchases on page load
+ */
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('🔄 Initializing purchases module...');
+  
+  // Auto-load purchases when user is authenticated
+  const checkAndLoad = setInterval(() => {
+    if (window.auth && window.auth.currentUser) {
+      clearInterval(checkAndLoad);
+      console.log('👤 User authenticated, loading purchases...');
+      
+      // Check if we're on purchases page
+      const purchasesPage = document.getElementById('purchasesPage');
+      if (purchasesPage && purchasesPage.style.display !== 'none') {
+        loadRecentPurchases();
+      }
+    }
+  }, 500);
+  
+  // Stop checking after 10 seconds
+  setTimeout(() => clearInterval(checkAndLoad), 10000);
+});
+
+
+    
+/**
  * Submit purchase entry to Firestore
  */
 async function submitPurchaseEntry() {
@@ -14292,6 +14318,7 @@ console.log('✅ Purchase functions made globally available');
   
 </body>
 </html>
+
 
 
 
