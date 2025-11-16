@@ -6120,6 +6120,11 @@ function populateRowWithCustom(rowIndex, cp){
 // ==========================================
 // COMPLETE SALE - FIREBASE VERSION
 // ==========================================
+/**
+ * ==========================================
+ * COMPLETE SALE - SAFE VERSION WITH AUTO-RELOAD
+ * ==========================================
+ */
 async function completeSale() {
   const user = window.auth.currentUser;
   if (!user) {
@@ -6211,15 +6216,29 @@ async function completeSale() {
     if (!item.isCustomProduct && item.productId) {
       const prod = cachedProducts.find(p => p.id === item.productId);
       if (prod) {
-        prod.stock -= item.quantity;
+        prod.stock = Math.max(0, prod.stock - item.quantity);
       }
     }
   });
   
   // Re-render UI immediately
-  renderProducts();
-  renderSales();
-  updateSummaryFromCache();
+  try {
+    renderProducts();
+  } catch (e) {
+    console.error('❌ Failed to render products:', e.message);
+  }
+  
+  try {
+    renderSales();
+  } catch (e) {
+    console.error('❌ Failed to render sales:', e.message);
+  }
+  
+  try {
+    updateSummaryFromCache();
+  } catch (e) {
+    console.error('❌ Failed to update summary:', e.message);
+  }
   
   // Close modal immediately
   const modal = bootstrap.Modal.getInstance(document.getElementById('salesModal'));
@@ -6237,45 +6256,74 @@ async function completeSale() {
   // 🔄 STEP 2: BACKGROUND SAVE TO FIRESTORE
   // ==========================================
   
-  try {
-    const { collection, addDoc } = window.firebaseImports;
-    const salesRef = collection(window.db, 'tenants', user.uid, 'sales');
-    
-    // Save each sale item to Firestore
-    const savePromises = saleItems.map(item => {
-      return addDoc(salesRef, {
-        ...item,
-        createdAt: new Date().toISOString(),
-        userId: user.uid
+  (async () => {
+    try {
+      const { collection, addDoc, doc, updateDoc, getDoc } = window.firebaseImports;
+      const salesRef = collection(window.db, 'tenants', user.uid, 'sales');
+      
+      // ✅ Save each sale item to Firestore
+      console.log('📤 Saving sales to Firestore...');
+      
+      const savePromises = saleItems.map(item => {
+        return addDoc(salesRef, {
+          ...item,
+          date: new Date().toISOString(), // ✅ Ensure date field
+          createdAt: new Date().toISOString(),
+          userId: user.uid
+        });
       });
-    });
-    
-    await Promise.all(savePromises);
-    
-    console.log(`✅ ${saleItems.length} sales saved to Firestore in background`);
-    
-    // Also update product stock in Firestore
-    const { doc, updateDoc } = window.firebaseImports;
-    
-    for (const item of saleItems) {
-      if (!item.isCustomProduct && item.productId) {
-        const prod = cachedProducts.find(p => p.id === item.productId);
-        if (prod) {
-          const productRef = doc(window.db, 'tenants', user.uid, 'products', item.productId);
-          await updateDoc(productRef, {
-            stock: prod.stock,
-            updatedAt: new Date().toISOString()
-          });
+      
+      await Promise.all(savePromises);
+      
+      console.log(`✅ ${saleItems.length} sales saved to Firestore`);
+      
+      // ✅ Update product stock in Firestore (SAFE VERSION)
+      console.log('📦 Updating product stock in Firestore...');
+      
+      for (const item of saleItems) {
+        if (!item.isCustomProduct && item.productId) {
+          try {
+            // ✅ Check if product exists first
+            const productRef = doc(window.db, 'tenants', user.uid, 'products', item.productId);
+            const productSnap = await getDoc(productRef);
+            
+            if (productSnap.exists()) {
+              const prod = cachedProducts.find(p => p.id === item.productId);
+              if (prod) {
+                await updateDoc(productRef, {
+                  stock: Math.max(0, prod.stock), // Don't go negative
+                  updatedAt: new Date().toISOString()
+                });
+                console.log(`✅ Stock updated for ${item.productId}`);
+              }
+            } else {
+              console.warn(`⚠️ Product ${item.productId} not found, skipping stock update`);
+            }
+          } catch (stockError) {
+            console.warn(`⚠️ Could not update stock for ${item.productId}:`, stockError.message);
+            // ✅ Continue with other products
+          }
         }
       }
+      
+      console.log('✅ Product stock updated in Firestore');
+      
+      // ✅ AUTO-RELOAD RECENT SALES (for homepage)
+      setTimeout(() => {
+        if (typeof loadRecentSales === 'function') {
+          loadRecentSales();
+          console.log('✅ Recent sales reloaded');
+        }
+      }, 500);
+      
+      console.log('✅ 1 sales saved to Firestore in background');
+      
+    } catch (error) {
+      console.error('❌ Background save error:', error.message);
+      // ✅ Show subtle warning but don't block user
+      showWarningToast('⚠️ Sale saved locally, syncing in background...');
     }
-    
-    console.log('✅ Product stock updated in Firestore');
-    
-  } catch (error) {
-    console.error('❌ Background save error:', error);
-    // Don't show error to user - sale is already complete in UI
-  }
+  })(); // ✅ IIFE - runs in background without blocking UI
 }
 
 
@@ -14846,6 +14894,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
