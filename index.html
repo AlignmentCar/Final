@@ -13102,7 +13102,11 @@ async function createProductGroup(groupData) {
 
     
 
-// Navigate back to Home - FIXED
+/**
+ * ==========================================
+ * NAVIGATE TO HOME - UPDATED WITH AUTO-LOAD
+ * ==========================================
+ */
 function navigateToHome() {
   console.log('🏠 Navigating to Home');
   
@@ -13113,7 +13117,7 @@ function navigateToHome() {
   const productGroupsPage = document.getElementById('productGroupsPage');
   const customersPage = document.getElementById('customersPage');
   const groupDetailPage = document.getElementById('groupDetailPage');
-  const brandsPage = document.getElementById('brandsPage');  // ✅ ADD THIS
+  const brandsPage = document.getElementById('brandsPage');
   
   // Show main app
   if (mainApp) mainApp.style.display = 'block';
@@ -13131,7 +13135,7 @@ function navigateToHome() {
     customersPage.classList.remove('active');
     customersPage.style.display = 'none';
   }
-  if (brandsPage) {                          // ✅ ADD THIS BLOCK
+  if (brandsPage) {
     brandsPage.classList.remove('active');
     brandsPage.style.display = 'none';
   }
@@ -13146,36 +13150,28 @@ function navigateToHome() {
   
   window.scrollTo({ top: 0, behavior: 'smooth' });
   
+  // ✅ AUTO-LOAD SALES AND PURCHASES FOR HOMEPAGE
+  console.log('🔄 Loading sales and purchases...');
+  
+  if (typeof loadRecentSales === 'function') {
+    loadRecentSales().catch(err => {
+      console.error('❌ Failed to load sales:', err.message);
+    });
+  }
+  
+  if (typeof loadRecentPurchases === 'function') {
+    loadRecentPurchases().catch(err => {
+      console.error('❌ Failed to load purchases:', err.message);
+    });
+  }
+  
   console.log('✅ Home displayed');
 }
 
-// ==========================================
-// NEW NAVIGATION WRAPPER - PHASE 1
-// ==========================================
 /**
- * Centralized navigation function
- * Phase 1: Only handles dashboard (calls navigateToHome)
- * @param {string} page - Page name ('dashboard', 'allProducts', etc.)
- */
-/**
- * Centralized navigation function
- * Phase 2: Handles dashboard AND allProducts
- * @param {string} page - Page name ('dashboard', 'allProducts', etc.)
- */
-/**
- * Centralized navigation function
- * Phase 3: Handles dashboard, allProducts, AND customers
- * @param {string} page - Page name ('dashboard', 'allProducts', 'customers', etc.)
- */
-/**
- * Centralized navigation function - COMPLETE
- * All pages now use this system!
- * @param {string} page - Page name ('dashboard', 'allProducts', 'customers', 'productGroups')
- */
-/**
- * Centralized navigation function - COMPLETE with page hiding
- * Ensures all pages are properly hidden before showing target page
- * @param {string} page - Page name ('dashboard', 'allProducts', 'customers', 'productGroups')
+ * ==========================================
+ * CENTRALIZED NAVIGATION FUNCTION - UPDATED
+ * ==========================================
  */
 function navigateTo(page) {
   console.log('🔷 navigateTo called with:', page);
@@ -13188,8 +13184,14 @@ function navigateTo(page) {
     navigateToCustomers();
   } else if (page === 'productGroups') {
     navigateToProductGroups();
-  } else if (page === 'brands') {           // ✅ ADD THIS
-    navigateToBrands();                     // ✅ ADD THIS
+  } else if (page === 'brands') {
+    navigateToBrands();
+  } else if (page === 'sales') {
+    // ✅ Navigate to sales and load data
+    navigateToSales();
+  } else if (page === 'purchases') {
+    // ✅ Navigate to purchases and load data
+    navigateToPurchases();
   } else if (page === 'invoices') {
     window.location.href = 'invoices.html';
   } else {
@@ -13197,6 +13199,47 @@ function navigateTo(page) {
   }
 }
 
+/**
+ * ==========================================
+ * NAVIGATE TO SALES - NEW FUNCTION
+ * ==========================================
+ */
+function navigateToSales() {
+  console.log('🛒 Navigating to Sales');
+  
+  // Your existing code to show sales page
+  // (If you don't have a separate sales page, this might go to homepage)
+  
+  // ✅ AUTO-LOAD SALES
+  if (typeof loadRecentSales === 'function') {
+    loadRecentSales().catch(err => {
+      console.error('❌ Failed to load sales:', err.message);
+    });
+  }
+  
+  console.log('✅ Sales page displayed');
+}
+
+/**
+ * ==========================================
+ * NAVIGATE TO PURCHASES - NEW FUNCTION
+ * ==========================================
+ */
+function navigateToPurchases() {
+  console.log('📦 Navigating to Purchases');
+  
+  // Your existing code to show purchases page
+  // (If you don't have a separate purchases page, this might go to homepage)
+  
+  // ✅ AUTO-LOAD PURCHASES
+  if (typeof loadRecentPurchases === 'function') {
+    loadRecentPurchases().catch(err => {
+      console.error('❌ Failed to load purchases:', err.message);
+    });
+  }
+  
+  console.log('✅ Purchases page displayed');
+}
 
 
 
@@ -13402,39 +13445,54 @@ document.addEventListener('DOMContentLoaded', function() {
     
 
 
-
 /**
  * ==========================================
- * AUTO-LOAD PURCHASES ON PAGE LOAD
+ * AUTO-LOAD SALES & PURCHASES ON PAGE LOAD
  * ==========================================
  */
 
-// Add this to your DOMContentLoaded or authentication handler
-document.addEventListener('DOMContentLoaded', function() {
-  // Wait for authentication
-  onAuthStateChanged(window.auth, async (user) => {
+// Simple auto-load that works with your existing auth system
+window.addEventListener('load', function() {
+  console.log('🔄 Page loaded, initializing sales & purchases...');
+  
+  // Wait for user to be authenticated (check every 500ms)
+  const checkAndLoadInterval = setInterval(() => {
+    const user = window.auth?.currentUser;
+    
     if (user) {
-      console.log('✅ User authenticated, loading data...');
+      console.log('✅ User authenticated:', user.email);
+      clearInterval(checkAndLoadInterval);
       
-      // Load all data
-      if (typeof syncFromFirestore === 'function') {
-        await syncFromFirestore();
-      }
-      
-      // ✅ AUTO-LOAD PURCHASES
-      if (typeof loadRecentPurchases === 'function') {
-        await loadRecentPurchases();
-      }
-      
-      // ✅ AUTO-LOAD SALES
-      if (typeof loadRecentSales === 'function') {
-        await loadRecentSales();
-      }
-      
-      console.log('✅ All data loaded');
+      // Load sales and purchases after a short delay
+      setTimeout(() => {
+        console.log('📦 Auto-loading sales and purchases...');
+        
+        // Load purchases
+        if (typeof loadRecentPurchases === 'function') {
+          loadRecentPurchases().catch(err => {
+            console.error('❌ Failed to load purchases:', err.message);
+          });
+        }
+        
+        // Load sales
+        if (typeof loadRecentSales === 'function') {
+          loadRecentSales().catch(err => {
+            console.error('❌ Failed to load sales:', err.message);
+          });
+        }
+        
+        console.log('✅ Auto-load initiated');
+      }, 1000);
     }
-  });
+  }, 500);
+  
+  // Stop checking after 15 seconds
+  setTimeout(() => {
+    clearInterval(checkAndLoadInterval);
+    console.log('⏱️ Stopped checking for authentication');
+  }, 15000);
 });
+
 
 
 
@@ -13516,6 +13574,25 @@ window.openPurchasePhotoLightbox = openPurchasePhotoLightbox;
 window.togglePaymentModeCheckmark = togglePaymentModeCheckmark;
 
 console.log('✅ Purchase functions made globally available');
+
+
+    /**
+ * ==========================================
+ * MAKE FUNCTIONS GLOBALLY AVAILABLE
+ * ==========================================
+ */
+window.navigateToHome = navigateToHome;
+window.navigateTo = navigateTo;
+window.navigateToSales = navigateToSales;
+window.navigateToPurchases = navigateToPurchases;
+window.navigateToAllProducts = navigateToAllProducts;
+window.navigateToCustomers = navigateToCustomers;
+window.navigateToProductGroups = navigateToProductGroups;
+window.navigateToBrands = navigateToBrands;
+window.loadRecentSales = loadRecentSales;
+window.loadRecentPurchases = loadRecentPurchases;
+
+console.log('✅ Navigation functions made globally available');
 
 
     
@@ -14318,6 +14395,7 @@ console.log('✅ Purchase functions made globally available');
   
 </body>
 </html>
+
 
 
 
