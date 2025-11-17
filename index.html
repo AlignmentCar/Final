@@ -313,6 +313,163 @@
   
 </nav>
 
+  <!-- ==========================================
+     SIGN IN / SIGN UP PAGE - WITH PASSWORD RESET
+     ========================================== -->
+<div id="authPage" style="display: none;">
+  <div style="
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+  ">
+    <div style="
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 420px;
+      padding: 40px 30px;
+    ">
+      <!-- Logo/Title -->
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h2 style="color: #667eea; margin: 0; font-size: 1.8rem;">
+          <i class="bi bi-box-seam"></i> Inventory App
+        </h2>
+        <p style="color: #666; margin-top: 8px; font-size: 0.95rem;">
+          Sign in to manage your inventory
+        </p>
+      </div>
+
+      <!-- Sign In Form -->
+      <div id="signInForm">
+        <div class="mb-3">
+          <label class="form-label" style="font-weight: 600; color: #333;">Email</label>
+          <input 
+            type="email" 
+            id="signInEmail" 
+            class="form-control" 
+            placeholder="your@email.com"
+            style="padding: 12px; font-size: 1rem;">
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label" style="font-weight: 600; color: #333;">Password</label>
+          <input 
+            type="password" 
+            id="signInPassword" 
+            class="form-control" 
+            placeholder="Enter password"
+            style="padding: 12px; font-size: 1rem;">
+        </div>
+
+        <!-- ✅ FORGOT PASSWORD LINK -->
+        <div style="text-align: right; margin-bottom: 15px;">
+          <a 
+            href="#" 
+            onclick="showForgotPasswordModal(); return false;"
+            style="color: #667eea; font-size: 0.9rem; text-decoration: none;">
+            <i class="bi bi-question-circle"></i> Forgot Password?
+          </a>
+        </div>
+
+        <button 
+          onclick="handleSignIn()" 
+          class="btn btn-primary w-100"
+          style="padding: 12px; font-size: 1.1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; font-weight: 600;">
+          <i class="bi bi-box-arrow-in-right"></i> Sign In
+        </button>
+
+        <div style="text-align: center; margin-top: 20px; color: #666;">
+          Don't have an account? 
+          <a href="#" onclick="showSignUpForm(); return false;" style="color: #667eea; font-weight: 600; text-decoration: none;">
+            Sign Up
+          </a>
+        </div>
+      </div>
+
+      <!-- Sign Up Form (initially hidden) -->
+      <div id="signUpForm" style="display: none;">
+        <div class="mb-3">
+          <label class="form-label" style="font-weight: 600;">Email</label>
+          <input 
+            type="email" 
+            id="signUpEmail" 
+            class="form-control" 
+            placeholder="your@email.com"
+            style="padding: 12px;">
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label" style="font-weight: 600;">Password</label>
+          <input 
+            type="password" 
+            id="signUpPassword" 
+            class="form-control" 
+            placeholder="At least 6 characters"
+            style="padding: 12px;">
+        </div>
+
+        <button 
+          onclick="handleSignUp()" 
+          class="btn btn-success w-100"
+          style="padding: 12px; font-size: 1.1rem; font-weight: 600;">
+          <i class="bi bi-person-plus"></i> Create Account
+        </button>
+
+        <div style="text-align: center; margin-top: 20px; color: #666;">
+          Already have an account? 
+          <a href="#" onclick="showSignInForm(); return false;" style="color: #667eea; font-weight: 600; text-decoration: none;">
+            Sign In
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     FORGOT PASSWORD MODAL - MOBILE OPTIMIZED
+     ========================================== -->
+<div class="modal fade" id="forgotPasswordModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+        <h5 class="modal-title">
+          <i class="bi bi-key"></i> Reset Password
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="padding: 30px;">
+        <p style="color: #666; margin-bottom: 20px;">
+          Enter your email address and we'll send you a link to reset your password.
+        </p>
+        
+        <div class="mb-3">
+          <label class="form-label" style="font-weight: 600;">Email Address</label>
+          <input 
+            type="email" 
+            id="resetPasswordEmail" 
+            class="form-control" 
+            placeholder="your@email.com"
+            style="padding: 12px; font-size: 1rem;">
+        </div>
+
+        <button 
+          onclick="sendPasswordResetEmail()" 
+          class="btn btn-primary w-100"
+          style="padding: 12px; font-size: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; font-weight: 600;">
+          <i class="bi bi-send"></i> Send Reset Link
+        </button>
+
+        <div id="resetPasswordMessage" style="margin-top: 15px; display: none;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <div id="authScreen" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); z-index: 9999;">
   <div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
@@ -2599,6 +2756,147 @@ async function handleSignUp(event) {
 }
 
 
+/**
+ * ==========================================
+ * PASSWORD RESET FUNCTIONS
+ * ==========================================
+ */
+
+/**
+ * Show Forgot Password Modal
+ */
+function showForgotPasswordModal() {
+  // Get email from sign-in form if available
+  const signInEmail = document.getElementById('signInEmail')?.value;
+  const resetEmailInput = document.getElementById('resetPasswordEmail');
+  
+  if (resetEmailInput && signInEmail) {
+    resetEmailInput.value = signInEmail;
+  }
+  
+  // Clear previous message
+  const messageDiv = document.getElementById('resetPasswordMessage');
+  if (messageDiv) {
+    messageDiv.style.display = 'none';
+    messageDiv.innerHTML = '';
+  }
+  
+  // Show modal
+  const modal = new bootstrap.Modal(document.getElementById('forgotPasswordModal'));
+  modal.show();
+}
+
+/**
+ * Send Password Reset Email
+ */
+async function sendPasswordResetEmail() {
+  const emailInput = document.getElementById('resetPasswordEmail');
+  const email = emailInput?.value?.trim();
+  const messageDiv = document.getElementById('resetPasswordMessage');
+  
+  if (!email) {
+    showResetMessage('❌ Please enter your email address', 'danger');
+    return;
+  }
+  
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showResetMessage('❌ Please enter a valid email address', 'danger');
+    return;
+  }
+  
+  try {
+    const { sendPasswordResetEmail: firebaseSendReset } = window.firebaseImports;
+    
+    // Show loading
+    showResetMessage('📤 Sending reset email...', 'info');
+    
+    // Send reset email
+    await firebaseSendReset(window.auth, email);
+    
+    console.log('✅ Password reset email sent to:', email);
+    
+    // Show success message
+    showResetMessage(
+      '✅ Password reset email sent!<br><br>' +
+      'Check your inbox at <strong>' + email + '</strong><br>' +
+      'Click the link in the email to reset your password.',
+      'success'
+    );
+    
+    // Clear email input
+    emailInput.value = '';
+    
+  } catch (error) {
+    console.error('❌ Password reset error:', error);
+    
+    let errorMessage = '❌ Failed to send reset email';
+    
+    if (error.code === 'auth/user-not-found') {
+      errorMessage = '❌ No account found with this email address';
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = '❌ Invalid email address';
+    } else if (error.code === 'auth/too-many-requests') {
+      errorMessage = '❌ Too many requests. Please try again later.';
+    } else {
+      errorMessage = '❌ ' + error.message;
+    }
+    
+    showResetMessage(errorMessage, 'danger');
+  }
+}
+
+/**
+ * Show reset message in modal
+ */
+function showResetMessage(message, type) {
+  const messageDiv = document.getElementById('resetPasswordMessage');
+  if (!messageDiv) return;
+  
+  const colorMap = {
+    success: '#28a745',
+    danger: '#dc3545',
+    info: '#17a2b8'
+  };
+  
+  const bgColorMap = {
+    success: '#d4edda',
+    danger: '#f8d7da',
+    info: '#d1ecf1'
+  };
+  
+  messageDiv.style.display = 'block';
+  messageDiv.style.padding = '15px';
+  messageDiv.style.borderRadius = '8px';
+  messageDiv.style.color = colorMap[type];
+  messageDiv.style.background = bgColorMap[type];
+  messageDiv.style.border = `1px solid ${colorMap[type]}`;
+  messageDiv.innerHTML = message;
+}
+
+/**
+ * Toggle between Sign In and Sign Up forms
+ */
+function showSignUpForm() {
+  document.getElementById('signInForm').style.display = 'none';
+  document.getElementById('signUpForm').style.display = 'block';
+}
+
+function showSignInForm() {
+  document.getElementById('signUpForm').style.display = 'none';
+  document.getElementById('signInForm').style.display = 'block';
+}
+
+/**
+ * Make functions globally available
+ */
+window.showForgotPasswordModal = showForgotPasswordModal;
+window.sendPasswordResetEmail = sendPasswordResetEmail;
+window.showSignUpForm = showSignUpForm;
+window.showSignInForm = showSignInForm;
+
+console.log('✅ Password reset feature loaded');
 
 
   /***********************
@@ -15055,6 +15353,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
