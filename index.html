@@ -4686,13 +4686,9 @@ async function loadRecentPurchases() {
 }
 
 /**
- * Display purchases in table
- */
-/**
- * Display purchases in table (WITH LIGHTBOX PHOTO MODAL)
- */
-/**
- * Display purchases in table - NO CHANGES NEEDED (UI only)
+ * ==========================================
+ * DISPLAY PURCHASES - FIXED VERSION
+ * ==========================================
  */
 function displayPurchases(purchases) {
   const tbody = document.getElementById('purchasesList');
@@ -4711,20 +4707,36 @@ function displayPurchases(purchases) {
   let html = '';
   
   purchases.forEach((purchase, index) => {
-    // Format products string
-    const productsStr = Array.isArray(purchase.products) 
-      ? purchase.products.map(p => `${p.name} (${p.qty})`).join(', ')
-      : purchase.products || '-';
+    // ✅ Format products string - handle array properly
+    let productsStr = '-';
+    if (Array.isArray(purchase.products)) {
+      productsStr = purchase.products
+        .map(p => `${p.name} (${p.qty})`)
+        .join(', ');
+    } else if (typeof purchase.products === 'string') {
+      productsStr = purchase.products;
+    }
     
-    // Format date
-    const dateStr = purchase.date ? new Date(purchase.date).toLocaleString() : '-';
+    // ✅ Format date
+    const dateStr = purchase.date 
+      ? new Date(purchase.date).toLocaleString('en-IN', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      : '-';
+    
+    // ✅ Check if photo exists (photoBase64 field)
+    const hasPhoto = purchase.photoBase64 && purchase.photoBase64.length > 0;
     
     html += `
       <tr onclick="viewPurchaseDetail(${index})" style="cursor: pointer;">
         <td style="text-align: center; font-weight: 600;">${index + 1}</td>
         <td style="white-space: nowrap;">${dateStr}</td>
         <td style="text-align: center;">
-          ${purchase.photoBase64 ? `
+          ${hasPhoto ? `
             <img 
               src="${purchase.photoBase64}" 
               onclick="event.stopPropagation(); openPurchasePhotoLightbox(${index})" 
@@ -4735,11 +4747,11 @@ function displayPurchases(purchases) {
               title="Click to view full size">
           ` : '<span style="color: #999;">-</span>'}
         </td>
-        <td>${productsStr}</td>
-        <td>${purchase.vendorName}</td>
-        <td style="font-weight: 600; color: #28a745;">₹${purchase.totalAmount.toFixed(2)}</td>
+        <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(productsStr)}">${escapeHtml(productsStr)}</td>
+        <td>${escapeHtml(purchase.vendorName || '-')}</td>
+        <td style="font-weight: 600; color: #28a745;">₹${Number(purchase.totalAmount || 0).toFixed(2)}</td>
         <td style="font-size: 0.9rem;">${formatPaymentModes(purchase.paymentModes) || '-'}</td>
-        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${purchase.otherInfo || '-'}</td>
+        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(purchase.otherInfo || '')}">${escapeHtml(purchase.otherInfo || '-')}</td>
       </tr>
     `;
   });
@@ -4754,19 +4766,28 @@ function displayPurchases(purchases) {
 function formatPaymentModes(modes) {
   if (!modes || typeof modes !== 'object') return '';
   const parts = [];
-  if (modes.cash) parts.push(`Cash: ₹${modes.cash}`);
-  if (modes.online) parts.push(`Online: ₹${modes.online}`);
-  if (modes.credit) parts.push(`Credit: ₹${modes.credit}`);
-  return parts.join(', ');
+  if (modes.cash && modes.cash > 0) parts.push(`Cash: ₹${modes.cash}`);
+  if (modes.online && modes.online > 0) parts.push(`Online: ₹${modes.online}`);
+  if (modes.credit && modes.credit > 0) parts.push(`Credit: ₹${modes.credit}`);
+  return parts.join(', ') || 'Not specified';
 }
 
-    /**
- * Open purchase photo in lightbox modal (like product photo modal)
+
+   /**
+ * ==========================================
+ * OPEN PURCHASE PHOTO LIGHTBOX - FIXED
+ * ==========================================
  */
 function openPurchasePhotoLightbox(purchaseIndex) {
   const purchase = window.currentPurchases[purchaseIndex];
   
-  if (!purchase || !purchase.photoLink) {
+  if (!purchase) {
+    alert('❌ Purchase not found');
+    return;
+  }
+  
+  // ✅ Check for photo in photoBase64 field
+  if (!purchase.photoBase64 || purchase.photoBase64.length === 0) {
     alert('❌ No photo available for this purchase');
     return;
   }
@@ -4803,8 +4824,8 @@ function openPurchasePhotoLightbox(purchaseIndex) {
             </div>
           </div>
           <div class="modal-footer" style="border-top: 1px solid #dee2e6; background: #f8f9fa;">
-            <strong style="color: #495057;">Product Name</strong>
-            <span id="purchasePhotoProductName" style="margin-left: 10px; color: #6c757d;">-</span>
+            <strong style="color: #495057;">Vendor:</strong>
+            <span id="purchasePhotoVendorName" style="margin-left: 10px; color: #6c757d;">-</span>
           </div>
         </div>
       </div>
@@ -4812,16 +4833,16 @@ function openPurchasePhotoLightbox(purchaseIndex) {
     document.body.appendChild(lightbox);
   }
   
-  // Update modal content
+  // ✅ Update modal content
   document.getElementById('purchasePhotoLightboxTitle').innerHTML = `
     <i class="bi bi-camera"></i> ${escapeHtml(purchase.vendorName || 'Purchase Photo')}
   `;
   
   const imgElement = document.getElementById('purchasePhotoLightboxImg');
   imgElement.style.display = 'block';
-  imgElement.src = purchase.photoLink;
+  imgElement.src = purchase.photoBase64; // ✅ Use photoBase64 field
   
-  document.getElementById('purchasePhotoProductName').textContent = purchase.products || '-';
+  document.getElementById('purchasePhotoVendorName').textContent = purchase.vendorName || '-';
   document.getElementById('purchasePhotoLoadError').style.display = 'none';
   
   // Show modal
@@ -4830,28 +4851,87 @@ function openPurchasePhotoLightbox(purchaseIndex) {
 }
 
 
+
 /**
- * View purchase detail in modal
+ * ==========================================
+ * VIEW PURCHASE DETAIL - FIXED VERSION
+ * ==========================================
  */
 function viewPurchaseDetail(index) {
   const purchase = window.currentPurchases[index];
   if (!purchase) return;
+  
+  // ✅ Format products properly
+  let productsHTML = '';
+  if (Array.isArray(purchase.products) && purchase.products.length > 0) {
+    productsHTML = `
+      <table class="table table-sm table-bordered">
+        <thead class="table-light">
+          <tr>
+            <th>Product</th>
+            <th>Qty</th>
+            <th>Unit</th>
+            <th>Rate</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+    
+    purchase.products.forEach(p => {
+      productsHTML += `
+        <tr>
+          <td>${escapeHtml(p.name || '-')}</td>
+          <td>${p.qty || 0}</td>
+          <td>${p.unit || 'pcs'}</td>
+          <td>₹${Number(p.rate || 0).toFixed(2)}</td>
+          <td style="font-weight: 600;">₹${Number(p.amount || 0).toFixed(2)}</td>
+        </tr>
+      `;
+    });
+    
+    productsHTML += `
+        </tbody>
+      </table>
+    `;
+  } else if (typeof purchase.products === 'string') {
+    productsHTML = `<p style="white-space: pre-wrap; margin: 0;">${escapeHtml(purchase.products)}</p>`;
+  } else {
+    productsHTML = '<p class="text-muted">No products listed</p>';
+  }
+  
+  // ✅ Format date
+  const dateStr = purchase.date
+    ? new Date(purchase.date).toLocaleString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })
+    : 'Not specified';
   
   let html = `
     <div style="padding: 15px;">
       
       <div class="row mb-3">
         <div class="col-md-6">
-          <strong>Serial No.:</strong> ${purchase.serialNo}
+          <strong>Serial No.:</strong> ${index + 1}
         </div>
         <div class="col-md-6">
-          <strong>Date & Time:</strong> ${purchase.dateTime}
+          <strong>Date & Time:</strong> ${dateStr}
         </div>
       </div>
       
-      ${purchase.photoLink ? `
+      ${purchase.photoBase64 ? `
         <div class="text-center mb-3">
-          <img src="${purchase.photoLink}" style="max-width: 100%; max-height: 300px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" alt="Purchase Photo">
+          <img 
+            src="${purchase.photoBase64}" 
+            onclick="openPurchasePhotoLightbox(${index})" 
+            style="max-width: 100%; max-height: 300px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer;" 
+            alt="Purchase Photo"
+            title="Click to view full size">
         </div>
       ` : ''}
       
@@ -4860,7 +4940,7 @@ function viewPurchaseDetail(index) {
           <strong>Vendor Information</strong>
         </div>
         <div class="card-body">
-          <h5>${purchase.vendorName}</h5>
+          <h5>${escapeHtml(purchase.vendorName || 'Not specified')}</h5>
         </div>
       </div>
       
@@ -4869,7 +4949,7 @@ function viewPurchaseDetail(index) {
           <strong>Products Purchased</strong>
         </div>
         <div class="card-body">
-          <p style="white-space: pre-wrap; margin: 0;">${purchase.products}</p>
+          ${productsHTML}
         </div>
       </div>
       
@@ -4881,11 +4961,11 @@ function viewPurchaseDetail(index) {
           <div class="row">
             <div class="col-md-6">
               <strong>Total Amount:</strong>
-              <div style="font-size: 1.5rem; color: #28a745; font-weight: 700;">₹${purchase.totalAmount.toFixed(2)}</div>
+              <div style="font-size: 1.5rem; color: #28a745; font-weight: 700;">₹${Number(purchase.totalAmount || 0).toFixed(2)}</div>
             </div>
             <div class="col-md-6">
               <strong>Payment Mode:</strong>
-              <div>${purchase.paymentMode || 'Not specified'}</div>
+              <div>${formatPaymentModes(purchase.paymentModes) || 'Not specified'}</div>
             </div>
           </div>
         </div>
@@ -4897,7 +4977,7 @@ function viewPurchaseDetail(index) {
             <strong>Additional Information</strong>
           </div>
           <div class="card-body">
-            <p style="white-space: pre-wrap; margin: 0;">${purchase.otherInfo}</p>
+            <p style="white-space: pre-wrap; margin: 0;">${escapeHtml(purchase.otherInfo)}</p>
           </div>
         </div>
       ` : ''}
@@ -4938,6 +5018,7 @@ function viewPurchaseDetail(index) {
   const bsModal = new bootstrap.Modal(modal);
   bsModal.show();
 }
+
 
 /**
  * Confirm delete purchase - FIREBASE VERSION
@@ -14974,6 +15055,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
