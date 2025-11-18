@@ -373,6 +373,34 @@
 </div>
 
 
+
+
+
+
+<!-- App Content (hidden until authenticated) -->
+<div id="appContent" style="display:none;">
+
+  <!-- ==========================================
+     SYNC INDICATOR (REQUIRED)
+     ========================================== -->
+<div id="syncIndicator" style="
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(40, 167, 69, 0.95);
+  color: white;
+  padding: 8px 20px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  z-index: 10000;
+  display: none;
+  font-size: 0.9rem;
+">
+  <i class="bi bi-arrow-repeat"></i> 
+  <span id="syncText">Syncing...</span>
+</div>
+  
  <!-- ==========================================
        NAVBAR - FIXED FOR FIREBASE
        ========================================== -->
@@ -384,11 +412,6 @@
       </span>
  </nav>
 
-  <!-- NEW: Background sync indicator -->
-  <div id="backgroundSyncStatus">
-    <i class="bi bi-cloud-upload-fill"></i>
-    <span>Syncing</span>
-  </div>
 
   
        <div class="container-fluid py-4">
@@ -15022,6 +15045,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
