@@ -12014,68 +12014,52 @@ function renderProductGroups(groups) {
   container.style.display = 'block';
 }
 
-/**
- * Render Group Variants List - FIXED with Products Collection
- */
 function renderGroupVariants(variants) {
-  console.log('🎨 Rendering', variants.length, 'variants');
-  
   const container = document.getElementById('variantsListContainer');
   const loadingState = document.getElementById('variantsLoadingState');
   const emptyState = document.getElementById('variantsEmptyState');
   
   if (loadingState) loadingState.style.display = 'none';
-  
+
   if (!variants || variants.length === 0) {
     if (container) container.style.display = 'none';
     if (emptyState) emptyState.style.display = 'block';
     return;
   }
-  
   if (emptyState) emptyState.style.display = 'none';
-  
+
   let html = '';
-  
   variants.forEach(variant => {
-    // Parse attributes safely
     let attributesHtml = '';
     try {
-      const attrs = typeof variant.attributes === 'string' 
-        ? JSON.parse(variant.attributes) 
+      const attrs = typeof variant.attributes === 'string'
+        ? JSON.parse(variant.attributes)
         : variant.attributes;
-      
       if (attrs && typeof attrs === 'object') {
         const attrPairs = Object.entries(attrs)
           .map(([key, value]) => `<span class="badge bg-secondary">${escapeHtml(key)}: ${escapeHtml(value)}</span>`)
           .join(' ');
         attributesHtml = `<div class="mt-1">${attrPairs}</div>`;
       }
-    } catch (e) {
-      console.warn('Error parsing attributes for variant:', variant.id, e);
-    }
-    
-    // Stock status
-    const stock = typeof variant.stock === 'number' ? variant.stock : 0;
-    const minStock = variant.minStock || 5;
-    const stockClass = stock <= minStock ? 'danger' : 'success';
-    const stockIcon = stock <= minStock ? '⚠️' : '✅';
-    
-    // Price
+    } catch (e) {}
+    // Use stockStatus if present, otherwise use stock (with fallback minStock)
+    const badge = typeof variant.stockStatus === 'string' && variant.stockStatus !== ''
+      ? stockBadgeHtml(variant.stockStatus, variant.minStock)
+      : stockBadgeHtml(variant.stock, variant.minStock);
+
     const price = variant.price || variant.sellingPrice || 0;
     const priceText = `₹${price.toFixed(2)}`;
-    
-    // Name
     const variantName = variant.name || variant.variantName || 'Unnamed Variant';
-    
+
     html += `
-      <div class="card mb-3 border-start border-3 border-${stockClass}">
+      <div class="card mb-3">
         <div class="card-body">
           <div class="d-flex align-items-start justify-content-between">
             <div class="flex-grow-1">
               <h6 class="mb-1">${escapeHtml(variantName)}</h6>
               ${attributesHtml}
               <div class="mt-2">
-                <span class="badge bg-${stockClass}">${stockIcon} Stock: ${stock}</span>
+                ${badge}
                 <span class="badge bg-primary ms-2">${priceText}</span>
                 ${variant.category ? `<span class="badge bg-info ms-2">${escapeHtml(variant.category)}</span>` : ''}
                 ${variant.brand ? `<span class="badge bg-secondary ms-2">${escapeHtml(variant.brand)}</span>` : ''}
@@ -12094,16 +12078,10 @@ function renderGroupVariants(variants) {
       </div>
     `;
   });
-  
-  if (container) {
-    container.innerHTML = html;
-    container.style.display = 'block';
-  }
-  
-  console.log('✅ Variants rendered successfully');
-}
 
-window.renderGroupVariants = renderGroupVariants;
+  container.innerHTML = html;
+  container.style.display = 'block';
+}
 
 
 /**
@@ -15432,6 +15410,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
