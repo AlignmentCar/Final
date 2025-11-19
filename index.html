@@ -2718,10 +2718,9 @@ async function handleSignUp(event) {
 
 
 
-
 /**
  * ==========================================
- * SYNC FROM FIRESTORE - KEEP LATEST VERSION
+ * SYNC FROM FIRESTORE - WITH VARIANT SUPPORT
  * ==========================================
  */
 async function syncFromFirestore() {
@@ -2741,20 +2740,29 @@ async function syncFromFirestore() {
     
     console.log('🔄 Syncing data for user:', userId);
     
-    // ✅ Fetch products from Firestore
+    // ✅ Fetch ALL products from Firestore (regular + variants)
     const productsRef = collection(window.db, 'tenants', userId, 'products');
     const productsSnap = await getDocs(productsRef);
     
     // ✅ STEP 1: Collect all products
     const allProducts = [];
     productsSnap.forEach((doc) => {
+      const data = doc.data();
       allProducts.push({
         id: doc.id,
-        ...doc.data()
+        ...data,
+        // ✅ Mark as variant if it has a groupId
+        isGroupVariant: data.groupId ? true : false
       });
     });
     
     console.log(`📦 Fetched ${allProducts.length} products from Firestore`);
+    
+    // ✅ Count regular products vs variants
+    const regularProducts = allProducts.filter(p => !p.groupId);
+    const variants = allProducts.filter(p => p.groupId);
+    console.log(`   - Regular products: ${regularProducts.length}`);
+    console.log(`   - Group variants: ${variants.length}`);
     
     // ✅ STEP 2: Remove duplicates - KEEP LATEST BY updatedAt
     const uniqueProductsMap = new Map();
@@ -2763,20 +2771,14 @@ async function syncFromFirestore() {
       const existingProduct = uniqueProductsMap.get(product.id);
       
       if (!existingProduct) {
-        // First time seeing this ID - add it
         uniqueProductsMap.set(product.id, product);
       } else {
-        // Duplicate ID found - keep the one with latest updatedAt
         const existingTime = existingProduct.updatedAt ? new Date(existingProduct.updatedAt).getTime() : 0;
         const newTime = product.updatedAt ? new Date(product.updatedAt).getTime() : 0;
         
         if (newTime > existingTime) {
           console.log('🔄 Replacing old product with newer version:', product.name);
-          console.log('   - Old time:', existingProduct.updatedAt);
-          console.log('   - New time:', product.updatedAt);
           uniqueProductsMap.set(product.id, product);
-        } else {
-          console.log('⏭️ Keeping existing (newer) product:', existingProduct.name);
         }
       }
     });
@@ -2798,7 +2800,8 @@ async function syncFromFirestore() {
           id: product.id,
           name: product.name,
           stock: product.stock,
-          updatedAt: product.updatedAt
+          updatedAt: product.updatedAt,
+          isVariant: product.isGroupVariant
         });
       }
     });
@@ -2810,19 +2813,17 @@ async function syncFromFirestore() {
       if (nameMap[name].length > 1) {
         console.warn(`⚠️ Found ${nameMap[name].length} products with name "${name}"`);
         
-        // Sort by updatedAt (newest first)
         const sorted = nameMap[name].sort((a, b) => {
           const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
           const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
           return timeB - timeA;
         });
         
-        // Keep the first (newest), mark others for removal
         const toKeep = sorted[0];
-        console.log(`✅ Keeping latest:`, toKeep.id, '| Updated:', toKeep.updatedAt);
+        console.log(`✅ Keeping latest:`, toKeep.id, toKeep.isVariant ? '(variant)' : '(regular)');
         
         for (let i = 1; i < sorted.length; i++) {
-          console.log(`🗑️ Marking for removal:`, sorted[i].id, '| Updated:', sorted[i].updatedAt);
+          console.log(`🗑️ Marking for removal:`, sorted[i].id);
           idsToRemove.push(sorted[i].id);
         }
       }
@@ -2837,7 +2838,12 @@ async function syncFromFirestore() {
     // Sort products by name
     cachedProducts.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     
-    console.log(`✅ Final: ${cachedProducts.length} unique products loaded`);
+    // ✅ Final count with breakdown
+    const finalRegular = cachedProducts.filter(p => !p.isGroupVariant).length;
+    const finalVariants = cachedProducts.filter(p => p.isGroupVariant).length;
+    console.log(`✅ Final: ${cachedProducts.length} unique products`);
+    console.log(`   - Regular: ${finalRegular}`);
+    console.log(`   - Variants: ${finalVariants}`);
     
     // ✅ Save to cache
     try {
@@ -2959,6 +2965,7 @@ async function syncFromFirestore() {
   }
 }
 
+window.syncFromFirestore = syncFromFirestore;
 
     
 // Manual refresh function
@@ -3137,11 +3144,8 @@ function stockBadgeHtml(stock, minStock){
 }
 
 /**
- * ✅ UPDATED: Render Products with Bulk Edit Support
- */
-/**
  * ==========================================
- * RENDER PRODUCTS - UPDATED WITH VARIANT INDICATORS
+ * RENDER PRODUCTS - WITH ENHANCED VARIANT INDICATORS
  * ==========================================
  */
 function renderProducts(){
@@ -3158,9 +3162,11 @@ function renderProducts(){
     cachedProducts.forEach((p, index) => {
       const priceText = (p.price!==undefined && p.price!==null) ? `₹${parseFloat(p.price).toFixed(2)}/${p.unitType}` : '-';
       
-      // ✅ ADD VARIANT BADGE
-      const variantBadge = p.isGroupVariant ? 
-        `<span style="background: #667eea; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: 6px;">📦 GROUP</span>` : 
+      // ✅ ENHANCED VARIANT BADGE - Show for products with groupId
+      const variantBadge = (p.isGroupVariant || p.groupId) ? 
+        `<span class="badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-left: 8px; box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);">
+          <i class="bi bi-folder"></i> Variant
+        </span>` : 
         '';
       
       // Photo thumbnail HTML
@@ -3179,15 +3185,18 @@ function renderProducts(){
       
       html += `<tr class="${rowClass}" data-product-id="${p.id}" data-product-index="${index}">
         <td style="text-align: center;">${photoHtml}</td>
-        <td><strong>${escapeHtml(p.name)}</strong>${variantBadge}</td>
+        <td>
+          <strong>${escapeHtml(p.name)}</strong>
+          ${variantBadge}
+        </td>
         <td>${escapeHtml(p.category||'')}</td>
         <td>${escapeHtml(p.brand||'')}</td>
         <td><strong>${escapeHtml(p.size||'')}</strong></td>
         <td>${stockBadgeHtml(p.stock,p.minStock)}</td>
         <td><strong>${priceText}</strong></td>
         <td>
-          <button class="btn btn-sm btn-primary btn-action-sm me-1" onclick="event.stopPropagation(); editProduct('${p.id}', ${p.isGroupVariant})"><i class="bi bi-pencil"></i> Edit</button>
-          <button class="btn btn-sm btn-danger btn-action-sm" onclick="event.stopPropagation(); deleteProduct('${p.id}', ${p.isGroupVariant})"><i class="bi bi-trash"></i> Delete</button>
+          <button class="btn btn-sm btn-primary btn-action-sm me-1" onclick="event.stopPropagation(); editProduct('${p.id}', ${p.isGroupVariant || false})"><i class="bi bi-pencil"></i> Edit</button>
+          <button class="btn btn-sm btn-danger btn-action-sm" onclick="event.stopPropagation(); deleteProduct('${p.id}', ${p.isGroupVariant || false})"><i class="bi bi-trash"></i> Delete</button>
         </td>
       </tr>`;
     });
@@ -3198,7 +3207,7 @@ function renderProducts(){
     }
   }
   
-  // ✅ MOBILE LIST (with variant badge)
+  // ✅ MOBILE LIST - Enhanced variant badge
   const container = document.getElementById('mobileProductsList');
   if(!hasInitialLoaded){ 
     container.innerHTML=`<div class="mobile-item text-center"><div class="spinner-border"></div><div class="mt-2 text-muted">Loading inventory…</div></div>`; 
@@ -3209,9 +3218,11 @@ function renderProducts(){
   else {
     let html = '';
     cachedProducts.forEach((p, index) => {
-      // ✅ ADD VARIANT BADGE FOR MOBILE
-      const variantBadge = p.isGroupVariant ? 
-        `<span style="background: #667eea; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; display: inline-block; margin-top: 6px;">📦 Group Variant</span>` : 
+      // ✅ ENHANCED VARIANT BADGE FOR MOBILE
+      const variantBadge = (p.isGroupVariant || p.groupId) ? 
+        `<span class="badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 6px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; display: inline-block; margin-top: 8px; box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);">
+          <i class="bi bi-folder"></i> Group Variant
+        </span>` : 
         '';
       
       const mobilePhoto = (p.imageUrl && p.imageUrl !== '' && p.imageUrl !== 'uploading...') ? 
@@ -3248,8 +3259,8 @@ function renderProducts(){
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="display:flex;flex-direction:column;gap:8px;">
-            <button class="btn btn-sm btn-primary btn-action-sm" onclick="event.stopPropagation(); editProduct('${p.id}', ${p.isGroupVariant})"><i class="bi bi-pencil"></i> Edit</button>
-            <button class="btn btn-sm btn-danger btn-action-sm" onclick="event.stopPropagation(); deleteProduct('${p.id}', ${p.isGroupVariant})"><i class="bi bi-trash"></i> Delete</button>
+            <button class="btn btn-sm btn-primary btn-action-sm" onclick="event.stopPropagation(); editProduct('${p.id}', ${p.isGroupVariant || false})"><i class="bi bi-pencil"></i> Edit</button>
+            <button class="btn btn-sm btn-danger btn-action-sm" onclick="event.stopPropagation(); deleteProduct('${p.id}', ${p.isGroupVariant || false})"><i class="bi bi-trash"></i> Delete</button>
           </div>
         </div>
       </div>`;
@@ -3265,6 +3276,7 @@ function renderProducts(){
   loadProductsForSaleFromCache();
 }
 
+window.renderProducts = renderProducts;
 
 
   function renderSales(){
@@ -15533,6 +15545,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
