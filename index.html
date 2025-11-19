@@ -12286,11 +12286,8 @@ function removeAttributeRow(rowId) {
 
 
 /**
- * ==========================================
- * VARIANT GENERATION & PREVIEW
- * ==========================================
+ * Parse Attributes from Form - Mobile Optimized
  */
-// Parse Attributes from Form - MOBILE OPTIMIZED
 function parseAttributesFromForm() {
   console.log('🔍 Parsing attributes from form...');
   
@@ -12302,15 +12299,14 @@ function parseAttributesFromForm() {
   rows.forEach((row, index) => {
     // Try multiple selector strategies for mobile compatibility
     const nameInput = row.querySelector('.attr-name') || 
-                     row.querySelector('input[placeholder*="Size"]') ||
+                     row.querySelector('input[placeholder*="Attribute"]') ||
                      row.querySelector('input[type="text"]:first-child');
     
     const optionsInput = row.querySelector('.attr-options') || 
-                        row.querySelector('input[placeholder*="Small"]') ||
-                        row.querySelector('input[type="text"]:last-child');
+                        row.querySelector('input[placeholder*="Options"]') ||
+                        row.querySelector('input[type="text"]:nth-child(2)');
     
     if (nameInput && optionsInput) {
-      // Get values with fallback for mobile
       const attrName = (nameInput.value || '').trim();
       const optionsText = (optionsInput.value || '').trim();
       
@@ -12346,9 +12342,9 @@ function parseAttributesFromForm() {
   return attributes;
 }
 
-
-
-// Generate Variant Combinations
+/**
+ * Generate Variant Combinations (Cartesian Product)
+ */
 function generateVariantCombinations(attributes) {
   const keys = Object.keys(attributes);
   
@@ -12389,7 +12385,9 @@ function generateVariantCombinations(attributes) {
 }
 
 
-// Generate Variant Name
+/**
+ * Generate Variant Name
+ */
 function generateVariantName(groupName, attributes) {
   const values = Object.values(attributes);
   if (values.length === 0) return groupName;
@@ -12397,14 +12395,19 @@ function generateVariantName(groupName, attributes) {
 }
 
 
-// Update Variant Preview (Real-time)
+/**
+ * Update Variant Preview (Real-time)
+ */
 function updateVariantPreview() {
-  const groupName = document.getElementById('groupName').value.trim() || 'Product';
+  const groupName = document.getElementById('groupName')?.value.trim() || 'Product';
   const attributes = parseAttributesFromForm();
   const variants = generateVariantCombinations(attributes);
   
   // Update count
-  document.getElementById('variantCount').textContent = variants.length;
+  const countEl = document.getElementById('variantCount');
+  if (countEl) {
+    countEl.textContent = variants.length;
+  }
   
   // Update preview list
   const container = document.getElementById('variantPreviewContainer');
@@ -12412,7 +12415,7 @@ function updateVariantPreview() {
   
   if (variants.length === 0) {
     container.innerHTML = `
-      <div class="variant-preview-item">
+      <div style="padding: 10px 12px; background: #e3f2fd; border-radius: 8px; color: #1976d2;">
         Add attributes to see preview...
       </div>
     `;
@@ -12426,8 +12429,8 @@ function updateVariantPreview() {
   variants.slice(0, previewLimit).forEach(attr => {
     const variantName = generateVariantName(groupName, attr);
     html += `
-      <div class="variant-preview-item">
-        <span class="icon">✓</span>
+      <div style="padding: 10px 12px; background: #e3f2fd; border-radius: 8px; margin-bottom: 8px; color: #1976d2; font-size: 14px;">
+        <span style="margin-right: 8px; color: #28a745;">✓</span>
         ${escapeHtml(variantName)}
       </div>
     `;
@@ -12436,7 +12439,7 @@ function updateVariantPreview() {
   // Show "and X more" if needed
   if (variants.length > previewLimit) {
     html += `
-      <div class="variant-preview-more">
+      <div style="padding: 8px; text-align: center; color: #666; font-size: 13px; font-style: italic;">
         ... and ${variants.length - previewLimit} more
       </div>
     `;
@@ -12445,6 +12448,24 @@ function updateVariantPreview() {
   container.innerHTML = html;
 }
 
+/**
+ * Escape HTML for security
+ */
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Make all functions globally accessible
+window.generateVariantName = generateVariantName;
+window.parseAttributesFromForm = parseAttributesFromForm;
+window.generateVariantCombinations = generateVariantCombinations;
+window.updateVariantPreview = updateVariantPreview;
+window.escapeHtml = escapeHtml;
+
+console.log('✅ Group creation functions loaded');
     
 
 // Navigate to Group Detail - FIXED
@@ -12498,16 +12519,14 @@ function navigateToGroupDetail(groupId, groupName) {
     
 /**
  * ==========================================
- * FORM SUBMISSION HANDLERS - FIREBASE VERSION
+ * HANDLE CREATE GROUP - ENHANCED VERSION
  * ==========================================
  */
-
-// Handle Create Group Form Submission
 async function handleCreateGroup(event) {
   event.preventDefault();
   console.log('📝 Creating product group...');
   
-  const user = window.auth.currentUser;
+  const user = window.auth?.currentUser;
   if (!user) {
     alert('Please sign in first');
     return;
@@ -12522,10 +12541,10 @@ async function handleCreateGroup(event) {
   }
   
   submitBtn.disabled = true;
-  submitBtn.innerHTML = '⏳ Creating...';
+  submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating...';
   
   try {
-    // Collect form data
+    // ✅ Collect form data
     const groupName = document.getElementById('groupName').value.trim();
     const description = document.getElementById('groupDescription').value.trim();
     const manufacturer = document.getElementById('groupManufacturer').value.trim();
@@ -12533,10 +12552,10 @@ async function handleCreateGroup(event) {
     
     console.log('📋 Form data:', { groupName, description, manufacturer, category });
     
-    // Parse attributes
+    // ✅ Parse attributes
     const attributes = parseAttributesFromForm();
     
-    // Validation
+    // ✅ Validation
     if (!groupName) {
       throw new Error('❌ Group name is required');
     }
@@ -12558,78 +12577,149 @@ async function handleCreateGroup(event) {
     
     console.log('✅ Validation passed!');
     
-    // Generate variants
-    const variants = generateVariantCombinations(attributes);
-    console.log(`📊 Will create ${variants.length} variants`);
+    // ✅ Generate variants
+    const variantCombinations = generateVariantCombinations(attributes);
+    console.log(`📊 Will create ${variantCombinations.length} variants`);
     
-    const { collection, addDoc } = window.firebaseImports;
+    if (variantCombinations.length === 0) {
+      throw new Error('❌ No variants to create');
+    }
     
-    // Save product group
-    const groupsRef = collection(window.db, 'tenants', user.uid, 'productGroups');
-    const groupDocRef = await addDoc(groupsRef, {
+    const { collection, doc, setDoc, addDoc } = window.firebaseImports;
+    const userId = user.uid;
+    
+    // ✅ STEP 1: Create group document with generated ID
+    const groupRef = doc(collection(window.db, 'tenants', userId, 'productGroups'));
+    const groupId = groupRef.id;
+    
+    const groupData = {
+      groupId: groupId,
       groupName: groupName,
-      description: description,
-      manufacturer: manufacturer,
-      brand: manufacturer,
-      category: category,
+      description: description || '',
+      manufacturer: manufacturer || '',
+      brand: manufacturer || '',
+      category: category || '',
       attributes: attributes,
-      totalVariants: variants.length,
-      createdBy: user.email,
+      totalVariants: variantCombinations.length,
+      createdBy: user.email || user.uid,
       createdAt: new Date().toISOString(),
-      userId: user.uid
-    });
+      updatedAt: new Date().toISOString(),
+      userId: userId
+    };
     
-    console.log('✅ Group created:', groupDocRef.id);
+    await setDoc(groupRef, groupData);
+    console.log('✅ Group created with ID:', groupId);
     
-    // Save all variants
-    const productsRef = collection(window.db, 'tenants', user.uid, 'products');
-    const variantPromises = variants.map(attrs => {
-      const variantName = generateVariantName(groupName, attrs);
-      
-      return addDoc(productsRef, {
-        name: variantName,
-        variantName: variantName,
-        groupId: groupDocRef.id,
-        groupName: groupName,
-        category: category,
-        brand: manufacturer,
-        manufacturer: manufacturer,
-        attributes: attrs,
-        unitType: 'Piece',
-        price: 0,
-        sellingPrice: 0,
-        costPrice: 0,
-        stock: 0,
-        minStock: 0,
-        size: attrs.Size || '',
-        createdAt: new Date().toISOString(),
-        userId: user.uid
+    // ✅ STEP 2: Create all variant documents
+    const productsRef = collection(window.db, 'tenants', userId, 'products');
+    let successCount = 0;
+    const createdVariants = [];
+    
+    for (const variantAttrs of variantCombinations) {
+      try {
+        const variantName = generateVariantName(groupName, variantAttrs);
+        
+        const variantData = {
+          name: variantName,
+          variantName: variantName,
+          groupId: groupId, // ✅ Link to parent group
+          groupName: groupName,
+          category: category || '',
+          brand: manufacturer || '',
+          manufacturer: manufacturer || '',
+          attributes: variantAttrs, // Object format
+          attributesString: JSON.stringify(variantAttrs), // String format for search
+          unitType: 'Piece',
+          price: 0,
+          sellingPrice: 0,
+          costPrice: 0,
+          stock: 0,
+          minStock: 5,
+          size: variantAttrs.Size || variantAttrs.size || '',
+          imageUrl: '',
+          isGroupVariant: true, // ✅ Mark as variant
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          createdBy: user.email || user.uid,
+          userId: userId
+        };
+        
+        const variantRef = await addDoc(productsRef, variantData);
+        
+        console.log(`✅ Created variant ${successCount + 1}/${variantCombinations.length}:`, variantName);
+        
+        createdVariants.push({
+          id: variantRef.id,
+          ...variantData
+        });
+        
+        successCount++;
+        
+      } catch (variantError) {
+        console.error('❌ Error creating variant:', variantError);
+      }
+    }
+    
+    console.log(`✅ Successfully created ${successCount}/${variantCombinations.length} variants`);
+    
+    if (successCount === 0) {
+      throw new Error('Failed to create any variants');
+    }
+    
+    // ✅ STEP 3: Update local cache with new variants
+    if (typeof cachedProducts !== 'undefined') {
+      createdVariants.forEach(variant => {
+        cachedProducts.push(variant);
       });
-    });
+      
+      // Save to localStorage
+      try {
+        localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+        console.log('💾 Cache updated with new variants');
+      } catch (e) {
+        console.warn('⚠️ Failed to update cache:', e);
+      }
+    }
     
-    await Promise.all(variantPromises);
-    
-    console.log(`✅ Created ${variants.length} variants`);
-    
-    // Show success message
-    showSuccessToast(`✅ Created "${groupName}" with ${variants.length} variants!`);
-    
-    // Close modal
+    // ✅ STEP 4: Close modal
     closeCreateGroupModal();
     
-    // Reload groups list
-    setTimeout(() => {
-      loadProductGroups();
+    // ✅ STEP 5: Show success message
+    const message = `✅ Created "${groupName}" with ${successCount} variant${successCount !== 1 ? 's' : ''}!`;
+    
+    if (typeof showSuccessToast === 'function') {
+      showSuccessToast(message);
+    } else {
+      alert(message);
+    }
+    
+    console.log('🎉 Group creation complete!');
+    
+    // ✅ STEP 6: Sync from Firestore to reload everything
+    setTimeout(async () => {
+      if (typeof syncFromFirestore === 'function') {
+        await syncFromFirestore();
+      }
+      
+      // If in Groups view, reload groups list
+      const groupsView = document.getElementById('groupsViewContainer');
+      if (groupsView && groupsView.style.display !== 'none') {
+        if (typeof loadProductGroups === 'function') {
+          loadProductGroups();
+        }
+      }
     }, 500);
     
   } catch (error) {
     console.error('❌ Error creating product group:', error);
     alert(`Error: ${error.message}`);
-    
+  } finally {
     submitBtn.disabled = false;
     submitBtn.innerHTML = originalText;
   }
 }
+
+window.handleCreateGroup = handleCreateGroup;
 
 
 /**
@@ -15545,6 +15635,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
