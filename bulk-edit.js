@@ -16,13 +16,6 @@ let bulkEditMode = {
   selectedProducts: []
 };
 
-
-
-
-
-
-
-
 /**
  * ==========================================
  * 🎯 BULK EDIT - CATEGORY
@@ -51,37 +44,7 @@ function showCategoryBulkEdit() {
 }
 
 /**
- * Select Bulk Category - FIXED: No toast message
- */
-function selectBulkCategory(category) {
-  console.log('📦 Selected category:', category);
-  
-  // ✅ Close category dropdown
-  document.getElementById('categoryDropdownBtn').click();
-  
-  setTimeout(() => {
-    // ✅ Set bulk edit mode
-    bulkEditMode = {
-      active: true,
-      field: 'category',
-      value: category,
-      selectedProducts: []
-    };
-    
-    // ✅ Update UI
-    document.getElementById('selectedCategoryText').textContent = category;
-    document.getElementById('updateCategoryBtn').style.display = 'inline-block';
-    // Cancel button already shown by showCategoryBulkEdit()
-    document.getElementById('selectedCount').textContent = '0';
-    
-    // ✅ Enable product selection
-    enableProductSelection();
-    
-    // ❌ REMOVED: showToast() - No longer showing toast message
-  }, 100);
-}
-/**
- * Apply Bulk Category Update
+ * Apply Bulk Category Update - FIRESTORE VERSION
  */
 async function applyBulkCategoryUpdate() {
   if (bulkEditMode.selectedProducts.length === 0) {
@@ -102,39 +65,57 @@ async function applyBulkCategoryUpdate() {
   btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
   
   try {
-    const response = await fetch(API_CONFIG.baseUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        action: 'bulkUpdateCategory',
-        productIds: bulkEditMode.selectedProducts,
-        category: category
-      })
-    });
-    
-    const result = await response.json();
-    
-    if (!result.success) {
-      throw new Error(result.error || 'Backend update failed');
+    const user = window.auth?.currentUser;
+    if (!user) {
+      throw new Error('Not authenticated');
     }
     
-    console.log('✅ Backend update successful:', result);
+    const { doc, setDoc } = window.firebaseImports;
+    const userId = user.uid;
     
-    // ✅ Update local cache
-    if (typeof cachedProducts !== 'undefined') {
-      bulkEditMode.selectedProducts.forEach(productId => {
+    // ✅ Update each product in Firestore
+    let successCount = 0;
+    for (const productId of bulkEditMode.selectedProducts) {
+      try {
         const product = cachedProducts.find(p => p.id === productId);
-        if (product) product.category = category;
-      });
-      localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+        if (!product) continue;
+        
+        // Update product data
+        const updatedProduct = {
+          ...product,
+          category: category,
+          updatedAt: new Date().toISOString()
+        };
+        
+        // Save to Firestore
+        const productRef = doc(window.db, 'tenants', userId, 'products', productId);
+        await setDoc(productRef, updatedProduct);
+        
+        // Update local cache
+        const cacheIdx = cachedProducts.findIndex(p => p.id === productId);
+        if (cacheIdx !== -1) {
+          cachedProducts[cacheIdx].category = category;
+        }
+        
+        successCount++;
+      } catch (error) {
+        console.error('Error updating product:', productId, error);
+      }
     }
     
-   
+    // Update cache
+    localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+    
+    console.log(`✅ Updated ${successCount}/${count} products`);
+    
+    // Cancel and re-render
     cancelBulkEdit();
     
     if (typeof renderProducts === 'function') {
       renderProducts();
     }
+    
+    alert(`✅ Updated ${successCount} products successfully!`);
     
   } catch (error) {
     console.error('❌ Error:', error);
@@ -145,12 +126,12 @@ async function applyBulkCategoryUpdate() {
   }
 }
 
+
 /**
  * ==========================================
  * 🎯 BULK EDIT - UNIT TYPE
  * ==========================================
  */
-
 
 /**
  * Show Unit Type Bulk Edit - FIXED: Shows cancel button immediately
@@ -205,7 +186,7 @@ function selectBulkUnitType(unitType) {
 }
 
 /**
- * Apply Bulk Unit Type Update - FIXED: NOW CALLS cancelBulkEdit()
+ * Apply Bulk Unit Type Update - FIRESTORE VERSION
  */
 async function applyBulkUnitTypeUpdate() {
   if (bulkEditMode.selectedProducts.length === 0) {
@@ -226,41 +207,47 @@ async function applyBulkUnitTypeUpdate() {
   btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
   
   try {
-    const response = await fetch(API_CONFIG.baseUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        action: 'bulkUpdateUnitType',
-        productIds: bulkEditMode.selectedProducts,
-        unitType: unitType
-      })
-    });
+    const user = window.auth?.currentUser;
+    if (!user) throw new Error('Not authenticated');
     
-    const result = await response.json();
+    const { doc, setDoc } = window.firebaseImports;
+    const userId = user.uid;
     
-    if (!result.success) {
-      throw new Error(result.error || 'Backend update failed');
-    }
-    
-    console.log('✅ Backend update successful:', result);
-    
-    // ✅ Update local cache
-    if (typeof cachedProducts !== 'undefined') {
-      bulkEditMode.selectedProducts.forEach(productId => {
+    let successCount = 0;
+    for (const productId of bulkEditMode.selectedProducts) {
+      try {
         const product = cachedProducts.find(p => p.id === productId);
-        if (product) product.unitType = unitType;
-      });
-      localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+        if (!product) continue;
+        
+        const updatedProduct = {
+          ...product,
+          unitType: unitType,
+          updatedAt: new Date().toISOString()
+        };
+        
+        const productRef = doc(window.db, 'tenants', userId, 'products', productId);
+        await setDoc(productRef, updatedProduct);
+        
+        const cacheIdx = cachedProducts.findIndex(p => p.id === productId);
+        if (cacheIdx !== -1) {
+          cachedProducts[cacheIdx].unitType = unitType;
+        }
+        
+        successCount++;
+      } catch (error) {
+        console.error('Error updating product:', productId, error);
+      }
     }
     
+    localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
     
-    
-    // ✅ FIXED: Cancel bulk edit mode
     cancelBulkEdit();
     
     if (typeof renderProducts === 'function') {
       renderProducts();
     }
+    
+    alert(`✅ Updated ${successCount} products successfully!`);
     
   } catch (error) {
     console.error('❌ Error:', error);
@@ -270,6 +257,7 @@ async function applyBulkUnitTypeUpdate() {
     btn.innerHTML = originalText;
   }
 }
+
 
 /**
  * ==========================================
@@ -595,13 +583,12 @@ function showSellingPriceBulkEdit() {
 
 
 /**
- * Apply Bulk Selling Price Update
+ * Apply Bulk Selling Price Update - FIRESTORE VERSION
  */
 async function applyBulkSellingPriceUpdate() {
   const priceInput = document.getElementById('sellingPriceInput');
   const price = parseFloat(priceInput.value);
   
-  // ✅ Validation
   if (isNaN(price) || price <= 0) {
     alert('⚠️ Please enter a valid selling price');
     priceInput.focus();
@@ -625,39 +612,47 @@ async function applyBulkSellingPriceUpdate() {
   btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
   
   try {
-    const response = await fetch(API_CONFIG.baseUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        action: 'bulkUpdateSellingPrice',
-        productIds: bulkEditMode.selectedProducts,
-        price: price
-      })
-    });
+    const user = window.auth?.currentUser;
+    if (!user) throw new Error('Not authenticated');
     
-    const result = await response.json();
+    const { doc, setDoc } = window.firebaseImports;
+    const userId = user.uid;
     
-    if (!result.success) {
-      throw new Error(result.error || 'Backend update failed');
-    }
-    
-    console.log('✅ Backend update successful:', result);
-    
-    // ✅ Update local cache
-    if (typeof cachedProducts !== 'undefined') {
-      bulkEditMode.selectedProducts.forEach(productId => {
+    let successCount = 0;
+    for (const productId of bulkEditMode.selectedProducts) {
+      try {
         const product = cachedProducts.find(p => p.id === productId);
-        if (product) product.price = price;
-      });
-      localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+        if (!product) continue;
+        
+        const updatedProduct = {
+          ...product,
+          price: price,
+          updatedAt: new Date().toISOString()
+        };
+        
+        const productRef = doc(window.db, 'tenants', userId, 'products', productId);
+        await setDoc(productRef, updatedProduct);
+        
+        const cacheIdx = cachedProducts.findIndex(p => p.id === productId);
+        if (cacheIdx !== -1) {
+          cachedProducts[cacheIdx].price = price;
+        }
+        
+        successCount++;
+      } catch (error) {
+        console.error('Error updating product:', productId, error);
+      }
     }
     
-    // ✅ Cancel bulk edit mode (clears input automatically)
+    localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+    
     cancelBulkEdit();
     
     if (typeof renderProducts === 'function') {
       renderProducts();
     }
+    
+    alert(`✅ Updated ${successCount} products successfully!`);
     
   } catch (error) {
     console.error('❌ Error:', error);
@@ -667,6 +662,7 @@ async function applyBulkSellingPriceUpdate() {
     btn.innerHTML = originalText;
   }
 }
+
 
 /**
  * ==========================================
@@ -735,7 +731,7 @@ function showSizeBulkEdit() {
 }
 
 /**
- * Apply Bulk Size Update
+ * Apply Bulk Size Update - FIRESTORE VERSION
  */
 async function applyBulkSizeUpdate() {
   const sizeInput = document.getElementById('sizeInput');
@@ -765,39 +761,70 @@ async function applyBulkSizeUpdate() {
   btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
   
   try {
-    const response = await fetch(API_CONFIG.baseUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        action: 'bulkUpdateSize',
-        productIds: bulkEditMode.selectedProducts,
-        size: size
-      })
-    });
-    
-    const result = await response.json();
-    
-    if (!result.success) {
-      throw new Error(result.error || 'Backend update failed');
+    const user = window.auth?.currentUser;
+    if (!user) {
+      throw new Error('Not authenticated');
     }
     
-    console.log('✅ Backend update successful:', result);
+    const { doc, setDoc } = window.firebaseImports;
+    const userId = user.uid;
     
-    // ✅ Update local cache
-    if (typeof cachedProducts !== 'undefined') {
-      bulkEditMode.selectedProducts.forEach(productId => {
+    console.log(`📝 Updating size to "${size}" for ${count} products...`);
+    
+    // ✅ Update each product in Firestore
+    let successCount = 0;
+    for (const productId of bulkEditMode.selectedProducts) {
+      try {
         const product = cachedProducts.find(p => p.id === productId);
-        if (product) product.size = size;
-      });
-      localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+        if (!product) {
+          console.warn('⚠️ Product not found:', productId);
+          continue;
+        }
+        
+        // Update product data
+        const updatedProduct = {
+          ...product,
+          size: size,
+          updatedAt: new Date().toISOString()
+        };
+        
+        // Save to Firestore
+        const productRef = doc(window.db, 'tenants', userId, 'products', productId);
+        await setDoc(productRef, updatedProduct);
+        
+        // Update local cache
+        const cacheIdx = cachedProducts.findIndex(p => p.id === productId);
+        if (cacheIdx !== -1) {
+          cachedProducts[cacheIdx].size = size;
+        }
+        
+        successCount++;
+        console.log(`✅ Updated product ${successCount}/${count}`);
+        
+      } catch (error) {
+        console.error('❌ Error updating product:', productId, error);
+      }
     }
     
-    // ✅ Cancel bulk edit mode (clears input automatically)
+    // Update localStorage cache
+    try {
+      localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+      console.log('💾 Cache updated');
+    } catch (e) {
+      console.warn('⚠️ Failed to update cache:', e);
+    }
+    
+    console.log(`✅ Bulk update complete: ${successCount}/${count} products updated`);
+    
+    // ✅ Cancel bulk edit mode
     cancelBulkEdit();
     
+    // Re-render products
     if (typeof renderProducts === 'function') {
       renderProducts();
     }
+    
+    alert(`✅ Successfully updated ${successCount} product(s)!`);
     
   } catch (error) {
     console.error('❌ Error:', error);
@@ -807,6 +834,7 @@ async function applyBulkSizeUpdate() {
     btn.innerHTML = originalText;
   }
 }
+
 
 /**
  * ==========================================
@@ -873,9 +901,8 @@ function showBrandBulkEdit() {
   
   console.log('✅ Brand input shown');
 }
-
 /**
- * Apply Bulk Brand Update
+ * Apply Bulk Brand Update - FIRESTORE VERSION
  */
 async function applyBulkBrandUpdate() {
   const brandInput = document.getElementById('brandInput');
@@ -905,39 +932,70 @@ async function applyBulkBrandUpdate() {
   btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
   
   try {
-    const response = await fetch(API_CONFIG.baseUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        action: 'bulkUpdateBrand',
-        productIds: bulkEditMode.selectedProducts,
-        brand: brand
-      })
-    });
-    
-    const result = await response.json();
-    
-    if (!result.success) {
-      throw new Error(result.error || 'Backend update failed');
+    const user = window.auth?.currentUser;
+    if (!user) {
+      throw new Error('Not authenticated');
     }
     
-    console.log('✅ Backend update successful:', result);
+    const { doc, setDoc } = window.firebaseImports;
+    const userId = user.uid;
     
-    // ✅ Update local cache
-    if (typeof cachedProducts !== 'undefined') {
-      bulkEditMode.selectedProducts.forEach(productId => {
+    console.log(`📝 Updating brand to "${brand}" for ${count} products...`);
+    
+    // ✅ Update each product in Firestore
+    let successCount = 0;
+    for (const productId of bulkEditMode.selectedProducts) {
+      try {
         const product = cachedProducts.find(p => p.id === productId);
-        if (product) product.brand = brand;
-      });
-      localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+        if (!product) {
+          console.warn('⚠️ Product not found:', productId);
+          continue;
+        }
+        
+        // Update product data
+        const updatedProduct = {
+          ...product,
+          brand: brand,
+          updatedAt: new Date().toISOString()
+        };
+        
+        // Save to Firestore
+        const productRef = doc(window.db, 'tenants', userId, 'products', productId);
+        await setDoc(productRef, updatedProduct);
+        
+        // Update local cache
+        const cacheIdx = cachedProducts.findIndex(p => p.id === productId);
+        if (cacheIdx !== -1) {
+          cachedProducts[cacheIdx].brand = brand;
+        }
+        
+        successCount++;
+        console.log(`✅ Updated product ${successCount}/${count}`);
+        
+      } catch (error) {
+        console.error('❌ Error updating product:', productId, error);
+      }
     }
     
-    // ✅ Cancel bulk edit mode (clears input automatically)
+    // Update localStorage cache
+    try {
+      localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+      console.log('💾 Cache updated');
+    } catch (e) {
+      console.warn('⚠️ Failed to update cache:', e);
+    }
+    
+    console.log(`✅ Bulk update complete: ${successCount}/${count} products updated`);
+    
+    // ✅ Cancel bulk edit mode
     cancelBulkEdit();
     
+    // Re-render products
     if (typeof renderProducts === 'function') {
       renderProducts();
     }
+    
+    alert(`✅ Successfully updated ${successCount} product(s)!`);
     
   } catch (error) {
     console.error('❌ Error:', error);
@@ -947,6 +1005,7 @@ async function applyBulkBrandUpdate() {
     btn.innerHTML = originalText;
   }
 }
+
 
 /**
  * ==========================================
@@ -1090,10 +1149,7 @@ function enableStockAdjustmentMode() {
 }
 
 /**
- * Adjust Product Stock - Instant update with animation
- */
-/**
- * Adjust Product Stock - Instant update with animation (NO SELECTION)
+ * Adjust Product Stock - FIRESTORE VERSION
  */
 async function adjustProductStock(productId, element) {
   if (!bulkEditMode.active || bulkEditMode.field !== 'stockAdjustment') return;
@@ -1106,59 +1162,60 @@ async function adjustProductStock(productId, element) {
     return;
   }
   
-  // ✅ FIXED: Hide selection indicator if exists
   const indicator = element.querySelector('.selection-indicator');
-  if (indicator) {
-    indicator.style.display = 'none';
-  }
+  if (indicator) indicator.style.display = 'none';
   
-  // ✅ FIXED: Remove selection classes
   element.classList.remove('product-selected');
   
-  // ✅ Show animation
   showStockAnimation(element, operation, amount);
   
   try {
-    const response = await fetch(API_CONFIG.baseUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        action: 'adjustStock',
-        productId: productId,
-        operation: operation, // 'add' or 'reduce'
-        amount: amount
-      })
-    });
+    const user = window.auth?.currentUser;
+    if (!user) throw new Error('Not authenticated');
     
-    const result = await response.json();
+    const { doc, setDoc } = window.firebaseImports;
+    const userId = user.uid;
     
-    if (!result.success) {
-      throw new Error(result.error || 'Stock adjustment failed');
+    // Get product
+    const product = cachedProducts.find(p => p.id === productId);
+    if (!product || typeof product.stock !== 'number') {
+      throw new Error('Invalid product or stock type');
     }
     
-    console.log('✅ Stock adjusted:', result);
-    
-    // ✅ Update local cache
-    if (typeof cachedProducts !== 'undefined') {
-      const product = cachedProducts.find(p => p.id === productId);
-      if (product && typeof product.stock === 'number') {
-        if (operation === 'add') {
-          product.stock += amount;
-        } else {
-          product.stock = Math.max(0, product.stock - amount); // Don't go below 0
-        }
-      }
-      localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+    // Calculate new stock
+    let newStock = product.stock;
+    if (operation === 'add') {
+      newStock += amount;
+    } else {
+      newStock = Math.max(0, newStock - amount);
     }
     
-    // ✅ Re-render products
+    // Update product
+    const updatedProduct = {
+      ...product,
+      stock: newStock,
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Save to Firestore
+    const productRef = doc(window.db, 'tenants', userId, 'products', productId);
+    await setDoc(productRef, updatedProduct);
+    
+    // Update cache
+    const cacheIdx = cachedProducts.findIndex(p => p.id === productId);
+    if (cacheIdx !== -1) {
+      cachedProducts[cacheIdx].stock = newStock;
+    }
+    
+    localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+    
+    console.log('✅ Stock adjusted successfully');
+    
+    // Re-render
     if (typeof renderProducts === 'function') {
       renderProducts();
-      // Re-enable stock adjustment mode after render (prevents selection)
       setTimeout(() => {
         enableStockAdjustmentMode();
-        
-        // ✅ FIXED: Force hide all selection indicators
         document.querySelectorAll('.selection-indicator').forEach(ind => {
           ind.style.display = 'none';
         });
@@ -1170,6 +1227,7 @@ async function adjustProductStock(productId, element) {
     alert('❌ Error: ' + error.message);
   }
 }
+
 
 /**
  * Show Stock Animation
@@ -1518,6 +1576,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   window.cancelBulkEdit = cancelBulkEdit;
 });
+
 
 
 
