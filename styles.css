@@ -3139,6 +3139,118 @@ button.dropdown-item::-moz-focus-inner {
   border: none !important;
 }
 
+/* Group Cards */
+.group-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.group-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  transform: translateY(-2px);
+}
+
+.group-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.group-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.group-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.group-description {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.group-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #999;
+}
+
+.group-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.group-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-icon-small {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 16px;
+}
+
+.btn-edit-small {
+  background: #007bff;
+  color: #fff;
+}
+
+.btn-edit-small:hover {
+  background: #0056b3;
+}
+
+.btn-delete-small {
+  background: #dc3545;
+  color: #fff;
+}
+
+.btn-delete-small:hover {
+  background: #c82333;
+}
+
+/* Variant Preview */
+.variant-preview-item {
+  padding: 10px 12px;
+  background: #e3f2fd;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  color: #1976d2;
+  font-size: 14px;
+}
+
+.variant-preview-item .icon {
+  margin-right: 8px;
+  color: #28a745;
+}
+
+.variant-preview-more {
+  padding: 8px;
+  text-align: center;
+  color: #666;
+  font-size: 13px;
+  font-style: italic;
+}
+
+
 
 
 
