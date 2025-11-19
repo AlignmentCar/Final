@@ -7503,28 +7503,39 @@ async function uploadPhotoToBackend(productData, photoBase64) {
  */
 
 
+/**
+ * Show All Products (Table View) - WITH RECENT SALES RESTORE
+ */
 function showAllProducts() {
   console.log('📋 Switching to All Products view');
   
   // ✅ Update button states
   const btnAll = document.getElementById('btnAllView');
   const btnPhoto = document.getElementById('btnPhotoView');
+  const btnGroups = document.getElementById('btnGroupsView');
   
   if (btnAll) btnAll.classList.add('active');
   if (btnPhoto) btnPhoto.classList.remove('active');
+  if (btnGroups) btnGroups.classList.remove('active');
   
-  // ✅ Hide photo grid - Make sure it's fully hidden
+  // ✅ Hide photo grid
   const photoGrid = document.getElementById('photoProductGrid');
   if (photoGrid) {
     photoGrid.style.display = 'none';
     photoGrid.style.visibility = 'hidden';
-    photoGrid.innerHTML = ''; // Clear it
-    console.log('✅ Photo grid hidden and cleared');
+    console.log('✅ Photo grid hidden');
   }
   
-  // ✅ Show table - Try multiple selectors to find it
-  let tableExplorer = document.querySelector('.table-explorer');
+  // ✅ Hide groups view
+  const groupsView = document.getElementById('groupsViewContainer');
+  if (groupsView) {
+    groupsView.style.display = 'none';
+    groupsView.style.visibility = 'hidden';
+    console.log('✅ Groups view hidden');
+  }
   
+  // ✅ Show table explorer
+  let tableExplorer = document.querySelector('.table-explorer');
   if (!tableExplorer) {
     tableExplorer = document.querySelector('[class*="table"]');
   }
@@ -7544,14 +7555,46 @@ function showAllProducts() {
     console.log('✅ Mobile list shown');
   }
   
+  // ✅ RESTORE: Show Recent Sales section
+  const salesElements = [
+    document.getElementById('recentSales'),
+    document.querySelector('[id*="recent"][id*="sales"]'),
+    document.querySelector('.recent-sales')
+  ];
+  
+  salesElements.forEach(el => {
+    if (el) {
+      el.style.display = 'block';
+      console.log('✅ Restored element:', el.id || el.className);
+    }
+  });
+  
+  // ✅ RESTORE: Show Recent Purchases section
+  const purchasesElements = [
+    document.getElementById('recentPurchases'),
+    document.querySelector('[id*="recent"][id*="purchases"]'),
+    document.querySelector('.recent-purchases')
+  ];
+  
+  purchasesElements.forEach(el => {
+    if (el) {
+      el.style.display = 'block';
+      console.log('✅ Restored element:', el.id || el.className);
+    }
+  });
+  
   // ✅ Render products
-  renderProducts();
+  if (typeof renderProducts === 'function') {
+    renderProducts();
+  }
+  
   console.log('✅ All Products view activated');
 }
 
 
+
 /**
- * Show photo products (grid view) - VERTICAL SCROLL FIXED
+ * Show Photo Products (Grid View) - WITH RECENT SALES RESTORE
  */
 function showPhotoProducts() {
   console.log('📷 Switching to Photo Products view');
@@ -7559,13 +7602,14 @@ function showPhotoProducts() {
   // ✅ Update button states
   const btnAll = document.getElementById('btnAllView');
   const btnPhoto = document.getElementById('btnPhotoView');
+  const btnGroups = document.getElementById('btnGroupsView');
   
   if (btnAll) btnAll.classList.remove('active');
   if (btnPhoto) btnPhoto.classList.add('active');
+  if (btnGroups) btnGroups.classList.remove('active');
   
-  // ✅ Hide table - Try multiple selectors
+  // ✅ Hide table explorer
   let tableExplorer = document.querySelector('.table-explorer');
-  
   if (!tableExplorer) {
     tableExplorer = document.querySelector('[class*="table"]');
   }
@@ -7583,6 +7627,14 @@ function showPhotoProducts() {
     console.log('✅ Mobile list hidden');
   }
   
+  // ✅ Hide groups view
+  const groupsView = document.getElementById('groupsViewContainer');
+  if (groupsView) {
+    groupsView.style.display = 'none';
+    groupsView.style.visibility = 'hidden';
+    console.log('✅ Groups view hidden');
+  }
+  
   // ✅ Show photo grid
   const photoGrid = document.getElementById('photoProductGrid');
   if (photoGrid) {
@@ -7593,11 +7645,42 @@ function showPhotoProducts() {
     console.error('❌ Photo grid element not found!');
   }
   
+  // ✅ RESTORE: Show Recent Sales section
+  const salesElements = [
+    document.getElementById('recentSales'),
+    document.querySelector('[id*="recent"][id*="sales"]'),
+    document.querySelector('.recent-sales')
+  ];
+  
+  salesElements.forEach(el => {
+    if (el) {
+      el.style.display = 'block';
+      console.log('✅ Restored element:', el.id || el.className);
+    }
+  });
+  
+  // ✅ RESTORE: Show Recent Purchases section
+  const purchasesElements = [
+    document.getElementById('recentPurchases'),
+    document.querySelector('[id*="recent"][id*="purchases"]'),
+    document.querySelector('.recent-purchases')
+  ];
+  
+  purchasesElements.forEach(el => {
+    if (el) {
+      el.style.display = 'block';
+      console.log('✅ Restored element:', el.id || el.className);
+    }
+  });
+  
   // ✅ Render photo products
-  renderPhotoProductsGrid();
+  if (typeof renderPhotoProductsGrid === 'function') {
+    renderPhotoProductsGrid();
+  }
+  
   console.log('✅ Photo Products view activated');
-} 
-    
+}
+
 /**
  * Show Groups View - FIXED LAYOUT
  */
@@ -15608,6 +15691,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
