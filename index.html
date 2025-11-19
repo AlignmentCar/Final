@@ -3616,33 +3616,49 @@ function updateSyncIndicator(active) {
 
 
 
-// ==========================================
-// DELETE PRODUCT FROM FIRESTORE
-// ==========================================
-
+/**
+ * ==========================================
+ * DELETE PRODUCT FROM FIRESTORE - IMPROVED
+ * ==========================================
+ */
 async function deleteProductFromSheet(id) {
-  const user = window.auth.currentUser;
+  console.log('🗑️ deleteProductFromSheet called. ID:', id);
+  
+  const user = window.auth?.currentUser;
   
   if (!user) {
-    showAuthError('Please sign in to delete product');
+    console.error('❌ No user authenticated');
+    alert('Please sign in to delete product');
     return false;
   }
   
   try {
-    const { collection, doc, deleteDoc } = window.firebaseImports;
+    const { doc, deleteDoc } = window.firebaseImports;
     const userId = user.uid;
     
-    const productDoc = doc(window.db, 'tenants', userId, 'products', id);
-    await deleteDoc(productDoc);
+    console.log('🗑️ Deleting from Firestore...');
+    console.log('   - User ID:', userId);
+    console.log('   - Product ID:', id);
     
-    console.log('✅ Product deleted:', id);
+    // ✅ Create reference to product document
+    const productRef = doc(window.db, 'tenants', userId, 'products', id);
+    
+    // ✅ Delete from Firestore
+    await deleteDoc(productRef);
+    
+    console.log('✅ Product deleted from Firestore:', id);
     return true;
     
   } catch (error) {
-    console.error('❌ Error deleting product:', error);
+    console.error('❌ Error deleting product from Firestore:', error);
+    console.error('   - Error code:', error.code);
+    console.error('   - Error message:', error.message);
     return false;
   }
 }
+
+// Make globally available
+window.deleteProductFromSheet = deleteProductFromSheet;
 
 /**
  * Toggle Advanced Options in Product Modal
@@ -4331,13 +4347,43 @@ async function saveVariantData() {
     
   
 
- function deleteProduct(id) {
-  if (!confirm('Are you sure you want to delete this product?')) {
+/**
+ * ==========================================
+ * DELETE PRODUCT - ENHANCED WITH BETTER LOGGING
+ * ==========================================
+ */
+async function deleteProduct(id) {
+  console.log('🗑️ deleteProduct called. ID:', id);
+  
+  if (!id) {
+    console.error('❌ No product ID provided');
+    alert('Error: Invalid product ID');
     return;
   }
   
+  // Find product in cache
+  const product = cachedProducts.find(p => p.id === id);
+  if (!product) {
+    console.error('❌ Product not found in cache:', id);
+    alert('Product not found');
+    return;
+  }
+  
+  // Confirm deletion with product name
+  if (!confirm(`Delete "${product.name}"?\n\nThis action cannot be undone.`)) {
+    console.log('⏭️ Delete cancelled by user');
+    return;
+  }
+  
+  console.log('🗑️ Deleting product:', product.name, '| ID:', id);
+  
+  // Backup current state
   const prev = cachedProducts.slice();
+  
+  // Remove from cache (optimistic update)
   cachedProducts = cachedProducts.filter(p => p.id !== id);
+  console.log('✅ Removed from local cache. Remaining:', cachedProducts.length);
+  
   renderProducts();
   
   // Also update photo grid if currently viewing it
@@ -4349,19 +4395,32 @@ async function saveVariantData() {
   
   showSyncIndicator('Deleting...');
   
-  deleteProductFromSheet(id).then(success => {
+  // ✅ DELETE FROM FIRESTORE
+  try {
+    console.log('💾 Calling deleteProductFromSheet...');
+    const success = await deleteProductFromSheet(id);
+    
     if (success) {
-      console.log('✅ Product deleted successfully');
+      console.log('✅ Product deleted successfully from Firestore');
       showSyncIndicator('Deleted', 900);
       
       // Update cache
       try {
         localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+        console.log('💾 Cache updated after delete');
       } catch (e) {
-        console.warn('Cache update failed:', e);
+        console.warn('⚠️ Cache update failed:', e);
       }
+      
+      // Update stats
+      if (typeof updateSummaryFromCache === 'function') {
+        updateSummaryFromCache();
+      }
+      
     } else {
-      console.error('❌ Delete failed, reverting...');
+      console.error('❌ deleteProductFromSheet returned false');
+      
+      // Revert
       cachedProducts = prev;
       renderProducts();
       
@@ -4371,19 +4430,32 @@ async function saveVariantData() {
         }
       }
       
-      alert('Delete failed - reverted locally.');
+      alert('Delete failed - product restored.');
       showSyncIndicator('Delete failed', 2000);
     }
-  }).catch(err => {
+    
+  } catch (err) {
     console.error('❌ Delete error:', err);
+    console.error('   - Error message:', err.message);
+    console.error('   - Error stack:', err.stack);
+    
+    // Revert
     cachedProducts = prev;
     renderProducts();
-    alert('Delete failed - reverted locally.');
+    
+    if (document.getElementById('btnPhotoView')?.classList.contains('active')) {
+      if (typeof showPhotoProducts === 'function') {
+        showPhotoProducts();
+      }
+    }
+    
+    alert('Delete failed - product restored. Check console for details.');
     showSyncIndicator('Delete failed', 2000);
-  });
+  }
 }
 
-
+// Make globally available
+window.deleteProduct = deleteProduct;
 
 
     
@@ -15293,6 +15365,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
