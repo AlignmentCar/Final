@@ -3250,6 +3250,57 @@ button.dropdown-item::-moz-focus-inner {
   font-style: italic;
 }
 
+/* Options Dropdown Styles */
+.dropdown-option-btn {
+  width: 100%;
+  text-align: left;
+  padding: 14px 20px;
+  border: none;
+  background: white;
+  color: #333;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.dropdown-option-btn:hover {
+  background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%);
+  color: white;
+}
+
+.dropdown-option-btn:last-child {
+  border-bottom: none;
+}
+
+.dropdown-option-btn i {
+  font-size: 1.1rem;
+}
+
+/* Slide down animation */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 768px) {
+  #optionsToggleBtn {
+    top: 65px !important;
+    right: 10px !important;
+    padding: 10px 16px !important;
+    font-size: 0.9rem !important;
+  }
+  
+  #optionsDropdown {
+    min-width: 200px !important;
+  }
+}
+
 
 
 
