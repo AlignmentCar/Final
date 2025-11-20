@@ -375,105 +375,112 @@
 
 
 
-
- <!-- YOUR EXISTING NAVBAR, DASHBOARD, ETC. GOES HERE -->
-
-  
-  <!-- Sync indicator -->
-  <div id="syncIndicator" class="sync-indicator"><i class="bi bi-arrow-repeat"></i> <span id="syncText">Syncing...</span></div>
-
-  <!-- Navbar -->
-  <nav class="navbar navbar-dark bg-primary sticky-top">
-    <div class="container-fluid">
-      <span class="navbar-brand mb-0 h1"><i class="bi bi-boxes"></i> Tile & Sanitaryware Inventory</span>
-      <div>
-        <button id="refreshBtn" class="btn btn-light btn-sm me-2" onclick="manualRefresh()"><i id="refreshIcon" class="bi bi-arrow-clockwise"></i> Refresh</button>
-        <button class="btn btn-light btn-sm me-2" onclick="exportData()"><i class="bi bi-download"></i> Backup</button>
-        <button class="btn btn-light btn-sm" onclick="importData()"><i class="bi bi-upload"></i> Restore</button>
-        <div class="d-flex align-items-center">
-  <i class="bi bi-person-circle me-2" style="font-size: 1.5rem;"></i>
-  <span id="userName" class="me-3">User</span>
-
-  <!-- Ã¢Å“â€¦ NEW: Background sync indicator -->
-  <div id="backgroundSyncStatus">
-    <i class="bi bi-cloud-upload-fill"></i>
-    <span>Syncing</span>
-  </div>
-
-
-          
-  <!-- Ã¢Å“â€¦ NEW: Change Password Button -->
-  <button class="btn btn-outline-light btn-sm me-2" onclick="openChangePasswordModal()">
-    <i class="bi bi-key me-1"></i>Change Password
-  </button>
-  
-  <button class="btn btn-outline-light btn-sm" onclick="signOut()">
-    <i class="bi bi-box-arrow-right me-1"></i>Sign Out
-  </button>
+<!-- Sync indicator -->
+<div id="syncIndicator" class="sync-indicator">
+  <i class="bi bi-arrow-repeat"></i> 
+  <span id="syncText">Syncing...</span>
 </div>
 
-
-
-        <!-- NEW: View Invoices Button -->
-      <button class="btn btn-success btn-sm" onclick="viewSavedInvoices()">
-        <i class="bi bi-receipt-cutoff"></i> View Invoices
+<!-- Navbar -->
+<nav class="navbar navbar-dark bg-primary sticky-top">
+  <div class="container-fluid">
+    <span class="navbar-brand mb-0 h1">
+      <i class="bi bi-boxes"></i> Tile & Sanitaryware Inventory
+    </span>
+    <div>
+      <button id="refreshBtn" class="btn btn-light btn-sm me-2" onclick="manualRefresh()">
+        <i id="refreshIcon" class="bi bi-arrow-clockwise"></i> Refresh
       </button>
-    </div>
-  </div>
+      <button class="btn btn-light btn-sm me-2" onclick="exportData()">
+        <i class="bi bi-download"></i> Backup
+      </button>
+      <button class="btn btn-light btn-sm" onclick="importData()">
+        <i class="bi bi-upload"></i> Restore
+      </button>
+      <div class="d-flex align-items-center">
+        <i class="bi bi-person-circle me-2" style="font-size: 1.5rem;"></i>
+        <span id="userName" class="me-3">User</span>
+
+        <!-- Background sync indicator -->
+        <div id="backgroundSyncStatus">
+          <i class="bi bi-cloud-upload-fill"></i>
+          <span>Syncing</span>
+        </div>
+
+        <!-- Change Password Button -->
+        <button class="btn btn-outline-light btn-sm me-2" onclick="openChangePasswordModal()">
+          <i class="bi bi-key me-1"></i>Change Password
+        </button>
+        
+        <button class="btn btn-outline-light btn-sm" onclick="signOut()">
+          <i class="bi bi-box-arrow-right me-1"></i>Sign Out
+        </button>
       </div>
     </div>
-  </nav>
+  </div>
+</nav>
 
+<!-- ✅ NEW: Options Dropdown (Top Right, Below Navbar) -->
+<div style="position: fixed; top: 70px; right: 20px; z-index: 1000;">
+  <button 
+    id="optionsToggleBtn" 
+    class="btn" 
+    style="background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%); color: white; font-weight: 600; border: none; border-radius: 10px; padding: 12px 20px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3); transition: all 0.3s ease;"
+    onclick="toggleOptionsDropdown()">
+    <i class="bi bi-three-dots-vertical me-2"></i>Options
+    <i id="optionsArrow" class="bi bi-chevron-down ms-2"></i>
+  </button>
+  
+  <!-- Dropdown Menu -->
+  <div 
+    id="optionsDropdown" 
+    style="display: none; position: absolute; top: 60px; right: 0; background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); min-width: 220px; overflow: hidden; animation: slideDown 0.3s ease;">
+    
+    <button 
+      class="dropdown-option-btn" 
+      onclick="openSalesModal(); closeOptionsDropdown()">
+      <i class="bi bi-cart me-2"></i>Record Sale
+    </button>
+    
+    <button 
+      class="dropdown-option-btn" 
+      onclick="generateInvoice(); closeOptionsDropdown()">
+      <i class="bi bi-receipt me-2"></i>Generate Invoice
+    </button>
+    
+    <button 
+      class="dropdown-option-btn" 
+      onclick="viewSavedInvoices(); closeOptionsDropdown()">
+      <i class="bi bi-receipt-cutoff me-2"></i>View Invoices
+    </button>
+  </div>
+</div>
 
- <div class="container-fluid py-4">
+<div class="container-fluid py-4">
   <!-- Actions -->
   <div class="row mb-4">
     <div class="text-center my-3">
       
-      
-   <!-- ✅ UPDATED ACTION BUTTONS - Navbar Green (#25D366) -->
-<button class="btn me-2" style="background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%); color: white; font-weight: 600; border: none; border-radius: 10px; padding: 12px 24px; box-shadow: 0 2px 8px rgba(37, 211, 102, 0.2); transition: all 0.3s ease;" onclick="showAddProduct()">
-  <i class="bi bi-plus-circle"></i> Add Product
-</button>
-
-<button class="btn me-2" style="background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%); color: #1FAD5D; font-weight: 600; border: 1px solid rgba(37, 211, 102, 0.2); border-radius: 10px; padding: 12px 24px; transition: all 0.3s ease;" onclick="openPhotoProductModal()">
-  <i class="bi bi-camera"></i> Product by Photo
-</button>
-
-<button class="btn me-2" style="background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%); color: #1FAD5D; font-weight: 600; border: 1px solid rgba(37, 211, 102, 0.2); border-radius: 10px; padding: 12px 24px; transition: all 0.3s ease;" onclick="openSalesModal()">
-  <i class="bi bi-cart"></i> Record Sale
-</button>
-
-<button class="btn" style="background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%); color: #1FAD5D; font-weight: 600; border: 1px solid rgba(37, 211, 102, 0.2); border-radius: 10px; padding: 12px 24px; transition: all 0.3s ease;" onclick="generateInvoice()">
-  <i class="bi bi-receipt"></i> Generate Invoice
-</button>
-
-  
-    
-
-<!-- ✅ NEW: Record Purchase Button -->
-<button onclick="openRecordPurchaseModal()" class="btn" style="
-  background: #28a745;
+      <!-- ✅ KEEP ONLY ADD PRODUCT BUTTON -->
+      <button class="btn me-2" style="background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%); color: white; font-weight: 600; border: none; border-radius: 10px; padding: 12px 24px; box-shadow: 0 2px 8px rgba(37, 211, 102, 0.2); transition: all 0.3s ease;" onclick="showAddProduct()">
+        <i class="bi bi-plus-circle"></i> Add Product
+      </button>
+ 
+<!-- ✅ Record Purchase Button (Same Style as Add Product) -->
+<button onclick="openRecordPurchaseModal()" class="btn me-2" style="
+  background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%);
   color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
   font-weight: 600;
-  margin-left: 10px;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 24px;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.2);
+  transition: all 0.3s ease;
   cursor: pointer;
-  transition: background 0.3s;
-"
-onmouseover="this.style.background='#218838'"
-onmouseout="this.style.background='#28a745'">
-  📦 Record Purchase
+">
+  <i class="bi bi-bag-plus"></i> Record Purchase
 </button>
 
-
-
-      
-    </div>
-  </div>
-</div>
 
       
 
@@ -14382,6 +14389,57 @@ async function confirmDeleteSale(saleId) {
   }
 }
 
+    /**
+ * Toggle Options Dropdown
+ */
+function toggleOptionsDropdown() {
+  const dropdown = document.getElementById('optionsDropdown');
+  const arrow = document.getElementById('optionsArrow');
+  
+  if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+    // Open dropdown
+    dropdown.style.display = 'block';
+    arrow.classList.remove('bi-chevron-down');
+    arrow.classList.add('bi-chevron-up');
+  } else {
+    // Close dropdown
+    dropdown.style.display = 'none';
+    arrow.classList.remove('bi-chevron-up');
+    arrow.classList.add('bi-chevron-down');
+  }
+}
+
+/**
+ * Close Options Dropdown
+ */
+function closeOptionsDropdown() {
+  const dropdown = document.getElementById('optionsDropdown');
+  const arrow = document.getElementById('optionsArrow');
+  
+  dropdown.style.display = 'none';
+  arrow.classList.remove('bi-chevron-up');
+  arrow.classList.add('bi-chevron-down');
+}
+
+/**
+ * Close dropdown when clicking outside
+ */
+document.addEventListener('click', function(event) {
+  const dropdown = document.getElementById('optionsDropdown');
+  const toggleBtn = document.getElementById('optionsToggleBtn');
+  
+  if (dropdown && toggleBtn) {
+    if (!toggleBtn.contains(event.target) && !dropdown.contains(event.target)) {
+      closeOptionsDropdown();
+    }
+  }
+});
+
+// Make functions global
+window.toggleOptionsDropdown = toggleOptionsDropdown;
+window.closeOptionsDropdown = closeOptionsDropdown;
+
+
 
 
 
@@ -15293,6 +15351,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
