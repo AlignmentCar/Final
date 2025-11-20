@@ -2724,6 +2724,10 @@ async function handleSignUp(event) {
  * SYNC FROM FIRESTORE - KEEP LATEST VERSION
  * ==========================================
  */
+* ==========================================
+ * SYNC FROM FIRESTORE - KEEP LATEST VERSION
+ * ==========================================
+ */
 async function syncFromFirestore() {
   const user = window.auth.currentUser;
   
@@ -3137,9 +3141,6 @@ function stockBadgeHtml(stock, minStock){
 }
 
 /**
- * ✅ UPDATED: Render Products with Bulk Edit Support
- */
-/**
  * ==========================================
  * RENDER PRODUCTS - UPDATED WITH VARIANT INDICATORS
  * ==========================================
@@ -3264,6 +3265,7 @@ function renderProducts(){
   updateSummaryFromCache();
   loadProductsForSaleFromCache();
 }
+
 
 
 
@@ -15519,6 +15521,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
