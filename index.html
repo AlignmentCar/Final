@@ -14568,7 +14568,7 @@ function removePendingInstantProduct(product) {
 }
 
 /**
- * Save all instant products to Firebase (FIXED)
+ * Save all instant products to Firebase (FIXED - Matches Your Setup)
  */
 async function saveAllInstantProducts() {
   if (pendingInstantProducts.length === 0) {
@@ -14578,42 +14578,67 @@ async function saveAllInstantProducts() {
   
   console.log('💾 Saving', pendingInstantProducts.length, 'instant products...');
   
+  // Close modal immediately
   const modal = bootstrap.Modal.getInstance(document.getElementById('instantProductsModal'));
   if (modal) {
     modal.hide();
   }
   
+  // Show loading indicator
   showLoading('Saving products...');
+  
+  // ✅ Check authentication (same as your saveProductToSheet)
+  const user = window.auth?.currentUser;
+  if (!user) {
+    hideLoading();
+    alert('❌ Error: Not authenticated. Please sign in again.');
+    console.error('❌ No user signed in');
+    return;
+  }
+  
+  // ✅ Get Firebase imports (same as your saveProductToSheet)
+  const { doc, setDoc, collection } = window.firebaseImports;
+  const userId = user.uid;
   
   const productsToSave = [...pendingInstantProducts];
   const savedProducts = [];
   const failedProducts = [];
   
+  // Save each product to Firebase
   for (let i = 0; i < productsToSave.length; i++) {
     const productName = productsToSave[i];
     
     try {
-      const productId = db.collection('products').doc().id;
+      // ✅ Generate unique ID (same pattern as your code)
+      const productsCollectionRef = collection(window.db, 'tenants', userId, 'products');
+      const newProductRef = doc(productsCollectionRef);
+      const productId = newProductRef.id;
       
+      // ✅ Create product data (matching your structure)
       const productData = {
         id: productId,
         name: productName,
         category: 'Uncategorized',
         brand: 'N/A',
         size: 'N/A',
+        unitType: 'Box',
+        piecesPerBox: 1,
+        sftPerBox: 0,
         price: 0,
         stock: 0,
         minStock: 5,
-        stockStatus: 'exact',
         imageUrl: '',
-        piecesPerBox: 1,
-        sftPerBox: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        tenantId: currentUser.tenantId
+        stockStatus: 'exact',
+        stockValue: null,
+        updatedAt: new Date().toISOString(),
+        isGroupVariant: false,
+        groupId: '',
+        variantId: ''
       };
       
-      await db.collection('products').doc(productId).set(productData);
+      // ✅ Save to Firestore (same as your saveProductToSheet)
+      const productRef = doc(window.db, 'tenants', userId, 'products', productId);
+      await setDoc(productRef, productData);
       
       savedProducts.push(productName);
       console.log(`✅ Saved (${i + 1}/${productsToSave.length}):`, productName);
@@ -14624,15 +14649,20 @@ async function saveAllInstantProducts() {
     }
   }
   
+  // Hide loading
   hideLoading();
+  
+  // Clear pending products
   pendingInstantProducts = [];
   
+  // Show results
   if (failedProducts.length === 0) {
     alert(`✅ Success!\n\n${savedProducts.length} product(s) added!`);
   } else {
     alert(`⚠️ Partial Success\n\n✅ Saved: ${savedProducts.length}\n❌ Failed: ${failedProducts.length}\n\nFailed products:\n${failedProducts.join(', ')}`);
   }
   
+  // Refresh product list
   if (typeof loadProducts === 'function') {
     loadProducts();
   }
@@ -15650,6 +15680,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
