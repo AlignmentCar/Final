@@ -420,8 +420,8 @@
   </div>
 </nav>
 
-<!-- ✅ NEW: Options Dropdown (Top Right, Below Navbar) -->
-<div style="position: fixed; top: 70px; right: 20px; z-index: 1000;">
+<!-- ✅ UPDATED: Options Dropdown (Stays Fixed on Scroll) -->
+<div id="optionsButtonContainer" style="position: fixed !important; top: 70px !important; right: 20px !important; z-index: 9999 !important;">
   <button 
     id="optionsToggleBtn" 
     class="btn" 
@@ -434,7 +434,7 @@
   <!-- Dropdown Menu -->
   <div 
     id="optionsDropdown" 
-    style="display: none; position: absolute; top: 60px; right: 0; background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); min-width: 220px; overflow: hidden; animation: slideDown 0.3s ease;">
+    style="display: none; position: absolute; top: 60px; right: 0; background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); min-width: 220px; overflow: hidden;">
     
     <button 
       class="dropdown-option-btn" 
@@ -455,6 +455,7 @@
     </button>
   </div>
 </div>
+
 
 <div class="container-fluid py-4">
   <!-- Actions -->
@@ -15351,6 +15352,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
