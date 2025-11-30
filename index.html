@@ -14457,7 +14457,7 @@ window.closeOptionsDropdown = closeOptionsDropdown;
 
 /**
  * ==========================================
- * INSTANT PRODUCTS MODULE (Firebase Version)
+ * INSTANT PRODUCTS MODULE (Firebase Version - FIXED)
  * ==========================================
  */
 
@@ -14470,18 +14470,13 @@ let pendingInstantProducts = [];
 function openInstantProductsModal() {
   console.log('⚡ Opening Instant Products modal');
   
-  // Reset pending products
   pendingInstantProducts = [];
-  
-  // Reset form
   document.getElementById('instantProductInput').value = '';
   updateInstantProductPreview();
   
-  // Show modal using Bootstrap
   const modal = new bootstrap.Modal(document.getElementById('instantProductsModal'));
   modal.show();
   
-  // Focus input
   setTimeout(() => {
     document.getElementById('instantProductInput').focus();
   }, 200);
@@ -14494,15 +14489,12 @@ function handleInstantProductInputKeydown(event) {
   const input = document.getElementById('instantProductInput');
   const value = input.value.trim();
   
-  // Enter or Comma key
   if (event.key === 'Enter' || event.key === ',') {
     event.preventDefault();
     
     if (value && value.length > 0) {
-      // Remove comma if typed
       const productName = value.replace(/,\s*$/, '').trim();
       
-      // Add only if not duplicate
       if (productName && !pendingInstantProducts.includes(productName)) {
         pendingInstantProducts.push(productName);
         console.log('✅ Product added to preview:', productName);
@@ -14510,7 +14502,6 @@ function handleInstantProductInputKeydown(event) {
         alert('⚠️ This product is already in the list!');
       }
       
-      // Clear input
       input.value = '';
       updateInstantProductPreview();
     }
@@ -14526,7 +14517,6 @@ function updateInstantProductPreview() {
   
   if (!previewList) return;
   
-  // Update count
   if (previewCount) {
     previewCount.textContent = `📝 Products to Save (${pendingInstantProducts.length}):`;
   }
@@ -14578,7 +14568,7 @@ function removePendingInstantProduct(product) {
 }
 
 /**
- * Save all instant products to Firebase
+ * Save all instant products to Firebase (FIXED)
  */
 async function saveAllInstantProducts() {
   if (pendingInstantProducts.length === 0) {
@@ -14588,28 +14578,26 @@ async function saveAllInstantProducts() {
   
   console.log('💾 Saving', pendingInstantProducts.length, 'instant products...');
   
-  // Close modal immediately
   const modal = bootstrap.Modal.getInstance(document.getElementById('instantProductsModal'));
   if (modal) {
     modal.hide();
   }
   
-  // Show loading indicator
   showLoading('Saving products...');
   
   const productsToSave = [...pendingInstantProducts];
   const savedProducts = [];
   const failedProducts = [];
   
-  // Save each product to Firebase
+  // ✅ FIX: Proper Firebase Firestore reference
+  const firestore = firebase.firestore();
+  
   for (let i = 0; i < productsToSave.length; i++) {
     const productName = productsToSave[i];
     
     try {
-      // Generate unique ID
-      const productId = db.collection('products').doc().id;
+      const productId = firestore.collection('products').doc().id;
       
-      // Create product object
       const productData = {
         id: productId,
         name: productName,
@@ -14628,8 +14616,7 @@ async function saveAllInstantProducts() {
         tenantId: currentUser.tenantId
       };
       
-      // Save to Firestore
-      await db.collection('products').doc(productId).set(productData);
+      await firestore.collection('products').doc(productId).set(productData);
       
       savedProducts.push(productName);
       console.log(`✅ Saved (${i + 1}/${productsToSave.length}):`, productName);
@@ -14640,27 +14627,22 @@ async function saveAllInstantProducts() {
     }
   }
   
-  // Hide loading
   hideLoading();
-  
-  // Clear pending products
   pendingInstantProducts = [];
   
-  // Show results
   if (failedProducts.length === 0) {
     alert(`✅ Success!\n\n${savedProducts.length} product(s) added!`);
   } else {
     alert(`⚠️ Partial Success\n\n✅ Saved: ${savedProducts.length}\n❌ Failed: ${failedProducts.length}\n\nFailed products:\n${failedProducts.join(', ')}`);
   }
   
-  // Refresh product list
   if (typeof loadProducts === 'function') {
     loadProducts();
   }
 }
 
 /**
- * Escape HTML to prevent XSS
+ * Escape HTML
  */
 function escapeHtml(text) {
   const map = {
@@ -14674,6 +14656,7 @@ function escapeHtml(text) {
 }
 
 console.log('✅ Instant Products Module Loaded');
+
 
     /**
  * Show loading indicator
@@ -15671,6 +15654,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
