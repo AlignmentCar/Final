@@ -14441,6 +14441,13 @@ window.toggleOptionsDropdown = toggleOptionsDropdown;
 window.closeOptionsDropdown = closeOptionsDropdown;
 
 
+document.addEventListener("DOMContentLoaded", function() {
+    const optionsContainer = document.getElementById("optionsButtonContainer");
+    if (optionsContainer) {
+        document.body.appendChild(optionsContainer);
+        console.log("✅ Options button moved to body for correct fixed positioning.");
+    }
+});
 
 
 
@@ -15352,6 +15359,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
