@@ -381,25 +381,61 @@
   <span id="syncText">Syncing...</span>
 </div>
 
-<!-- Navbar -->
+<!-- Navbar with Options Dropdown -->
 <nav class="navbar navbar-dark bg-primary sticky-top">
   <div class="container-fluid">
     <span class="navbar-brand mb-0 h1">
       <i class="bi bi-boxes"></i> Tile & Sanitaryware Inventory
     </span>
-    <div>
-      <button id="refreshBtn" class="btn btn-light btn-sm me-2" onclick="manualRefresh()">
+    <div class="d-flex align-items-center gap-2">
+      <button id="refreshBtn" class="btn btn-light btn-sm" onclick="manualRefresh()">
         <i id="refreshIcon" class="bi bi-arrow-clockwise"></i> Refresh
       </button>
-      <button class="btn btn-light btn-sm me-2" onclick="exportData()">
+      <button class="btn btn-light btn-sm" onclick="exportData()">
         <i class="bi bi-download"></i> Backup
       </button>
       <button class="btn btn-light btn-sm" onclick="importData()">
         <i class="bi bi-upload"></i> Restore
       </button>
-      <div class="d-flex align-items-center">
-        <i class="bi bi-person-circle me-2" style="font-size: 1.5rem;"></i>
-        <span id="userName" class="me-3">User</span>
+      
+      <!-- ✅ Options Dropdown (Inside Navbar) -->
+      <div id="optionsButtonContainer" style="position: relative;">
+        <button 
+          id="optionsToggleBtn" 
+          class="btn btn-light btn-sm"
+          onclick="toggleOptionsDropdown()">
+          <i class="bi bi-three-dots-vertical me-1"></i>Options
+          <i id="optionsArrow" class="bi bi-chevron-down ms-1"></i>
+        </button>
+        
+        <!-- Dropdown Menu -->
+        <div 
+          id="optionsDropdown" 
+          style="display: none; position: absolute; top: 100%; right: 0; background: white; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); min-width: 200px; overflow: hidden; margin-top: 5px; z-index: 1050;">
+          
+          <button 
+            class="dropdown-option-btn" 
+            onclick="openSalesModal(); closeOptionsDropdown()">
+            <i class="bi bi-cart me-2"></i>Record Sale
+          </button>
+          
+          <button 
+            class="dropdown-option-btn" 
+            onclick="generateInvoice(); closeOptionsDropdown()">
+            <i class="bi bi-receipt me-2"></i>Generate Invoice
+          </button>
+          
+          <button 
+            class="dropdown-option-btn" 
+            onclick="viewSavedInvoices(); closeOptionsDropdown()">
+            <i class="bi bi-receipt-cutoff me-2"></i>View Invoices
+          </button>
+        </div>
+      </div>
+      
+      <div class="d-flex align-items-center ms-3">
+        <i class="bi bi-person-circle me-2" style="font-size: 1.5rem; color: white;"></i>
+        <span id="userName" class="me-3 text-white">User</span>
 
         <!-- Background sync indicator -->
         <div id="backgroundSyncStatus">
@@ -420,43 +456,7 @@
   </div>
 </nav>
 
-<!-- ✅ UPDATED: Options Dropdown (Stays Fixed on Scroll) -->
-<div id="optionsButtonContainer">
-  <button 
-    id="optionsToggleBtn" 
-    class="btn" 
-    style="background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%); color: white; font-weight: 600; border: none; border-radius: 10px; padding: 12px 20px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3); transition: all 0.3s ease;"
-    onclick="toggleOptionsDropdown()">
-    <i class="bi bi-three-dots-vertical me-2"></i>Options
-    <i id="optionsArrow" class="bi bi-chevron-down ms-2"></i>
-  </button>
-  
-  <!-- Dropdown Menu -->
-  <div 
-    id="optionsDropdown" 
-    style="display: none; position: absolute; top: 60px; right: 0; background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); min-width: 220px; overflow: hidden;">
-    
-    <button 
-      class="dropdown-option-btn" 
-      onclick="openSalesModal(); closeOptionsDropdown()">
-      <i class="bi bi-cart me-2"></i>Record Sale
-    </button>
-    
-    <button 
-      class="dropdown-option-btn" 
-      onclick="generateInvoice(); closeOptionsDropdown()">
-      <i class="bi bi-receipt me-2"></i>Generate Invoice
-    </button>
-    
-    <button 
-      class="dropdown-option-btn" 
-      onclick="viewSavedInvoices(); closeOptionsDropdown()">
-      <i class="bi bi-receipt-cutoff me-2"></i>View Invoices
-    </button>
-  </div>
-</div>
-
-
+<!-- ❌ REMOVE the old separate optionsButtonContainer div completely -->
 
 <div class="container-fluid py-4">
   <!-- Actions -->
@@ -15365,6 +15365,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
