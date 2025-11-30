@@ -387,7 +387,7 @@
     <span class="navbar-brand mb-0 h1">
       <i class="bi bi-boxes"></i> Tile & Sanitaryware Inventory
     </span>
-    <div class="d-flex align-items-center gap-2">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
       <button id="refreshBtn" class="btn btn-light btn-sm" onclick="manualRefresh()">
         <i id="refreshIcon" class="bi bi-arrow-clockwise"></i> Refresh
       </button>
@@ -398,8 +398,8 @@
         <i class="bi bi-upload"></i> Restore
       </button>
       
-      <!-- ✅ Options Dropdown (Inside Navbar) -->
-      <div id="optionsButtonContainer" style="position: relative;">
+      <!-- ✅ ADD THIS: Options Dropdown -->
+      <div id="optionsButtonContainer" style="position: relative; display: inline-block;">
         <button 
           id="optionsToggleBtn" 
           class="btn btn-light btn-sm"
@@ -411,7 +411,7 @@
         <!-- Dropdown Menu -->
         <div 
           id="optionsDropdown" 
-          style="display: none; position: absolute; top: 100%; right: 0; background: white; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); min-width: 200px; overflow: hidden; margin-top: 5px; z-index: 1050;">
+          style="display: none; position: absolute; top: 100%; right: 0; background: white; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); min-width: 200px; overflow: hidden; margin-top: 8px; z-index: 2000;">
           
           <button 
             class="dropdown-option-btn" 
@@ -432,8 +432,9 @@
           </button>
         </div>
       </div>
+      <!-- END Options Dropdown -->
       
-      <div class="d-flex align-items-center ms-3">
+      <div class="d-flex align-items-center ms-2">
         <i class="bi bi-person-circle me-2" style="font-size: 1.5rem; color: white;"></i>
         <span id="userName" class="me-3 text-white">User</span>
 
@@ -455,8 +456,6 @@
     </div>
   </div>
 </nav>
-
-<!-- ❌ REMOVE the old separate optionsButtonContainer div completely -->
 
 <div class="container-fluid py-4">
   <!-- Actions -->
@@ -14391,7 +14390,7 @@ async function confirmDeleteSale(saleId) {
   }
 }
 
-    /**
+ /**
  * Toggle Options Dropdown
  */
 function toggleOptionsDropdown() {
@@ -14411,17 +14410,6 @@ function toggleOptionsDropdown() {
   }
 }
 
-    
-document.addEventListener("DOMContentLoaded", function() {
-  const optionsContainer = document.getElementById("optionsButtonContainer");
-  if (optionsContainer && optionsContainer.parentElement !== document.body) {
-    document.body.appendChild(optionsContainer);
-  }
-});
-
-
-
-  
 /**
  * Close Options Dropdown
  */
@@ -14429,9 +14417,11 @@ function closeOptionsDropdown() {
   const dropdown = document.getElementById('optionsDropdown');
   const arrow = document.getElementById('optionsArrow');
   
-  dropdown.style.display = 'none';
-  arrow.classList.remove('bi-chevron-up');
-  arrow.classList.add('bi-chevron-down');
+  if (dropdown && arrow) {
+    dropdown.style.display = 'none';
+    arrow.classList.remove('bi-chevron-up');
+    arrow.classList.add('bi-chevron-down');
+  }
 }
 
 /**
@@ -14439,18 +14429,20 @@ function closeOptionsDropdown() {
  */
 document.addEventListener('click', function(event) {
   const dropdown = document.getElementById('optionsDropdown');
-  const toggleBtn = document.getElementById('optionsToggleBtn');
+  const container = document.getElementById('optionsButtonContainer');
   
-  if (dropdown && toggleBtn) {
-    if (!toggleBtn.contains(event.target) && !dropdown.contains(event.target)) {
+  if (dropdown && container) {
+    // Check if click is outside the entire container
+    if (!container.contains(event.target)) {
       closeOptionsDropdown();
     }
   }
 });
 
-// Make functions global
+// Make functions global (for inline onclick handlers)
 window.toggleOptionsDropdown = toggleOptionsDropdown;
 window.closeOptionsDropdown = closeOptionsDropdown;
+
 
 
 
@@ -15365,6 +15357,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
