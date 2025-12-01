@@ -399,9 +399,25 @@
       <button id="refreshBtn" class="btn btn-light btn-sm" onclick="manualRefresh()">
         <i id="refreshIcon" class="bi bi-arrow-clockwise"></i> Refresh
       </button>
-      <button class="btn btn-light btn-sm" onclick="exportData()">
-        <i class="bi bi-download"></i> Backup
-      </button>
+      <!-- Backup Button -->
+<div class="card mb-3">
+  <div class="card-body">
+    <h5 class="card-title">
+      <i class="bi bi-cloud-download"></i> Backup Your Data
+    </h5>
+    <p class="card-text text-muted">
+      Download your data and send it to your email for safekeeping.
+    </p>
+    <button 
+      id="backupButton"
+      class="btn btn-success btn-lg"
+      onclick="sendBackupEmail()"
+    >
+      <i class="bi bi-cloud-download"></i> Backup & Email
+    </button>
+  </div>
+</div>
+
       <button class="btn btn-light btn-sm" onclick="importData()">
         <i class="bi bi-upload"></i> Restore
       </button>
@@ -6956,19 +6972,136 @@ function resetStockSelection() {
 
 
 
+ /**
+ * ==========================================
+ * MANUAL BACKUP BUTTON (CLIENT-SIDE)
+ * Works immediately - no security issues!
+ * ==========================================
+ */
+
+/**
+ * Send backup email to current user
+ */
+async function sendBackupEmail() {
+  console.log('📧 Creating backup email...');
+  
+  const button = document.getElementById('backupButton');
+  if (!button) return;
+  
+  try {
+    // Disable button
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating backup...';
     
-  /***********************
-   * Backup/Import
-   ***********************/
-  function exportData(){
-    const data = { products: cachedProducts, sales: cachedSales, exportDate: new Date().toISOString() };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+    // Get current user
+    const user = window.currentUser;
+    if (!user) {
+      alert('Please sign in first');
+      return;
+    }
+    
+    const tenantId = user.uid;
+    const userEmail = user.email;
+    
+    console.log('Fetching data for:', userEmail);
+    
+    // Fetch all data
+    const [productsSnapshot, customersSnapshot, salesSnapshot] = await Promise.all([
+      window.db.collection('tenants').doc(tenantId).collection('products').get(),
+      window.db.collection('tenants').doc(tenantId).collection('customers').get(),
+      window.db.collection('tenants').doc(tenantId).collection('sales').get()
+    ]);
+    
+    // Build backup data
+    const backupData = {
+      generatedAt: new Date().toISOString(),
+      generatedBy: userEmail,
+      tenantId: tenantId,
+      products: [],
+      customers: [],
+      sales: []
+    };
+    
+    productsSnapshot.forEach(doc => {
+      backupData.products.push({ id: doc.id, ...doc.data() });
+    });
+    
+    customersSnapshot.forEach(doc => {
+      backupData.customers.push({ id: doc.id, ...doc.data() });
+    });
+    
+    salesSnapshot.forEach(doc => {
+      backupData.sales.push({ id: doc.id, ...doc.data() });
+    });
+    
+    console.log('✅ Data collected:', {
+      products: backupData.products.length,
+      customers: backupData.customers.length,
+      sales: backupData.sales.length
+    });
+    
+    // Create JSON file
+    const backupJSON = JSON.stringify(backupData, null, 2);
+    const blob = new Blob([backupJSON], { type: 'application/json' });
+    const today = new Date().toISOString().split('T')[0];
+    const filename = `TileInventory_Backup_${today}.json`;
+    
+    // Download file
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `inventory-backup-${new Date().toISOString().split('T')[0]}.json`; a.click();
-    alert('ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Backup downloaded');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    console.log('✅ Backup file downloaded');
+    
+    // Open Gmail compose with backup details
+    const subject = encodeURIComponent(`📦 Tile Inventory Backup - ${new Date().toLocaleDateString()}`);
+    const body = encodeURIComponent(
+      `Backup Summary for ${userEmail}\n\n` +
+      `📦 Products: ${backupData.products.length}\n` +
+      `🏢 Customers: ${backupData.customers.length}\n` +
+      `💰 Sales: ${backupData.sales.length}\n` +
+      `📅 Generated: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\n\n` +
+      `Please attach the downloaded file: ${filename}\n\n` +
+      `To restore this backup:\n` +
+      `1. Open your inventory app\n` +
+      `2. Go to Settings\n` +
+      `3. Click "Restore Backup"\n` +
+      `4. Upload the JSON file\n`
+    );
+    
+    // Open email client
+    window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${userEmail}&su=${subject}&body=${body}`, '_blank');
+    
+    // Success message
+    alert(
+      '✅ Backup Created Successfully!\n\n' +
+      `📁 File downloaded: ${filename}\n` +
+      `📧 Email draft opened in new tab\n\n` +
+      'Please attach the downloaded file and send the email to yourself.'
+    );
+    
+    // Reset button
+    button.disabled = false;
+    button.innerHTML = '<i class="bi bi-cloud-download"></i> Backup & Email';
+    
+  } catch (error) {
+    console.error('❌ Backup error:', error);
+    alert('Failed to create backup: ' + error.message);
+    
+    // Reset button
+    if (button) {
+      button.disabled = false;
+      button.innerHTML = '<i class="bi bi-cloud-download"></i> Backup & Email';
+    }
   }
-  function importData(){ document.getElementById('fileInput').click(); }
-  function handleFileImport(e){ const file = e.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(evt){ try{ const data = JSON.parse(evt.target.result); if(data.products) cachedProducts = data.products; if(data.sales) cachedSales = data.sales; hasInitialLoaded=true; renderProducts(); renderSales(); alert('ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Data restored (local)'); }catch(err){ alert('ÃƒÂ¢Ã‚ÂÃ…â€™ Invalid file'); } }; reader.readAsText(file); }
+}
+
+console.log('✅ Backup Email Module Loaded');
 
       function searchProducts() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -15944,6 +16077,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
