@@ -3355,6 +3355,55 @@ button.dropdown-item::-moz-focus-inner {
 }
 
 
+/* ========================================
+   USER DROPDOWN GREEN THEME
+   ======================================== */
+
+/* Dropdown button styling */
+#userDropdown {
+  background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%);
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.2);
+  transition: all 0.3s ease;
+}
+
+#userDropdown:hover {
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+}
+
+/* Force green color for all dropdown items */
+.dropdown-menu[aria-labelledby="userDropdown"] .dropdown-item {
+  color: #198754 !important;
+}
+
+.dropdown-menu[aria-labelledby="userDropdown"] .dropdown-item i {
+  color: #198754 !important;
+}
+
+.dropdown-menu[aria-labelledby="userDropdown"] .dropdown-item span {
+  color: #198754 !important;
+  font-weight: 500;
+}
+
+/* Hover effect with light green background */
+.dropdown-menu[aria-labelledby="userDropdown"] .dropdown-item:hover {
+  background-color: #e8f5e9 !important;
+}
+
+/* Keep text green on hover */
+.dropdown-menu[aria-labelledby="userDropdown"] .dropdown-item:hover,
+.dropdown-menu[aria-labelledby="userDropdown"] .dropdown-item:hover i,
+.dropdown-menu[aria-labelledby="userDropdown"] .dropdown-item:hover span {
+  color: #198754 !important;
+}
+
+/* Dropdown menu styling */
+.dropdown-menu[aria-labelledby="userDropdown"] {
+  border: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
 
 
 
