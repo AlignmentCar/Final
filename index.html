@@ -6972,10 +6972,9 @@ function resetStockSelection() {
 
 
 
- /**
+/**
  * ==========================================
- * MANUAL BACKUP BUTTON (CLIENT-SIDE)
- * Works immediately - no security issues!
+ * MANUAL BACKUP BUTTON (FIXED FOR YOUR SETUP)
  * ==========================================
  */
 
@@ -6993,43 +6992,57 @@ async function sendBackupEmail() {
     button.disabled = true;
     button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating backup...';
     
-    // Get current user
-    const user = window.currentUser;
+    // ✅ Get current user (same as your saveProductToSheet)
+    const user = window.auth?.currentUser;
     if (!user) {
       alert('Please sign in first');
+      button.disabled = false;
+      button.innerHTML = '<i class="bi bi-cloud-download"></i> Backup & Email';
       return;
     }
     
-    const tenantId = user.uid;
+    const userId = user.uid;
     const userEmail = user.email;
     
     console.log('Fetching data for:', userEmail);
     
-    // Fetch all data
-    const [productsSnapshot, customersSnapshot, salesSnapshot] = await Promise.all([
-      window.db.collection('tenants').doc(tenantId).collection('products').get(),
-      window.db.collection('tenants').doc(tenantId).collection('customers').get(),
-      window.db.collection('tenants').doc(tenantId).collection('sales').get()
-    ]);
+    // ✅ Get Firebase functions (same as your saveProductToSheet)
+    const { collection, getDocs } = window.firebaseImports;
+    
+    // ✅ Fetch all collections
+    console.log('📥 Fetching products...');
+    const productsRef = collection(window.db, 'tenants', userId, 'products');
+    const productsSnapshot = await getDocs(productsRef);
+    
+    console.log('📥 Fetching customers...');
+    const customersRef = collection(window.db, 'tenants', userId, 'customers');
+    const customersSnapshot = await getDocs(customersRef);
+    
+    console.log('📥 Fetching sales...');
+    const salesRef = collection(window.db, 'tenants', userId, 'sales');
+    const salesSnapshot = await getDocs(salesRef);
     
     // Build backup data
     const backupData = {
       generatedAt: new Date().toISOString(),
       generatedBy: userEmail,
-      tenantId: tenantId,
+      tenantId: userId,
       products: [],
       customers: [],
       sales: []
     };
     
+    // Extract products
     productsSnapshot.forEach(doc => {
       backupData.products.push({ id: doc.id, ...doc.data() });
     });
     
+    // Extract customers
     customersSnapshot.forEach(doc => {
       backupData.customers.push({ id: doc.id, ...doc.data() });
     });
     
+    // Extract sales
     salesSnapshot.forEach(doc => {
       backupData.sales.push({ id: doc.id, ...doc.data() });
     });
@@ -7044,7 +7057,7 @@ async function sendBackupEmail() {
     const backupJSON = JSON.stringify(backupData, null, 2);
     const blob = new Blob([backupJSON], { type: 'application/json' });
     const today = new Date().toISOString().split('T')[0];
-    const filename = `TileInventory_Backup_${today}.json`;
+    const filename = `TileInventory_Backup_${userEmail.replace('@', '_at_')}_${today}.json`;
     
     // Download file
     const url = URL.createObjectURL(blob);
@@ -7056,7 +7069,7 @@ async function sendBackupEmail() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    console.log('✅ Backup file downloaded');
+    console.log('✅ Backup file downloaded:', filename);
     
     // Open Gmail compose with backup details
     const subject = encodeURIComponent(`📦 Tile Inventory Backup - ${new Date().toLocaleDateString()}`);
@@ -7066,12 +7079,13 @@ async function sendBackupEmail() {
       `🏢 Customers: ${backupData.customers.length}\n` +
       `💰 Sales: ${backupData.sales.length}\n` +
       `📅 Generated: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\n\n` +
-      `Please attach the downloaded file: ${filename}\n\n` +
+      `File downloaded: ${filename}\n\n` +
       `To restore this backup:\n` +
       `1. Open your inventory app\n` +
       `2. Go to Settings\n` +
       `3. Click "Restore Backup"\n` +
-      `4. Upload the JSON file\n`
+      `4. Upload the JSON file\n\n` +
+      `⚠️ Please attach the downloaded file to this email before sending.`
     );
     
     // Open email client
@@ -7080,9 +7094,12 @@ async function sendBackupEmail() {
     // Success message
     alert(
       '✅ Backup Created Successfully!\n\n' +
-      `📁 File downloaded: ${filename}\n` +
-      `📧 Email draft opened in new tab\n\n` +
-      'Please attach the downloaded file and send the email to yourself.'
+      `📁 File: ${filename}\n` +
+      `📦 Products: ${backupData.products.length}\n` +
+      `🏢 Customers: ${backupData.customers.length}\n` +
+      `💰 Sales: ${backupData.sales.length}\n\n` +
+      '📧 Email draft opened in new tab.\n' +
+      'Please attach the downloaded file and send!'
     );
     
     // Reset button
@@ -7091,7 +7108,7 @@ async function sendBackupEmail() {
     
   } catch (error) {
     console.error('❌ Backup error:', error);
-    alert('Failed to create backup: ' + error.message);
+    alert('Backup failed: ' + error.message);
     
     // Reset button
     if (button) {
@@ -7102,6 +7119,8 @@ async function sendBackupEmail() {
 }
 
 console.log('✅ Backup Email Module Loaded');
+
+
 
       function searchProducts() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -16077,6 +16096,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
