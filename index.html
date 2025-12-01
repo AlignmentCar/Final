@@ -399,28 +399,27 @@
       <button id="refreshBtn" class="btn btn-light btn-sm" onclick="manualRefresh()">
         <i id="refreshIcon" class="bi bi-arrow-clockwise"></i> Refresh
       </button>
-      <!-- Backup Button -->
-<div class="card mb-3">
-  <div class="card-body">
-    <h5 class="card-title">
-      <i class="bi bi-cloud-download"></i> Backup Your Data
-    </h5>
-    <p class="card-text text-muted">
-      Download your data and send it to your email for safekeeping.
-    </p>
-    <button 
-      id="backupButton"
-      class="btn btn-success btn-lg"
-      onclick="sendBackupEmail()"
-    >
-      <i class="bi bi-cloud-download"></i> Backup & Email
-    </button>
-  </div>
+
+      
+      <div class="dropdown mb-3">
+  <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+    <i class="bi bi-gear"></i> Data Management
+  </button>
+  <ul class="dropdown-menu">
+    <li>
+      <a class="dropdown-item" href="#" onclick="sendBackupEmail(); return false;">
+        <i class="bi bi-cloud-download"></i> Backup & Email
+      </a>
+    </li>
+    <li>
+      <a class="dropdown-item" href="#" onclick="document.getElementById('restoreFileInput').click(); return false;">
+        <i class="bi bi-cloud-upload"></i> Restore Backup
+      </a>
+    </li>
+  </ul>
+  <input type="file" id="restoreFileInput" accept=".json" style="display: none;" onchange="handleRestoreFile(event)">
 </div>
 
-      <button class="btn btn-light btn-sm" onclick="importData()">
-        <i class="bi bi-upload"></i> Restore
-      </button>
 
 <!-- ✅ NEW: Instant Products Button -->
       <button 
@@ -7121,6 +7120,249 @@ async function sendBackupEmail() {
 console.log('✅ Backup Email Module Loaded');
 
 
+
+/**
+ * ==========================================
+ * RESTORE BACKUP FUNCTIONALITY
+ * ==========================================
+ */
+
+/**
+ * Handle restore file selection
+ */
+function handleRestoreFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  console.log('📂 File selected:', file.name);
+  
+  // Validate file type
+  if (!file.name.endsWith('.json')) {
+    alert('❌ Invalid file type. Please select a JSON backup file.');
+    return;
+  }
+  
+  // Read file
+  const reader = new FileReader();
+  
+  reader.onload = function(e) {
+    try {
+      const backupData = JSON.parse(e.target.result);
+      console.log('✅ Backup file parsed successfully');
+      
+      // Validate backup data
+      if (!validateBackupData(backupData)) {
+        alert('❌ Invalid backup file format. Please select a valid backup file.');
+        return;
+      }
+      
+      // Show confirmation dialog
+      showRestoreConfirmation(backupData);
+      
+    } catch (error) {
+      console.error('❌ Error parsing backup file:', error);
+      alert('❌ Failed to read backup file. Please ensure it\'s a valid JSON file.');
+    }
+  };
+  
+  reader.onerror = function() {
+    alert('❌ Failed to read file. Please try again.');
+  };
+  
+  reader.readAsText(file);
+  
+  // Reset file input
+  event.target.value = '';
+}
+
+/**
+ * Validate backup data structure
+ */
+function validateBackupData(data) {
+  console.log('🔍 Validating backup data...');
+  
+  if (!data || typeof data !== 'object') {
+    console.error('❌ Data is not an object');
+    return false;
+  }
+  
+  if (!data.tenantId || !data.generatedBy) {
+    console.error('❌ Missing tenant info');
+    return false;
+  }
+  
+  if (!Array.isArray(data.products)) {
+    console.error('❌ Products is not an array');
+    return false;
+  }
+  
+  if (!Array.isArray(data.customers)) {
+    console.error('❌ Customers is not an array');
+    return false;
+  }
+  
+  if (!Array.isArray(data.sales)) {
+    console.error('❌ Sales is not an array');
+    return false;
+  }
+  
+  console.log('✅ Backup data is valid');
+  return true;
+}
+
+/**
+ * Show restore confirmation dialog
+ */
+function showRestoreConfirmation(backupData) {
+  const message = 
+    `📦 Restore Backup?\n\n` +
+    `Backup Information:\n` +
+    `• Generated: ${new Date(backupData.generatedAt).toLocaleString('en-IN')}\n` +
+    `• From: ${backupData.generatedBy}\n\n` +
+    `Data to Restore:\n` +
+    `• Products: ${backupData.products.length}\n` +
+    `• Customers: ${backupData.customers.length}\n` +
+    `• Sales: ${backupData.sales.length}\n\n` +
+    `⚠️ WARNING: This will ADD new items and UPDATE existing ones.\n` +
+    `Existing data will NOT be deleted.\n\n` +
+    `Do you want to continue?`;
+  
+  if (confirm(message)) {
+    restoreBackupData(backupData);
+  } else {
+    console.log('❌ Restore cancelled by user');
+  }
+}
+
+/**
+ * Restore backup data to Firestore
+ */
+async function restoreBackupData(backupData) {
+  console.log('🔄 Starting restore process...');
+  
+  const restoreButton = document.getElementById('restoreButton');
+  
+  try {
+    // Disable button
+    if (restoreButton) {
+      restoreButton.disabled = true;
+      restoreButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Restoring...';
+    }
+    
+    // Get current user
+    const user = window.auth?.currentUser;
+    if (!user) {
+      alert('Please sign in first');
+      return;
+    }
+    
+    const userId = user.uid;
+    const userEmail = user.email;
+    
+    // Security check: Warn if restoring someone else's backup
+    if (backupData.generatedBy !== userEmail) {
+      const confirmRestore = confirm(
+        `⚠️ WARNING:\n\n` +
+        `This backup was created by: ${backupData.generatedBy}\n` +
+        `You are signed in as: ${userEmail}\n\n` +
+        `Are you sure you want to restore this backup?`
+      );
+      
+      if (!confirmRestore) {
+        console.log('❌ Restore cancelled - different user');
+        if (restoreButton) {
+          restoreButton.disabled = false;
+          restoreButton.innerHTML = '<i class="bi bi-cloud-upload"></i> Restore Backup';
+        }
+        return;
+      }
+    }
+    
+    // Get Firebase functions
+    const { doc, setDoc, collection } = window.firebaseImports;
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    // Restore Products
+    console.log('📦 Restoring products...');
+    for (const product of backupData.products) {
+      try {
+        const productRef = doc(window.db, 'tenants', userId, 'products', product.id);
+        await setDoc(productRef, product);
+        successCount++;
+        console.log(`✅ Restored product: ${product.name}`);
+      } catch (error) {
+        console.error(`❌ Failed to restore product: ${product.name}`, error);
+        errorCount++;
+      }
+    }
+    
+    // Restore Customers
+    console.log('🏢 Restoring customers...');
+    for (const customer of backupData.customers) {
+      try {
+        const customerRef = doc(window.db, 'tenants', userId, 'customers', customer.id);
+        await setDoc(customerRef, customer);
+        successCount++;
+        console.log(`✅ Restored customer: ${customer.name || customer.id}`);
+      } catch (error) {
+        console.error(`❌ Failed to restore customer:`, error);
+        errorCount++;
+      }
+    }
+    
+    // Restore Sales
+    console.log('💰 Restoring sales...');
+    for (const sale of backupData.sales) {
+      try {
+        const saleRef = doc(window.db, 'tenants', userId, 'sales', sale.id);
+        await setDoc(saleRef, sale);
+        successCount++;
+        console.log(`✅ Restored sale: ${sale.id}`);
+      } catch (error) {
+        console.error(`❌ Failed to restore sale:`, error);
+        errorCount++;
+      }
+    }
+    
+    console.log('✅ Restore complete!');
+    console.log(`   - Success: ${successCount}`);
+    console.log(`   - Errors: ${errorCount}`);
+    
+    // Show success message
+    alert(
+      `✅ Restore Complete!\n\n` +
+      `Successfully restored:\n` +
+      `• Products: ${backupData.products.length}\n` +
+      `• Customers: ${backupData.customers.length}\n` +
+      `• Sales: ${backupData.sales.length}\n\n` +
+      `${errorCount > 0 ? `⚠️ ${errorCount} items failed to restore.\n` : ''}` +
+      `\nRefreshing page...`
+    );
+    
+    // Reload page to show restored data
+    setTimeout(() => {
+      location.reload();
+    }, 2000);
+    
+  } catch (error) {
+    console.error('❌ Restore error:', error);
+    alert('❌ Restore failed: ' + error.message);
+    
+    if (restoreButton) {
+      restoreButton.disabled = false;
+      restoreButton.innerHTML = '<i class="bi bi-cloud-upload"></i> Restore Backup';
+    }
+  }
+}
+
+console.log('✅ Restore Backup Module Loaded');
+
+
+
+
+    
 
       function searchProducts() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -16096,6 +16338,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
