@@ -401,24 +401,18 @@
       </button>
 
       
-      <div class="dropdown mb-3">
-  <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
-    <i class="bi bi-gear"></i> Data Management
+  <div class="d-flex gap-2 mb-3">
+  <button id="backupButton" class="btn btn-success" onclick="sendBackupEmail()">
+    <i class="bi bi-cloud-download"></i> Backup
   </button>
-  <ul class="dropdown-menu">
-    <li>
-      <a class="dropdown-item" href="#" onclick="sendBackupEmail(); return false;">
-        <i class="bi bi-cloud-download"></i> Backup & Email
-      </a>
-    </li>
-    <li>
-      <a class="dropdown-item" href="#" onclick="document.getElementById('restoreFileInput').click(); return false;">
-        <i class="bi bi-cloud-upload"></i> Restore Backup
-      </a>
-    </li>
-  </ul>
+  
+  <button id="restoreButton" class="btn btn-primary" onclick="document.getElementById('restoreFileInput').click()">
+    <i class="bi bi-cloud-upload"></i> Restore
+  </button>
+  
   <input type="file" id="restoreFileInput" accept=".json" style="display: none;" onchange="handleRestoreFile(event)">
 </div>
+
 
 
 <!-- ✅ NEW: Instant Products Button -->
@@ -16338,6 +16332,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
