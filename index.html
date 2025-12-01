@@ -401,7 +401,7 @@
       </button>
 
       
-  <div class="d-flex gap-2 mb-3">
+ <div class="d-flex gap-2 mb-3">
   <button id="backupButton" class="btn btn-success" onclick="sendBackupEmail()">
     <i class="bi bi-cloud-download"></i> Backup
   </button>
@@ -6967,12 +6967,12 @@ function resetStockSelection() {
 
 /**
  * ==========================================
- * COMPLETE BACKUP - ALL COLLECTIONS
+ * COMPLETE BACKUP - DOWNLOAD ONLY
  * ==========================================
  */
 
 /**
- * Send backup email to current user (ALL DATA)
+ * Download complete backup (ALL DATA)
  */
 async function sendBackupEmail() {
   console.log('📧 Creating complete backup...');
@@ -6990,7 +6990,7 @@ async function sendBackupEmail() {
     if (!user) {
       alert('Please sign in first');
       button.disabled = false;
-      button.innerHTML = '<i class="bi bi-cloud-download"></i> Backup & Email';
+      button.innerHTML = '<i class="bi bi-cloud-download"></i> Backup';
       return;
     }
     
@@ -7083,7 +7083,7 @@ async function sendBackupEmail() {
     const backupJSON = JSON.stringify(backupData, null, 2);
     const blob = new Blob([backupJSON], { type: 'application/json' });
     const today = new Date().toISOString().split('T')[0];
-    const filename = `TileInventory_COMPLETE_Backup_${userEmail.replace('@', '_at_')}_${today}.json`;
+    const filename = `TileInventory_Backup_${userEmail.replace('@', '_at_')}_${today}.json`;
     
     // Download file
     const url = URL.createObjectURL(blob);
@@ -7106,34 +7106,9 @@ async function sendBackupEmail() {
       backupData.purchases.length + 
       backupData.sales.length;
     
-    // Open Gmail compose with backup details
-    const subject = encodeURIComponent(`📦 Tile Inventory Complete Backup - ${new Date().toLocaleDateString()}`);
-    const body = encodeURIComponent(
-      `Complete Backup Summary for ${userEmail}\n\n` +
-      `🏷️ Brands: ${backupData.brands.length}\n` +
-      `🧾 Invoices: ${backupData.invoices.length}\n` +
-      `📁 Product Groups: ${backupData.productGroups.length}\n` +
-      `📦 Products: ${backupData.products.length}\n` +
-      `🛒 Purchases: ${backupData.purchases.length}\n` +
-      `💰 Sales: ${backupData.sales.length}\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `📊 Total Items: ${totalItems}\n\n` +
-      `📅 Generated: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\n\n` +
-      `File downloaded: ${filename}\n\n` +
-      `To restore this backup:\n` +
-      `1. Open your inventory app\n` +
-      `2. Click "Restore Backup" button\n` +
-      `3. Select this JSON file\n` +
-      `4. Confirm restoration\n\n` +
-      `⚠️ Please attach the downloaded file to this email before sending.`
-    );
-    
-    // Open email client
-    window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${userEmail}&su=${subject}&body=${body}`, '_blank');
-    
-    // Success message
+    // ✅ Simple success message (NO EMAIL)
     alert(
-      '✅ Complete Backup Created!\n\n' +
+      '✅ Backup Downloaded Successfully!\n\n' +
       `📁 File: ${filename}\n\n` +
       `🏷️ Brands: ${backupData.brands.length}\n` +
       `🧾 Invoices: ${backupData.invoices.length}\n` +
@@ -7142,13 +7117,12 @@ async function sendBackupEmail() {
       `🛒 Purchases: ${backupData.purchases.length}\n` +
       `💰 Sales: ${backupData.sales.length}\n\n` +
       `📊 Total: ${totalItems} items\n\n` +
-      '📧 Email draft opened in new tab.\n' +
-      'Please attach the file and send!'
+      '✅ Backup saved to your Downloads folder!'
     );
     
     // Reset button
     button.disabled = false;
-    button.innerHTML = '<i class="bi bi-cloud-download"></i> Backup & Email';
+    button.innerHTML = '<i class="bi bi-cloud-download"></i> Backup';
     
   } catch (error) {
     console.error('❌ Backup error:', error);
@@ -7157,21 +7131,20 @@ async function sendBackupEmail() {
     // Reset button
     if (button) {
       button.disabled = false;
-      button.innerHTML = '<i class="bi bi-cloud-download"></i> Backup & Email';
+      button.innerHTML = '<i class="bi bi-cloud-download"></i> Backup';
     }
   }
 }
 
 
-
 /**
  * ==========================================
- * RESTORE BACKUP FUNCTIONALITY
+ * RESTORE WITH PASSWORD VERIFICATION
  * ==========================================
  */
 
 /**
- * Handle restore file selection
+ * Handle restore file selection - Now asks for password first
  */
 function handleRestoreFile(event) {
   const file = event.target.files[0];
@@ -7185,7 +7158,111 @@ function handleRestoreFile(event) {
     return;
   }
   
-  // Read file
+  // ✅ Ask for password BEFORE reading file
+  showPasswordVerificationDialog(file);
+  
+  // Reset file input
+  event.target.value = '';
+}
+
+/**
+ * Show password verification dialog
+ */
+function showPasswordVerificationDialog(file) {
+  // Get current user
+  const user = window.auth?.currentUser;
+  if (!user) {
+    alert('Please sign in first');
+    return;
+  }
+  
+  const userEmail = user.email;
+  
+  // Create password prompt
+  const password = prompt(
+    `🔐 Password Verification Required\n\n` +
+    `To restore backup, please enter your current password for:\n` +
+    `${userEmail}\n\n` +
+    `Enter password:`
+  );
+  
+  // User cancelled
+  if (password === null) {
+    console.log('❌ Restore cancelled by user');
+    return;
+  }
+  
+  // User entered empty password
+  if (password.trim() === '') {
+    alert('❌ Password cannot be empty');
+    return;
+  }
+  
+  // Verify password and proceed
+  verifyPasswordAndRestore(password, file);
+}
+
+/**
+ * Verify password with Firebase Auth
+ */
+async function verifyPasswordAndRestore(password, file) {
+  console.log('🔐 Verifying password...');
+  
+  try {
+    const user = window.auth?.currentUser;
+    if (!user) {
+      alert('Please sign in first');
+      return;
+    }
+    
+    // Get Firebase auth functions
+    const { EmailAuthProvider, reauthenticateWithCredential } = window.firebaseImports;
+    
+    // Create credential
+    const credential = EmailAuthProvider.credential(user.email, password);
+    
+    // Show loading
+    const restoreButton = document.getElementById('restoreButton');
+    if (restoreButton) {
+      restoreButton.disabled = true;
+      restoreButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Verifying...';
+    }
+    
+    // ✅ Verify password by re-authenticating
+    await reauthenticateWithCredential(user, credential);
+    
+    console.log('✅ Password verified successfully');
+    
+    // Password correct - proceed with restore
+    proceedWithRestore(file);
+    
+  } catch (error) {
+    console.error('❌ Password verification failed:', error);
+    
+    // Reset button
+    const restoreButton = document.getElementById('restoreButton');
+    if (restoreButton) {
+      restoreButton.disabled = false;
+      restoreButton.innerHTML = '<i class="bi bi-cloud-upload"></i> Restore';
+    }
+    
+    // Show error message
+    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      alert('❌ Incorrect password. Restore cancelled.');
+    } else if (error.code === 'auth/too-many-requests') {
+      alert('❌ Too many failed attempts. Please try again later.');
+    } else {
+      alert('❌ Password verification failed: ' + error.message);
+    }
+  }
+}
+
+/**
+ * Proceed with restore after password verification
+ */
+function proceedWithRestore(file) {
+  console.log('📂 Reading backup file...');
+  
   const reader = new FileReader();
   
   reader.onload = function(e) {
@@ -7196,6 +7273,13 @@ function handleRestoreFile(event) {
       // Validate backup data
       if (!validateBackupData(backupData)) {
         alert('❌ Invalid backup file format. Please select a valid backup file.');
+        
+        // Reset button
+        const restoreButton = document.getElementById('restoreButton');
+        if (restoreButton) {
+          restoreButton.disabled = false;
+          restoreButton.innerHTML = '<i class="bi bi-cloud-upload"></i> Restore';
+        }
         return;
       }
       
@@ -7205,17 +7289,28 @@ function handleRestoreFile(event) {
     } catch (error) {
       console.error('❌ Error parsing backup file:', error);
       alert('❌ Failed to read backup file. Please ensure it\'s a valid JSON file.');
+      
+      // Reset button
+      const restoreButton = document.getElementById('restoreButton');
+      if (restoreButton) {
+        restoreButton.disabled = false;
+        restoreButton.innerHTML = '<i class="bi bi-cloud-upload"></i> Restore';
+      }
     }
   };
   
   reader.onerror = function() {
     alert('❌ Failed to read file. Please try again.');
+    
+    // Reset button
+    const restoreButton = document.getElementById('restoreButton');
+    if (restoreButton) {
+      restoreButton.disabled = false;
+      restoreButton.innerHTML = '<i class="bi bi-cloud-upload"></i> Restore';
+    }
   };
   
   reader.readAsText(file);
-  
-  // Reset file input
-  event.target.value = '';
 }
 
 /**
@@ -7257,7 +7352,6 @@ function validateBackupData(data) {
   return true;
 }
 
-
 /**
  * Show restore confirmation dialog (ALL COLLECTIONS)
  */
@@ -7292,9 +7386,15 @@ function showRestoreConfirmation(backupData) {
     restoreBackupData(backupData);
   } else {
     console.log('❌ Restore cancelled by user');
+    
+    // Reset button
+    const restoreButton = document.getElementById('restoreButton');
+    if (restoreButton) {
+      restoreButton.disabled = false;
+      restoreButton.innerHTML = '<i class="bi bi-cloud-upload"></i> Restore';
+    }
   }
 }
-
 
 /**
  * ==========================================
@@ -7311,7 +7411,7 @@ async function restoreBackupData(backupData) {
   const restoreButton = document.getElementById('restoreButton');
   
   try {
-    // Disable button
+    // Update button
     if (restoreButton) {
       restoreButton.disabled = true;
       restoreButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Restoring...';
@@ -7340,7 +7440,7 @@ async function restoreBackupData(backupData) {
         console.log('❌ Restore cancelled - different user');
         if (restoreButton) {
           restoreButton.disabled = false;
-          restoreButton.innerHTML = '<i class="bi bi-cloud-upload"></i> Restore Backup';
+          restoreButton.innerHTML = '<i class="bi bi-cloud-upload"></i> Restore';
         }
         return;
       }
@@ -7462,7 +7562,7 @@ async function restoreBackupData(backupData) {
       (backupData.sales?.length || 0);
     
     alert(
-      `✅ Complete Restore Finished!\n\n` +
+      `✅ Restore Complete!\n\n` +
       `Successfully restored:\n` +
       `🏷️ Brands: ${backupData.brands?.length || 0}\n` +
       `🧾 Invoices: ${backupData.invoices?.length || 0}\n` +
@@ -7472,7 +7572,7 @@ async function restoreBackupData(backupData) {
       `💰 Sales: ${backupData.sales?.length || 0}\n\n` +
       `📊 Total: ${successCount} of ${totalExpected} items\n` +
       `${errorCount > 0 ? `⚠️ ${errorCount} items failed\n` : ''}` +
-      `\nRefreshing page in 2 seconds...`
+      `\n✅ Page will refresh in 2 seconds...`
     );
     
     // Reload page to show restored data
@@ -7486,10 +7586,13 @@ async function restoreBackupData(backupData) {
     
     if (restoreButton) {
       restoreButton.disabled = false;
-      restoreButton.innerHTML = '<i class="bi bi-cloud-upload"></i> Restore Backup';
+      restoreButton.innerHTML = '<i class="bi bi-cloud-upload"></i> Restore';
     }
   }
 }
+
+console.log('✅ Backup & Restore System Loaded');
+
 
 
 
@@ -16515,6 +16618,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
