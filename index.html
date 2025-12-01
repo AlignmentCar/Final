@@ -14890,6 +14890,50 @@ async function submitNewPassword() {
 console.log('✅ Change Password Module Loaded');
 
 
+/**
+ * ==========================================
+ * SIGN OUT FUNCTION (Firebase Auth)
+ * ==========================================
+ */
+
+/**
+ * Sign out current user with confirmation
+ */
+async function signOut() {
+  console.log('🚪 Sign out requested');
+  
+  // Show confirmation dialog
+  const confirmed = confirm('Are you sure you want to sign out?');
+  
+  if (!confirmed) {
+    console.log('❌ Sign out cancelled by user');
+    return;
+  }
+  
+  try {
+    console.log('🔓 Signing out...');
+    
+    // Get Firebase signOut function
+    const { signOut: firebaseSignOut } = window.firebaseImports;
+    
+    // Sign out from Firebase
+    await firebaseSignOut(window.auth);
+    
+    console.log('✅ Sign out successful');
+    
+    // Clear current user
+    window.currentUser = null;
+    
+    // The onAuthStateChanged listener will automatically show the login page
+    // No need to manually redirect
+    
+  } catch (error) {
+    console.error('❌ Sign out error:', error);
+    alert('Failed to sign out. Please try again.');
+  }
+}
+
+console.log('✅ Sign Out Module Loaded');
 
   
 
@@ -15855,6 +15899,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
