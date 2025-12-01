@@ -461,9 +461,11 @@
       </div>
       <!-- END Options Dropdown -->
       
-      <div class="d-flex align-items-center ms-2">
-        <i class="bi bi-person-circle me-2" style="font-size: 1.5rem; color: white;"></i>
-        <span id="userName" class="me-3 text-white">User</span>
+ <div class="d-flex align-items-center ms-2">
+  <i class="bi bi-person-circle me-2" style="font-size: 1.5rem; color: white;"></i>
+  <span id="userName" class="me-3 text-white">Loading...</span>
+</div>
+
 
         <!-- Background sync indicator -->
         <div id="backgroundSyncStatus">
@@ -15654,6 +15656,79 @@ function addBackupButtonBadge() {
 setTimeout(addBackupButtonBadge, 1000);
 
 
+
+/**
+ * ==========================================
+ * USER DISPLAY SYSTEM
+ * ==========================================
+ */
+
+/**
+ * Initialize and update user display
+ */
+function initializeUserDisplay() {
+  console.log('🔧 Initializing user display...');
+  
+  // Listen for auth state changes
+  window.auth.onAuthStateChanged((user) => {
+    updateUserNameDisplay(user);
+  });
+}
+
+/**
+ * Update username display in header
+ */
+function updateUserNameDisplay(user) {
+  const userNameElement = document.getElementById('userName');
+  
+  if (!userNameElement) {
+    console.warn('⚠️ userName element not found');
+    return;
+  }
+  
+  if (user && user.email) {
+    // Display full email or shortened version
+    
+    // Option 1: Full email
+    userNameElement.textContent = user.email;
+    
+    // Option 2: Shortened (username only) - Uncomment to use
+    // const username = user.email.split('@')[0];
+    // userNameElement.textContent = username;
+    // userNameElement.title = user.email; // Show full email on hover
+    
+    console.log('✅ User display updated:', user.email);
+  } else {
+    // Not signed in
+    userNameElement.textContent = 'Guest';
+    userNameElement.title = '';
+    console.log('ℹ️ No user signed in');
+  }
+}
+
+// ✅ Initialize when DOM is ready
+window.addEventListener('DOMContentLoaded', () => {
+  console.log('📄 DOM loaded, waiting for Firebase Auth...');
+  
+  // Wait for Firebase Auth to be ready
+  const checkAuth = setInterval(() => {
+    if (window.auth) {
+      console.log('✅ Firebase Auth ready');
+      clearInterval(checkAuth);
+      initializeUserDisplay();
+    }
+  }, 100);
+  
+  // Timeout after 10 seconds
+  setTimeout(() => {
+    clearInterval(checkAuth);
+    console.warn('⚠️ Firebase Auth initialization timeout');
+  }, 10000);
+});
+
+console.log('✅ User Display Module Loaded');
+
+  
   
   
 /**
@@ -16618,6 +16693,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
