@@ -563,7 +563,7 @@
 
 <!-- ✅ SPACER -->
 <div style="height: 20px; background: transparent;"></div>
-<!-- Summary - 3 Cards (Updated Card 3 with Collapsible Actions) -->
+<!-- Summary - 3 Cards (Updated Card 3 with Flip Animation) -->
 <div class="row g-2 mb-3">
   
   <!-- 1. Total Products Card -->
@@ -600,58 +600,66 @@
     </div>
   </div>
   
-  <!-- 3. Quick Actions Card - Collapsible 2x2 Grid -->
+  <!-- 3. Quick Actions Card - WITH FLIP ANIMATION -->
   <div class="col-md-4 col-12">
-    <div class="card summary-card shadow-sm h-100" style="cursor: pointer;" id="quickActionsCard">
-      <div class="card-body p-0" style="position: relative;">
+    <div class="flip-card h-100" onclick="toggleQuickActionsFlip()">
+      <div class="flip-card-inner" id="flipCardInner">
         
-        <!-- Initial State: Quick Create Button -->
-        <div id="quickCreateInitial" class="text-center d-flex flex-column justify-content-center align-items-center" style="height: 100%; min-height: 140px;" onclick="toggleQuickActions()">
-          <i class="bi bi-plus-circle" style="font-size: 3rem; color: #666;"></i>
-          <h5 class="mt-2 mb-0" style="color: #333; font-weight: 600;">Quick Create</h5>
-          <p class="text-muted mb-0" style="font-size: 0.75rem;">Click to expand</p>
-        </div>
-        
-        <!-- Expanded State: 4 Action Buttons with Cross Lines -->
-        <div id="quickActionsExpanded" style="display: none; height: 100%; min-height: 140px; position: relative;">
-          
-          <!-- Vertical Line -->
-          <div style="position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: #ddd; z-index: 1;"></div>
-          
-          <!-- Horizontal Line -->
-          <div style="position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: #ddd; z-index: 1;"></div>
-          
-          <!-- 2x2 Grid Buttons -->
-          <div class="row g-0" style="height: 100%;">
-            <!-- Row 1: Instant Products & Add Product -->
-            <div class="col-6" style="border-right: 1px solid #ddd; border-bottom: 1px solid #ddd;">
-              <button class="btn tile-action-button-plain" onclick="openInstantProductsModal()">
-                <i class="bi bi-lightning-charge d-block" style="font-size: 1.5rem;"></i>
-                <span class="d-block mt-1" style="font-size: 0.65rem;">Instant Products</span>
-              </button>
-            </div>
-            <div class="col-6" style="border-bottom: 1px solid #ddd;">
-              <button class="btn tile-action-button-plain" onclick="showAddProduct()">
-                <i class="bi bi-plus-circle d-block" style="font-size: 1.5rem;"></i>
-                <span class="d-block mt-1" style="font-size: 0.65rem;">Add Product</span>
-              </button>
-            </div>
-            
-            <!-- Row 2: Record Purchase & Record Sale -->
-            <div class="col-6" style="border-right: 1px solid #ddd;">
-              <button class="btn tile-action-button-plain" onclick="openRecordPurchaseModal()">
-                <i class="bi bi-bag-plus d-block" style="font-size: 1.5rem;"></i>
-                <span class="d-block mt-1" style="font-size: 0.65rem;">Record Purchase</span>
-              </button>
-            </div>
-            <div class="col-6">
-              <button class="btn tile-action-button-plain" onclick="openSalesModal()">
-                <i class="bi bi-cart d-block" style="font-size: 1.5rem;"></i>
-                <span class="d-block mt-1" style="font-size: 0.65rem;">Record Sale</span>
-              </button>
+        <!-- FRONT SIDE: Quick Create -->
+        <div class="flip-card-front">
+          <div class="card summary-card shadow-sm h-100">
+            <div class="card-body p-0 d-flex flex-column justify-content-center align-items-center" style="min-height: 140px; cursor: pointer;">
+              <i class="bi bi-plus-circle" style="font-size: 3rem; color: #666;"></i>
+              <h5 class="mt-2 mb-0" style="color: #333; font-weight: 600;">Quick Create</h5>
+              <p class="text-muted mb-0" style="font-size: 0.75rem;">Click to flip</p>
             </div>
           </div>
-          
+        </div>
+        
+        <!-- BACK SIDE: 4 Action Buttons -->
+        <div class="flip-card-back">
+          <div class="card summary-card shadow-sm h-100">
+            <div class="card-body p-0" style="position: relative; min-height: 140px;">
+              
+              <!-- Vertical Line -->
+              <div style="position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: #ddd; z-index: 1;"></div>
+              
+              <!-- Horizontal Line -->
+              <div style="position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: #ddd; z-index: 1;"></div>
+              
+              <!-- 2x2 Grid Buttons -->
+              <div class="row g-0 h-100">
+                <!-- Row 1: Instant Products & Add Product -->
+                <div class="col-6">
+                  <button class="btn tile-action-button-plain" onclick="event.stopPropagation(); openInstantProductsModal()">
+                    <i class="bi bi-lightning-charge d-block" style="font-size: 1.5rem;"></i>
+                    <span class="d-block mt-1" style="font-size: 0.65rem;">Instant Products</span>
+                  </button>
+                </div>
+                <div class="col-6">
+                  <button class="btn tile-action-button-plain" onclick="event.stopPropagation(); showAddProduct()">
+                    <i class="bi bi-plus-circle d-block" style="font-size: 1.5rem;"></i>
+                    <span class="d-block mt-1" style="font-size: 0.65rem;">Add Product</span>
+                  </button>
+                </div>
+                
+                <!-- Row 2: Record Purchase & Record Sale -->
+                <div class="col-6">
+                  <button class="btn tile-action-button-plain" onclick="event.stopPropagation(); openRecordPurchaseModal()">
+                    <i class="bi bi-bag-plus d-block" style="font-size: 1.5rem;"></i>
+                    <span class="d-block mt-1" style="font-size: 0.65rem;">Record Purchase</span>
+                  </button>
+                </div>
+                <div class="col-6">
+                  <button class="btn tile-action-button-plain" onclick="event.stopPropagation(); openSalesModal()">
+                    <i class="bi bi-cart d-block" style="font-size: 1.5rem;"></i>
+                    <span class="d-block mt-1" style="font-size: 0.65rem;">Record Sale</span>
+                  </button>
+                </div>
+              </div>
+              
+            </div>
+          </div>
         </div>
         
       </div>
@@ -660,220 +668,112 @@
   
 </div>
 
+
   
-<style>
-/* ==========================================
-   TILE ACTION BUTTONS (Plain Style - No Green)
-   ========================================== */
-.tile-action-button-plain {
-  background: transparent;
-  color: #333;
-  font-weight: 600;
-  border: none;
-  border-radius: 0;
-  padding: 10px 4px;
-  box-shadow: none;
-  transition: all 0.2s ease;
-  width: 100%;
-  height: 100%;
-  min-height: 70px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.tile-action-button-plain:hover {
-  background: #f8f9fa;
-  color: #000;
-  transform: none;
-}
-
-.tile-action-button-plain:active {
-  background: #e9ecef;
-}
-
-.tile-action-button-plain i {
-  color: #666;
-}
-
-/* Quick Create Card Hover Effect */
-#quickActionsCard:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15) !important;
-}
-
-#quickCreateInitial:hover {
-  background: #f8f9fa;
-}
-
-/* ==========================================
-   NAVBAR ACTION BUTTONS (Desktop)
-   ========================================== */
-.navbar-action-btn {
-  min-width: 120px;
-  white-space: nowrap;
-}
-
-.navbar-action-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4) !important;
-}
-
-/* ==========================================
-   MOBILE ACTION BUTTONS (Navbar Row 3)
-   ========================================== */
-.mobile-action-btn {
-  min-height: 60px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.mobile-action-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(37, 211, 102, 0.3) !important;
-}
-
-/* ==========================================
-   User Dropdown Styling
-   ========================================== */
-.dropdown-menu {
-  border: none;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-}
-
-.dropdown-item:hover {
-  background-color: #f8f9fa;
-}
-
-/* Force green color for dropdown items */
-.dropdown-menu[aria-labelledby="userDropdown"] .dropdown-item,
-.dropdown-menu[aria-labelledby="userDropdownMobile"] .dropdown-item {
-  color: #198754 !important;
-}
-
-.dropdown-menu[aria-labelledby="userDropdown"] .dropdown-item i,
-.dropdown-menu[aria-labelledby="userDropdownMobile"] .dropdown-item i {
-  color: #198754 !important;
-}
-
-.dropdown-menu[aria-labelledby="userDropdown"] .dropdown-item span,
-.dropdown-menu[aria-labelledby="userDropdownMobile"] .dropdown-item span {
-  color: #198754 !important;
-  font-weight: 500;
-}
-
-/* ==========================================
-   Summary Cards Styling
-   ========================================== */
-.summary-card {
-  transition: all 0.3s ease;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.summary-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1) !important;
-}
-
-/* ==========================================
-   Navbar Responsive Adjustments
-   ========================================== */
-
-/* Mobile styles */
-@media (max-width: 767px) {
-  .navbar {
-    padding: 0.5rem 1rem;
-  }
+<!-- Summary - 3 Cards (Updated Card 3 with Flip Animation) -->
+<div class="row g-2 mb-3">
   
-  .navbar-brand {
-    font-size: 0.9rem;
-  }
+  <!-- 1. Total Products Card -->
+  <div class="col-md-4 col-6">
+    <div class="card summary-card shadow-sm h-100">
+      <div class="card-body p-2">
+        <div class="text-center mb-1">
+          <i class="bi bi-box-seam" style="font-size:2rem; color: var(--primary-green);"></i>
+        </div>
+        <div class="text-center mb-1">
+          <h2 id="totalProducts" style="font-size:1.8rem; color: var(--primary-green); font-weight: 700; margin: 0;">0</h2>
+          <p class="text-muted mb-0" style="font-size:0.7rem;">Total Products</p>
+        </div>
+        <hr style="margin: 6px 0; border-top: 1px solid rgba(25, 135, 84, 0.15);">
+        <div class="d-flex justify-content-between align-items-center px-1">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-layers me-1" style="color: var(--primary-green); font-size: 1rem;"></i>
+            <span class="text-muted" style="font-size:0.7rem;">Qty in Hand</span>
+          </div>
+          <span class="fw-bold" id="quantityInHand" style="font-size:1rem; color: var(--primary-green);">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
   
-  /* Tile buttons smaller on mobile */
-  .tile-action-button-plain {
-    min-height: 60px;
-    padding: 8px 2px;
-  }
+  <!-- 2. Low Stock Items Card -->
+  <div class="col-md-4 col-6">
+    <div class="card summary-card shadow-sm h-100">
+      <div class="card-body p-2 text-center d-flex flex-column justify-content-center">
+        <i class="bi bi-exclamation-triangle" style="font-size:2rem; color: #DC2626;"></i>
+        <h2 id="lowStock" class="mt-1 mb-0" style="font-size:1.8rem; color: #DC2626; font-weight: 700;">0</h2>
+        <p class="text-muted mb-0" style="font-size:0.7rem;">Low Stock Items</p>
+      </div>
+    </div>
+  </div>
   
-  .tile-action-button-plain i {
-    font-size: 1.2rem !important;
-  }
+  <!-- 3. Quick Actions Card - WITH FLIP ANIMATION -->
+  <div class="col-md-4 col-12">
+    <div class="flip-card h-100" onclick="toggleQuickActionsFlip()">
+      <div class="flip-card-inner" id="flipCardInner">
+        
+        <!-- FRONT SIDE: Quick Create -->
+        <div class="flip-card-front">
+          <div class="card summary-card shadow-sm h-100">
+            <div class="card-body p-0 d-flex flex-column justify-content-center align-items-center" style="min-height: 140px; cursor: pointer;">
+              <i class="bi bi-plus-circle" style="font-size: 3rem; color: #666;"></i>
+              <h5 class="mt-2 mb-0" style="color: #333; font-weight: 600;">Quick Create</h5>
+              <p class="text-muted mb-0" style="font-size: 0.75rem;">Click to flip</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- BACK SIDE: 4 Action Buttons -->
+        <div class="flip-card-back">
+          <div class="card summary-card shadow-sm h-100">
+            <div class="card-body p-0" style="position: relative; min-height: 140px;">
+              
+              <!-- Vertical Line -->
+              <div style="position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: #ddd; z-index: 1;"></div>
+              
+              <!-- Horizontal Line -->
+              <div style="position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: #ddd; z-index: 1;"></div>
+              
+              <!-- 2x2 Grid Buttons -->
+              <div class="row g-0 h-100">
+                <!-- Row 1: Instant Products & Add Product -->
+                <div class="col-6">
+                  <button class="btn tile-action-button-plain" onclick="event.stopPropagation(); openInstantProductsModal()">
+                    <i class="bi bi-lightning-charge d-block" style="font-size: 1.5rem;"></i>
+                    <span class="d-block mt-1" style="font-size: 0.65rem;">Instant Products</span>
+                  </button>
+                </div>
+                <div class="col-6">
+                  <button class="btn tile-action-button-plain" onclick="event.stopPropagation(); showAddProduct()">
+                    <i class="bi bi-plus-circle d-block" style="font-size: 1.5rem;"></i>
+                    <span class="d-block mt-1" style="font-size: 0.65rem;">Add Product</span>
+                  </button>
+                </div>
+                
+                <!-- Row 2: Record Purchase & Record Sale -->
+                <div class="col-6">
+                  <button class="btn tile-action-button-plain" onclick="event.stopPropagation(); openRecordPurchaseModal()">
+                    <i class="bi bi-bag-plus d-block" style="font-size: 1.5rem;"></i>
+                    <span class="d-block mt-1" style="font-size: 0.65rem;">Record Purchase</span>
+                  </button>
+                </div>
+                <div class="col-6">
+                  <button class="btn tile-action-button-plain" onclick="event.stopPropagation(); openSalesModal()">
+                    <i class="bi bi-cart d-block" style="font-size: 1.5rem;"></i>
+                    <span class="d-block mt-1" style="font-size: 0.65rem;">Record Sale</span>
+                  </button>
+                </div>
+              </div>
+              
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+  </div>
   
-  .tile-action-button-plain span {
-    font-size: 0.6rem !important;
-  }
-  
-  #quickCreateInitial {
-    min-height: 120px !important;
-  }
-  
-  #quickActionsExpanded {
-    min-height: 120px !important;
-  }
-}
-
-/* Desktop styles */
-@media (min-width: 768px) {
-  .navbar-brand {
-    font-size: 1.25rem;
-  }
-  
-  /* Equal size for all desktop navbar buttons */
-  .navbar-action-btn,
-  #backupButton,
-  #restoreButton {
-    min-width: 130px;
-  }
-}
-
-/* ==========================================
-   Additional Mobile Optimizations
-   ========================================== */
-@media (max-width: 575px) {
-  .navbar-brand {
-    font-size: 0.85rem;
-  }
-  
-  .mobile-action-btn {
-    min-height: 55px;
-    padding: 6px 2px;
-  }
-  
-  .mobile-action-btn i {
-    font-size: 1rem !important;
-  }
-  
-  .mobile-action-btn span {
-    font-size: 0.65rem !important;
-  }
-}
-
-/* ==========================================
-   General Button Hover Effects
-   ========================================== */
-.btn:hover {
-  transition: all 0.2s ease;
-}
-
-.btn:active {
-  transform: translateY(0);
-}
-
-/* ==========================================
-   Utility Classes
-   ========================================== */
-.gap-1 {
-  gap: 0.25rem;
-}
-
-.gap-2 {
-  gap: 0.5rem;
-}
-</style>
+</div>
 
 
 
@@ -16011,44 +15911,46 @@ setTimeout(addBackupButtonBadge, 1000);
 
 /**
  * ==========================================
- * QUICK ACTIONS CARD TOGGLE
+ * QUICK ACTIONS CARD FLIP ANIMATION
  * ==========================================
  */
 
-let quickActionsExpanded = false;
+let isFlipped = false;
 
 /**
- * Toggle Quick Actions Card between collapsed and expanded states
+ * Toggle flip animation for Quick Actions card
  */
-function toggleQuickActions() {
-  const initialView = document.getElementById('quickCreateInitial');
-  const expandedView = document.getElementById('quickActionsExpanded');
+function toggleQuickActionsFlip() {
+  const flipCardInner = document.getElementById('flipCardInner');
   
-  if (!quickActionsExpanded) {
-    // Expand: Show 4 buttons
-    initialView.style.display = 'none';
-    expandedView.style.display = 'block';
-    quickActionsExpanded = true;
-    console.log('✅ Quick Actions expanded');
+  if (flipCardInner) {
+    if (isFlipped) {
+      // Flip back to front
+      flipCardInner.classList.remove('flipped');
+      isFlipped = false;
+      console.log('✅ Card flipped to FRONT (Quick Create)');
+    } else {
+      // Flip to back
+      flipCardInner.classList.add('flipped');
+      isFlipped = true;
+      console.log('✅ Card flipped to BACK (4 Buttons)');
+    }
   } else {
-    // Collapse: Show Quick Create
-    initialView.style.display = 'flex';
-    expandedView.style.display = 'none';
-    quickActionsExpanded = false;
-    console.log('✅ Quick Actions collapsed');
+    console.error('❌ Flip card element not found');
   }
 }
 
-// Optional: Click outside to collapse
-document.addEventListener('click', function(event) {
-  const card = document.getElementById('quickActionsCard');
+// Optional: Double-click to flip back
+document.addEventListener('dblclick', function(event) {
+  const flipCard = event.target.closest('.flip-card');
   
-  if (quickActionsExpanded && card && !card.contains(event.target)) {
-    toggleQuickActions();
+  if (flipCard && isFlipped) {
+    toggleQuickActionsFlip();
   }
 });
 
-console.log('✅ Quick Actions Toggle Loaded');
+console.log('✅ Quick Actions Flip Animation Loaded');
+
 
 
 
@@ -17117,6 +17019,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
