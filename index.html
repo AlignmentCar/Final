@@ -387,37 +387,123 @@
 </div>
 
 
-<!-- ✅ UPDATED NAVBAR - Two Row Layout for Mobile -->
+<!-- ✅ RESPONSIVE NAVBAR - 3 Rows Mobile, 1 Row Desktop -->
 <nav class="navbar navbar-dark sticky-top" style="background: linear-gradient(135deg, #198754 0%, #157347 100%);">
   <div class="container-fluid">
     <div class="w-100">
-      <!-- Row 1: Brand and User Dropdown -->
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <!-- Brand/Logo -->
+      
+      <!-- Row 1: Brand Title (Full Width on Mobile) -->
+      <div class="d-flex justify-content-between align-items-center mb-md-0 mb-2">
         <span class="navbar-brand mb-0 h1">
           <i class="bi bi-boxes"></i> Tile & Sanitaryware Inventory
         </span>
         
-        <!-- User Dropdown Menu -->
+        <!-- Desktop: All buttons in same row -->
+        <div class="d-none d-md-flex align-items-center gap-2">
+          
+          <!-- User Dropdown -->
+          <div class="dropdown">
+            <button class="btn text-white text-decoration-none d-flex align-items-center p-2" 
+                    type="button" 
+                    id="userDropdown" 
+                    data-bs-toggle="dropdown" 
+                    aria-expanded="false"
+                    style="background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%); border: none; border-radius: 10px; font-weight: 600; box-shadow: 0 2px 8px rgba(37, 211, 102, 0.2);">
+              <i class="bi bi-person-circle me-2" style="font-size: 1.5rem;"></i>
+              <span id="userName" class="me-2">Loading...</span>
+              <i class="bi bi-chevron-down" style="font-size: 0.8rem;"></i>
+            </button>
+            
+            <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userDropdown" style="border-radius: 10px; min-width: 250px; border: none;">
+              <li>
+                <div class="dropdown-header" style="background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%); border-radius: 10px 10px 0 0; color: white; padding: 12px;">
+                  <div class="d-flex align-items-center">
+                    <i class="bi bi-person-circle me-2" style="font-size: 2rem;"></i>
+                    <div>
+                      <strong id="userEmailDropdown" style="font-size: 0.9rem;">user@example.com</strong>
+                      <div style="font-size: 0.75rem; opacity: 0.9;">Signed In</div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+              <li><hr class="dropdown-divider" style="margin: 0;"></li>
+              <li>
+                <a class="dropdown-item" href="#" onclick="openChangePasswordModal(); return false;" style="padding: 12px 16px;">
+                  <i class="bi bi-key me-2" style="color: #198754 !important;"></i>
+                  <span style="color: #198754 !important; font-weight: 500;">Change Password</span>
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" onclick="signOut(); return false;" style="padding: 12px 16px;">
+                  <i class="bi bi-box-arrow-right me-2" style="color: #198754 !important;"></i>
+                  <span style="color: #198754 !important; font-weight: 500;">Sign Out</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+          
+          <!-- Backup Button -->
+          <button id="backupButton" class="btn btn-sm" 
+                  style="background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%); color: white; font-weight: 600; border: none; border-radius: 10px; padding: 8px 16px; box-shadow: 0 2px 8px rgba(37, 211, 102, 0.2);"
+                  onclick="sendBackupEmail()">
+            <i class="bi bi-cloud-download"></i> Backup
+          </button>
+          
+          <!-- Restore Button -->
+          <button id="restoreButton" class="btn btn-sm" 
+                  style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: white; font-weight: 600; border: none; border-radius: 10px; padding: 8px 16px; box-shadow: 0 2px 8px rgba(13, 110, 253, 0.2);"
+                  onclick="document.getElementById('restoreFileInput').click()">
+            <i class="bi bi-cloud-upload"></i> Restore
+          </button>
+          
+          <input type="file" id="restoreFileInput" accept=".json" style="display: none;" onchange="handleRestoreFile(event)">
+          
+          <!-- Options Dropdown -->
+          <div id="optionsButtonContainer" style="position: relative; display: inline-block;">
+            <button id="optionsToggleBtn" 
+                    style="background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%); color: white; font-weight: 600; border: none; border-radius: 10px; padding: 8px 16px; box-shadow: 0 2px 8px rgba(37, 211, 102, 0.2); cursor: pointer;"
+                    onclick="toggleOptionsDropdown()">
+              <i class="bi bi-three-dots-vertical me-1"></i>Options
+              <i id="optionsArrow" class="bi bi-chevron-down ms-1"></i>
+            </button>
+            
+            <div id="optionsDropdown" 
+                 style="display: none; position: absolute; top: 100%; right: 0; background: white; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); min-width: 200px; overflow: hidden; margin-top: 8px; z-index: 2000;">
+              <button class="dropdown-option-btn" onclick="openSalesModal(); closeOptionsDropdown()">
+                <i class="bi bi-cart me-2"></i>Record Sale
+              </button>
+              <button class="dropdown-option-btn" onclick="generateInvoice(); closeOptionsDropdown()">
+                <i class="bi bi-receipt me-2"></i>Generate Invoice
+              </button>
+              <button class="dropdown-option-btn" onclick="viewSavedInvoices(); closeOptionsDropdown()">
+                <i class="bi bi-receipt-cutoff me-2"></i>View Invoices
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Mobile Only: Row 2 - User Dropdown -->
+      <div class="d-md-none mb-2">
         <div class="dropdown">
-          <button class="btn text-white text-decoration-none d-flex align-items-center p-2" 
+          <button class="btn text-white text-decoration-none d-flex align-items-center p-2 w-100 justify-content-center" 
                   type="button" 
-                  id="userDropdown" 
+                  id="userDropdownMobile" 
                   data-bs-toggle="dropdown" 
                   aria-expanded="false"
                   style="background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%); border: none; border-radius: 10px; font-weight: 600; box-shadow: 0 2px 8px rgba(37, 211, 102, 0.2);">
-            <i class="bi bi-person-circle me-2" style="font-size: 1.5rem;"></i>
-            <span id="userName" class="me-2">Loading...</span>
+            <i class="bi bi-person-circle me-2" style="font-size: 1.3rem;"></i>
+            <span id="userNameMobile" class="me-2">Loading...</span>
             <i class="bi bi-chevron-down" style="font-size: 0.8rem;"></i>
           </button>
           
-          <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userDropdown" style="border-radius: 10px; min-width: 250px; border: none;">
+          <ul class="dropdown-menu dropdown-menu-center shadow w-100" aria-labelledby="userDropdownMobile" style="border-radius: 10px; border: none;">
             <li>
               <div class="dropdown-header" style="background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%); border-radius: 10px 10px 0 0; color: white; padding: 12px;">
                 <div class="d-flex align-items-center">
                   <i class="bi bi-person-circle me-2" style="font-size: 2rem;"></i>
                   <div>
-                    <strong id="userEmailDropdown" style="font-size: 0.9rem;">user@example.com</strong>
+                    <strong id="userEmailDropdownMobile" style="font-size: 0.9rem;">user@example.com</strong>
                     <div style="font-size: 0.75rem; opacity: 0.9;">Signed In</div>
                   </div>
                 </div>
@@ -440,65 +526,93 @@
         </div>
       </div>
       
-      <!-- Row 2: Action Buttons -->
-      <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
-        
-        <!-- Backup Button -->
-        <button id="backupButton" class="btn btn-sm" 
+      <!-- Mobile Only: Row 3 - Action Buttons -->
+      <div class="d-md-none d-flex gap-2 justify-content-center">
+        <button id="backupButtonMobile" class="btn btn-sm flex-fill" 
                 style="background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%); color: white; font-weight: 600; border: none; border-radius: 10px; padding: 6px 12px; box-shadow: 0 2px 8px rgba(37, 211, 102, 0.2); font-size: 0.85rem;"
                 onclick="sendBackupEmail()">
           <i class="bi bi-cloud-download"></i> Backup
         </button>
         
-        <!-- Restore Button -->
-        <button id="restoreButton" class="btn btn-sm" 
+        <button id="restoreButtonMobile" class="btn btn-sm flex-fill" 
                 style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: white; font-weight: 600; border: none; border-radius: 10px; padding: 6px 12px; box-shadow: 0 2px 8px rgba(13, 110, 253, 0.2); font-size: 0.85rem;"
                 onclick="document.getElementById('restoreFileInput').click()">
           <i class="bi bi-cloud-upload"></i> Restore
         </button>
         
-        <!-- Hidden File Input for Restore -->
-        <input type="file" id="restoreFileInput" accept=".json" style="display: none;" onchange="handleRestoreFile(event)">
-        
-        <!-- Options Dropdown -->
-        <div id="optionsButtonContainer" style="position: relative; display: inline-block;">
-          <button id="optionsToggleBtn" 
+        <div id="optionsButtonContainerMobile" style="position: relative; flex: 1;">
+          <button id="optionsToggleBtnMobile" 
+                  class="btn btn-sm w-100"
                   style="background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%); color: white; font-weight: 600; border: none; border-radius: 10px; padding: 6px 12px; box-shadow: 0 2px 8px rgba(37, 211, 102, 0.2); cursor: pointer; font-size: 0.85rem;"
                   onclick="toggleOptionsDropdown()">
-            <i class="bi bi-three-dots-vertical me-1"></i>Options
-            <i id="optionsArrow" class="bi bi-chevron-down ms-1"></i>
+            <i class="bi bi-three-dots-vertical"></i> Options
+            <i id="optionsArrowMobile" class="bi bi-chevron-down" style="font-size: 0.7rem;"></i>
           </button>
           
-          <!-- Dropdown Menu -->
-          <div id="optionsDropdown" 
-               style="display: none; position: absolute; top: 100%; right: 0; background: white; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); min-width: 200px; overflow: hidden; margin-top: 8px; z-index: 2000;">
-            
+          <div id="optionsDropdownMobile" 
+               style="display: none; position: absolute; top: 100%; right: 0; background: white; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); min-width: 180px; overflow: hidden; margin-top: 4px; z-index: 2000;">
             <button class="dropdown-option-btn" onclick="openSalesModal(); closeOptionsDropdown()">
               <i class="bi bi-cart me-2"></i>Record Sale
             </button>
-            
             <button class="dropdown-option-btn" onclick="generateInvoice(); closeOptionsDropdown()">
               <i class="bi bi-receipt me-2"></i>Generate Invoice
             </button>
-            
             <button class="dropdown-option-btn" onclick="viewSavedInvoices(); closeOptionsDropdown()">
               <i class="bi bi-receipt-cutoff me-2"></i>View Invoices
             </button>
           </div>
         </div>
-        
       </div>
+      
     </div>
   </div>
 </nav>
 
 
-<!-- ✅ CSS for dropdown buttons (add to your stylesheet or <style> tag) -->
+
 <style>
-/* Dropdown option buttons styling */
+/* ==========================================
+   COMPLETE RESPONSIVE STYLES
+   ========================================== */
+
+/* ==========================================
+   Action Button Styling (Tile Cards)
+   ========================================== */
+.action-button {
+  background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%);
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.2);
+  transition: all 0.3s ease;
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+.action-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+}
+
+.action-button:active {
+  transform: translateY(0);
+}
+
+/* Action buttons gap - Reduced for compact design */
+.actions-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ==========================================
+   Dropdown Option Buttons (Options Menu)
+   ========================================== */
 .dropdown-option-btn {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border: none;
   background: white;
   text-align: left;
@@ -506,7 +620,7 @@
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  font-size: 14px;
+  font-size: 0.9rem;
   color: #333;
 }
 
@@ -518,7 +632,9 @@
   color: #198754;
 }
 
-/* User dropdown styling */
+/* ==========================================
+   User Dropdown Styling
+   ========================================== */
 .dropdown-menu {
   border: none;
   box-shadow: 0 8px 24px rgba(0,0,0,0.15);
@@ -532,7 +648,40 @@
   background-color: #fff5f5;
 }
 
-/* Background sync indicator animation */
+/* Force green color for dropdown items */
+.dropdown-menu[aria-labelledby="userDropdown"] .dropdown-item,
+.dropdown-menu[aria-labelledby="userDropdownMobile"] .dropdown-item {
+  color: #198754 !important;
+}
+
+.dropdown-menu[aria-labelledby="userDropdown"] .dropdown-item i,
+.dropdown-menu[aria-labelledby="userDropdownMobile"] .dropdown-item i {
+  color: #198754 !important;
+}
+
+.dropdown-menu[aria-labelledby="userDropdown"] .dropdown-item span,
+.dropdown-menu[aria-labelledby="userDropdownMobile"] .dropdown-item span {
+  color: #198754 !important;
+  font-weight: 500;
+}
+
+/* ==========================================
+   Summary Cards Styling
+   ========================================== */
+.summary-card {
+  transition: all 0.3s ease;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ==========================================
+   Background Sync Indicator Animation
+   ========================================== */
 #backgroundSyncStatus i {
   animation: syncPulse 2s infinite;
 }
@@ -542,86 +691,215 @@
   50% { opacity: 0.5; }
 }
 
-/* Button hover effects */
+/* ==========================================
+   General Button Hover Effects
+   ========================================== */
 .btn:hover {
   transform: translateY(-2px);
   transition: all 0.2s ease;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
+.btn:active {
+  transform: translateY(0);
+}
+
+/* ==========================================
+   Navbar Responsive Adjustments
+   ========================================== */
+
+/* Mobile styles (smaller screens) */
+@media (max-width: 767px) {
+  /* Navbar */
+  .navbar {
+    padding: 0.5rem 1rem;
+  }
+  
   .navbar-brand {
     font-size: 0.9rem;
   }
   
+  /* Hide desktop user dropdown on mobile */
+  #userName {
+    display: none !important;
+  }
+  
+  /* Smaller buttons on mobile */
   .btn-sm {
-    padding: 6px 12px;
+    padding: 6px 10px;
     font-size: 0.8rem;
   }
   
-  #userName {
-    display: none;
-  }
-  
+  /* Background sync - hide text on mobile */
   #backgroundSyncStatus span {
     display: none;
   }
+  
+  /* Add spacing below navbar on mobile */
+  .container-fluid.py-4 {
+    padding-top: 1rem !important;
+  }
+  
+  /* Compact tile cards on mobile */
+  .summary-card .card-body {
+    padding: 0.5rem !important;
+  }
+  
+  /* Smaller action buttons on mobile */
+  .action-button {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
 }
-</style>
 
+/* Tablet and Desktop styles */
+@media (min-width: 768px) {
+  /* Hide mobile-specific elements */
+  #userNameMobile,
+  #backupButtonMobile,
+  #restoreButtonMobile,
+  #optionsButtonContainerMobile {
+    display: none !important;
+  }
+  
+  /* Standard spacing on desktop */
+  .container-fluid.py-4 {
+    padding-top: 1.5rem !important;
+  }
+  
+  /* Navbar brand normal size */
+  .navbar-brand {
+    font-size: 1.25rem;
+  }
+  
+  /* Standard button sizes */
+  .btn-sm {
+    padding: 8px 16px;
+    font-size: 0.875rem;
+  }
+}
 
-<style>
-/* Action Button Styling */
-.action-button {
-  background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%);
-  color: white;
-  font-weight: 600;
-  border: none;
-  border-radius: 10px;
-  padding: 12px 16px;
-  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.2);
+/* Large desktop (optional - for very large screens) */
+@media (min-width: 1200px) {
+  .container-fluid {
+    max-width: 1400px;
+  }
+}
+
+/* ==========================================
+   Additional Mobile Optimizations
+   ========================================== */
+@media (max-width: 575px) {
+  /* Even smaller font on very small screens */
+  .navbar-brand {
+    font-size: 0.85rem;
+  }
+  
+  /* Reduce icon sizes */
+  .summary-card i {
+    font-size: 1.5rem !important;
+  }
+  
+  /* Smaller card titles */
+  .summary-card h2 {
+    font-size: 1.5rem !important;
+  }
+  
+  /* Compact action buttons */
+  .action-button {
+    padding: 6px 8px;
+    font-size: 0.75rem;
+  }
+  
+  .action-button i {
+    font-size: 0.9rem;
+  }
+}
+
+/* ==========================================
+   Print Styles (Optional)
+   ========================================== */
+@media print {
+  .navbar,
+  .action-button,
+  .dropdown,
+  #backupButton,
+  #restoreButton,
+  #optionsButtonContainer {
+    display: none !important;
+  }
+  
+  .summary-card {
+    page-break-inside: avoid;
+  }
+}
+
+/* ==========================================
+   Accessibility Improvements
+   ========================================== */
+
+/* Focus styles for keyboard navigation */
+.btn:focus,
+.dropdown-toggle:focus,
+.action-button:focus {
+  outline: 2px solid #25D366;
+  outline-offset: 2px;
+}
+
+/* Ensure text is readable */
+.text-muted {
+  color: #6c757d !important;
+}
+
+/* High contrast for important elements */
+.summary-card h2 {
+  font-weight: 700;
+}
+
+/* ==========================================
+   Utility Classes
+   ========================================== */
+
+/* Gap utilities for flex containers */
+.gap-1 {
+  gap: 0.25rem;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.gap-3 {
+  gap: 1rem;
+}
+
+/* Smooth transitions */
+.transition-all {
   transition: all 0.3s ease;
-  width: 100%;
-}
-
-.action-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
-}
-
-.action-button:active {
-  transform: translateY(0);
-}
-
-/* Action buttons gap */
-.actions-container {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 </style>
 
-<!-- Summary - 3 Cards (Cleaner Version) -->
-<div class="row g-2 mb-4">
+
+<!-- Summary - 3 Cards (Compact Height) -->
+<div class="row g-2 mb-3">
   
   <!-- 1. Total Products Card -->
   <div class="col-md-4 col-6">
     <div class="card summary-card shadow-sm h-100">
-      <div class="card-body p-3">
-        <div class="text-center mb-2">
-          <i class="bi bi-box-seam" style="font-size:2.5rem; color: var(--primary-green);"></i>
+      <div class="card-body p-2">
+        <div class="text-center mb-1">
+          <i class="bi bi-box-seam" style="font-size:2rem; color: var(--primary-green);"></i>
         </div>
-        <div class="text-center mb-2">
-          <h2 id="totalProducts" style="font-size:2.2rem; color: var(--primary-green); font-weight: 700; margin: 0;">0</h2>
-          <p class="text-muted mb-0" style="font-size:0.75rem;">Total Products</p>
+        <div class="text-center mb-1">
+          <h2 id="totalProducts" style="font-size:1.8rem; color: var(--primary-green); font-weight: 700; margin: 0;">0</h2>
+          <p class="text-muted mb-0" style="font-size:0.7rem;">Total Products</p>
         </div>
-        <hr style="margin: 10px 0; border-top: 2px solid rgba(25, 135, 84, 0.15);">
-        <div class="d-flex justify-content-between align-items-center px-2">
+        <hr style="margin: 6px 0; border-top: 1px solid rgba(25, 135, 84, 0.15);">
+        <div class="d-flex justify-content-between align-items-center px-1">
           <div class="d-flex align-items-center">
-            <i class="bi bi-layers me-2" style="color: var(--primary-green); font-size: 1.2rem;"></i>
-            <span class="text-muted" style="font-size:0.8rem;">Qty in Hand</span>
+            <i class="bi bi-layers me-1" style="color: var(--primary-green); font-size: 1rem;"></i>
+            <span class="text-muted" style="font-size:0.7rem;">Qty in Hand</span>
           </div>
-          <span class="fw-bold" id="quantityInHand" style="font-size:1.2rem; color: var(--primary-green);">0</span>
+          <span class="fw-bold" id="quantityInHand" style="font-size:1rem; color: var(--primary-green);">0</span>
         </div>
       </div>
     </div>
@@ -630,10 +908,10 @@
   <!-- 2. Low Stock Items Card -->
   <div class="col-md-4 col-6">
     <div class="card summary-card shadow-sm h-100">
-      <div class="card-body p-3 text-center d-flex flex-column justify-content-center">
-        <i class="bi bi-exclamation-triangle" style="font-size:2.5rem; color: #DC2626;"></i>
-        <h2 id="lowStock" class="mt-2 mb-1" style="font-size:2.2rem; color: #DC2626; font-weight: 700;">0</h2>
-        <p class="text-muted mb-0" style="font-size:0.75rem;">Low Stock Items</p>
+      <div class="card-body p-2 text-center d-flex flex-column justify-content-center">
+        <i class="bi bi-exclamation-triangle" style="font-size:2rem; color: #DC2626;"></i>
+        <h2 id="lowStock" class="mt-1 mb-0" style="font-size:1.8rem; color: #DC2626; font-weight: 700;">0</h2>
+        <p class="text-muted mb-0" style="font-size:0.7rem;">Low Stock Items</p>
       </div>
     </div>
   </div>
@@ -641,16 +919,16 @@
   <!-- 3. Quick Actions Card -->
   <div class="col-md-4 col-12">
     <div class="card summary-card shadow-sm h-100">
-      <div class="card-body p-3 d-flex flex-column justify-content-center">
-        <div class="actions-container">
-          <button class="btn action-button" onclick="openInstantProductsModal()">
-            <i class="bi bi-lightning-charge me-2"></i>Instant Products
+      <div class="card-body p-2 d-flex flex-column justify-content-center">
+        <div class="d-flex flex-column gap-1">
+          <button class="btn action-button" onclick="openInstantProductsModal()" style="padding: 8px 12px; font-size: 0.85rem;">
+            <i class="bi bi-lightning-charge me-1"></i>Instant Products
           </button>
-          <button class="btn action-button" onclick="showAddProduct()">
-            <i class="bi bi-plus-circle me-2"></i>Add Product
+          <button class="btn action-button" onclick="showAddProduct()" style="padding: 8px 12px; font-size: 0.85rem;">
+            <i class="bi bi-plus-circle me-1"></i>Add Product
           </button>
-          <button class="btn action-button" onclick="openRecordPurchaseModal()">
-            <i class="bi bi-bag-plus me-2"></i>Record Purchase
+          <button class="btn action-button" onclick="openRecordPurchaseModal()" style="padding: 8px 12px; font-size: 0.85rem;">
+            <i class="bi bi-bag-plus me-1"></i>Record Purchase
           </button>
         </div>
       </div>
@@ -15746,7 +16024,7 @@ setTimeout(addBackupButtonBadge, 1000);
 
 /**
  * ==========================================
- * USER DROPDOWN DISPLAY
+ * USER DROPDOWN DISPLAY (Desktop + Mobile)
  * ==========================================
  */
 
@@ -15757,38 +16035,68 @@ function initializeUserDisplay() {
   console.log('🔧 Initializing user dropdown...');
   
   // Listen for auth state changes
-  window.auth.onAuthStateChanged((user) => {
-    updateUserDropdownDisplay(user);
-  });
+  if (window.auth) {
+    window.auth.onAuthStateChanged((user) => {
+      updateUserDropdownDisplay(user);
+    });
+  }
 }
 
 /**
- * Update username display in dropdown
+ * Update username display in dropdown (Both Desktop and Mobile)
  */
 function updateUserDropdownDisplay(user) {
+  // Desktop elements
   const userNameElement = document.getElementById('userName');
   const userEmailDropdown = document.getElementById('userEmailDropdown');
   
+  // Mobile elements
+  const userNameMobile = document.getElementById('userNameMobile');
+  const userEmailDropdownMobile = document.getElementById('userEmailDropdownMobile');
+  
   if (user && user.email) {
-    // Update header username (shortened version)
+    // Get shortened username
+    const username = user.email.split('@')[0];
+    
+    // Update Desktop Header Username
     if (userNameElement) {
-      const username = user.email.split('@')[0];
       userNameElement.textContent = username;
+      userNameElement.title = user.email; // Tooltip with full email
     }
     
-    // Update dropdown full email
+    // Update Desktop Dropdown Full Email
     if (userEmailDropdown) {
       userEmailDropdown.textContent = user.email;
     }
     
-    console.log('✅ User dropdown updated:', user.email);
+    // Update Mobile Header Username
+    if (userNameMobile) {
+      userNameMobile.textContent = username;
+      userNameMobile.title = user.email; // Tooltip with full email
+    }
+    
+    // Update Mobile Dropdown Full Email
+    if (userEmailDropdownMobile) {
+      userEmailDropdownMobile.textContent = user.email;
+    }
+    
+    console.log('✅ User dropdown updated (Desktop + Mobile):', user.email);
+    console.log('   - Username:', username);
   } else {
-    // Not signed in
+    // Not signed in - Update all elements
     if (userNameElement) {
       userNameElement.textContent = 'Guest';
+      userNameElement.title = '';
     }
     if (userEmailDropdown) {
       userEmailDropdown.textContent = 'Not signed in';
+    }
+    if (userNameMobile) {
+      userNameMobile.textContent = 'Guest';
+      userNameMobile.title = '';
+    }
+    if (userEmailDropdownMobile) {
+      userEmailDropdownMobile.textContent = 'Not signed in';
     }
     console.log('ℹ️ No user signed in');
   }
@@ -15810,12 +16118,12 @@ window.addEventListener('DOMContentLoaded', () => {
   // Timeout after 10 seconds
   setTimeout(() => {
     clearInterval(checkAuth);
+    console.warn('⚠️ Firebase Auth initialization timeout');
   }, 10000);
 });
 
-console.log('✅ User Dropdown Module Loaded');
+console.log('✅ User Dropdown Module Loaded (Desktop + Mobile)');
 
-  
   
 /**
  * ==========================================
@@ -16779,6 +17087,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
