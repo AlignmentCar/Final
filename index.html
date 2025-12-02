@@ -669,113 +669,6 @@
 </div>
 
 
-  
-<!-- Summary - 3 Cards (Updated Card 3 with Flip Animation) -->
-<div class="row g-2 mb-3">
-  
-  <!-- 1. Total Products Card -->
-  <div class="col-md-4 col-6">
-    <div class="card summary-card shadow-sm h-100">
-      <div class="card-body p-2">
-        <div class="text-center mb-1">
-          <i class="bi bi-box-seam" style="font-size:2rem; color: var(--primary-green);"></i>
-        </div>
-        <div class="text-center mb-1">
-          <h2 id="totalProducts" style="font-size:1.8rem; color: var(--primary-green); font-weight: 700; margin: 0;">0</h2>
-          <p class="text-muted mb-0" style="font-size:0.7rem;">Total Products</p>
-        </div>
-        <hr style="margin: 6px 0; border-top: 1px solid rgba(25, 135, 84, 0.15);">
-        <div class="d-flex justify-content-between align-items-center px-1">
-          <div class="d-flex align-items-center">
-            <i class="bi bi-layers me-1" style="color: var(--primary-green); font-size: 1rem;"></i>
-            <span class="text-muted" style="font-size:0.7rem;">Qty in Hand</span>
-          </div>
-          <span class="fw-bold" id="quantityInHand" style="font-size:1rem; color: var(--primary-green);">0</span>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- 2. Low Stock Items Card -->
-  <div class="col-md-4 col-6">
-    <div class="card summary-card shadow-sm h-100">
-      <div class="card-body p-2 text-center d-flex flex-column justify-content-center">
-        <i class="bi bi-exclamation-triangle" style="font-size:2rem; color: #DC2626;"></i>
-        <h2 id="lowStock" class="mt-1 mb-0" style="font-size:1.8rem; color: #DC2626; font-weight: 700;">0</h2>
-        <p class="text-muted mb-0" style="font-size:0.7rem;">Low Stock Items</p>
-      </div>
-    </div>
-  </div>
-  
-  <!-- 3. Quick Actions Card - WITH FLIP ANIMATION -->
-  <div class="col-md-4 col-12">
-    <div class="flip-card h-100" onclick="toggleQuickActionsFlip()">
-      <div class="flip-card-inner" id="flipCardInner">
-        
-        <!-- FRONT SIDE: Quick Create -->
-        <div class="flip-card-front">
-          <div class="card summary-card shadow-sm h-100">
-            <div class="card-body p-0 d-flex flex-column justify-content-center align-items-center" style="min-height: 140px; cursor: pointer;">
-              <i class="bi bi-plus-circle" style="font-size: 3rem; color: #666;"></i>
-              <h5 class="mt-2 mb-0" style="color: #333; font-weight: 600;">Quick Create</h5>
-              <p class="text-muted mb-0" style="font-size: 0.75rem;">Click to flip</p>
-            </div>
-          </div>
-        </div>
-        
-        <!-- BACK SIDE: 4 Action Buttons -->
-        <div class="flip-card-back">
-          <div class="card summary-card shadow-sm h-100">
-            <div class="card-body p-0" style="position: relative; min-height: 140px;">
-              
-              <!-- Vertical Line -->
-              <div style="position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: #ddd; z-index: 1;"></div>
-              
-              <!-- Horizontal Line -->
-              <div style="position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: #ddd; z-index: 1;"></div>
-              
-              <!-- 2x2 Grid Buttons -->
-              <div class="row g-0 h-100">
-                <!-- Row 1: Instant Products & Add Product -->
-                <div class="col-6">
-                  <button class="btn tile-action-button-plain" onclick="event.stopPropagation(); openInstantProductsModal()">
-                    <i class="bi bi-lightning-charge d-block" style="font-size: 1.5rem;"></i>
-                    <span class="d-block mt-1" style="font-size: 0.65rem;">Instant Products</span>
-                  </button>
-                </div>
-                <div class="col-6">
-                  <button class="btn tile-action-button-plain" onclick="event.stopPropagation(); showAddProduct()">
-                    <i class="bi bi-plus-circle d-block" style="font-size: 1.5rem;"></i>
-                    <span class="d-block mt-1" style="font-size: 0.65rem;">Add Product</span>
-                  </button>
-                </div>
-                
-                <!-- Row 2: Record Purchase & Record Sale -->
-                <div class="col-6">
-                  <button class="btn tile-action-button-plain" onclick="event.stopPropagation(); openRecordPurchaseModal()">
-                    <i class="bi bi-bag-plus d-block" style="font-size: 1.5rem;"></i>
-                    <span class="d-block mt-1" style="font-size: 0.65rem;">Record Purchase</span>
-                  </button>
-                </div>
-                <div class="col-6">
-                  <button class="btn tile-action-button-plain" onclick="event.stopPropagation(); openSalesModal()">
-                    <i class="bi bi-cart d-block" style="font-size: 1.5rem;"></i>
-                    <span class="d-block mt-1" style="font-size: 0.65rem;">Record Sale</span>
-                  </button>
-                </div>
-              </div>
-              
-            </div>
-          </div>
-        </div>
-        
-      </div>
-    </div>
-  </div>
-  
-</div>
-
-
 
     <!-- Search -->
     <div class="row mb-3">
@@ -17019,6 +16912,7 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
+
 
 
 
