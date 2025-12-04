@@ -414,54 +414,57 @@
               <i class="bi bi-chevron-down" style="font-size: 0.8rem;"></i>
             </button>
             
-            <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userDropdown" style="border-radius: 10px; min-width: 250px; border: none;">
-              <li>
-                <div class="dropdown-header" style="background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%); border-radius: 10px 10px 0 0; color: white; padding: 12px;">
-                  <div class="d-flex align-items-center">
-                    <i class="bi bi-person-circle me-2" style="font-size: 2rem;"></i>
-                    <div>
-                      <strong id="userEmailDropdown" style="font-size: 0.9rem;">user@example.com</strong>
-                      <div style="font-size: 0.75rem; opacity: 0.9;">Signed In</div>
-                    </div>
-                  </div>
-                </div>
-              </li>
-              <li><hr class="dropdown-divider" style="margin: 0;"></li>
-              
-              <!-- Backup Option -->
-              <li>
-                <a class="dropdown-item" href="#" onclick="sendBackupEmail(); return false;" style="padding: 12px 16px;">
-                  <i class="bi bi-cloud-download me-2" style="color: #198754 !important;"></i>
-                  <span style="color: #198754 !important; font-weight: 500;">Backup Data</span>
-                </a>
-              </li>
-              
-              <!-- Restore Option -->
-              <li>
-                <a class="dropdown-item" href="#" onclick="document.getElementById('restoreFileInput').click(); return false;" style="padding: 12px 16px;">
-                  <i class="bi bi-cloud-upload me-2" style="color: #0d6efd !important;"></i>
-                  <span style="color: #0d6efd !important; font-weight: 500;">Restore Data</span>
-                </a>
-              </li>
-              
-              <li><hr class="dropdown-divider" style="margin: 0;"></li>
-              
-              <!-- Change Password -->
-              <li>
-                <a class="dropdown-item" href="#" onclick="openChangePasswordModal(); return false;" style="padding: 12px 16px;">
-                  <i class="bi bi-key me-2" style="color: #198754 !important;"></i>
-                  <span style="color: #198754 !important; font-weight: 500;">Change Password</span>
-                </a>
-              </li>
-              
-              <!-- Sign Out -->
-              <li>
-                <a class="dropdown-item" href="#" onclick="signOut(); return false;" style="padding: 12px 16px;">
-                  <i class="bi bi-box-arrow-right me-2" style="color: #198754 !important;"></i>
-                  <span style="color: #198754 !important; font-weight: 500;">Sign Out</span>
-                </a>
-              </li>
-            </ul>
+            <!-- Desktop User Dropdown - FIXED -->
+<ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userDropdown" style="border-radius: 10px; min-width: 250px; border: none;">
+  <li>
+    <div class="dropdown-header" style="background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%); border-radius: 10px 10px 0 0; color: white; padding: 12px;">
+      <div class="d-flex align-items-center">
+        <i class="bi bi-person-circle me-2" style="font-size: 2rem;"></i>
+        <div>
+          <strong id="userEmailDropdown" style="font-size: 0.9rem;">user@example.com</strong>
+          <div style="font-size: 0.75rem; opacity: 0.9;">Signed In</div>
+        </div>
+      </div>
+    </div>
+  </li>
+  <li><hr class="dropdown-divider" style="margin: 0;"></li>
+  
+ <!-- Backup Option - with ID -->
+<li>
+  <button id="backupButton" class="dropdown-item" onclick="sendBackupEmail()" style="padding: 12px 16px; background: none; border: none; width: 100%; text-align: left; cursor: pointer;">
+    <i class="bi bi-cloud-download me-2" style="color: #198754 !important;"></i>
+    <span style="color: #198754 !important; font-weight: 500;">Backup Data</span>
+  </button>
+</li>
+
+  
+  <!-- Restore Option - FIXED -->
+  <li>
+    <button class="dropdown-item" onclick="document.getElementById('restoreFileInput').click()" style="padding: 12px 16px; background: none; border: none; width: 100%; text-align: left; cursor: pointer;">
+      <i class="bi bi-cloud-upload me-2" style="color: #0d6efd !important;"></i>
+      <span style="color: #0d6efd !important; font-weight: 500;">Restore Data</span>
+    </button>
+  </li>
+  
+  <li><hr class="dropdown-divider" style="margin: 0;"></li>
+  
+  <!-- Change Password -->
+  <li>
+    <button class="dropdown-item" onclick="openChangePasswordModal()" style="padding: 12px 16px; background: none; border: none; width: 100%; text-align: left; cursor: pointer;">
+      <i class="bi bi-key me-2" style="color: #198754 !important;"></i>
+      <span style="color: #198754 !important; font-weight: 500;">Change Password</span>
+    </button>
+  </li>
+  
+  <!-- Sign Out -->
+  <li>
+    <button class="dropdown-item" onclick="signOut()" style="padding: 12px 16px; background: none; border: none; width: 100%; text-align: left; cursor: pointer;">
+      <i class="bi bi-box-arrow-right me-2" style="color: #198754 !important;"></i>
+      <span style="color: #198754 !important; font-weight: 500;">Sign Out</span>
+    </button>
+  </li>
+</ul>
+
           </div>
 
           <!-- Generate Invoice Button (Desktop) -->
@@ -505,54 +508,57 @@
             <i class="bi bi-chevron-down" style="font-size: 0.8rem;"></i>
           </button>
           
-          <ul class="dropdown-menu dropdown-menu-center shadow w-100" aria-labelledby="userDropdownMobile" style="border-radius: 10px; border: none;">
-            <li>
-              <div class="dropdown-header" style="background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%); border-radius: 10px 10px 0 0; color: white; padding: 12px;">
-                <div class="d-flex align-items-center">
-                  <i class="bi bi-person-circle me-2" style="font-size: 2rem;"></i>
-                  <div>
-                    <strong id="userEmailDropdownMobile" style="font-size: 0.9rem;">user@example.com</strong>
-                    <div style="font-size: 0.75rem; opacity: 0.9;">Signed In</div>
-                  </div>
-                </div>
-              </div>
-            </li>
-            <li><hr class="dropdown-divider" style="margin: 0;"></li>
-            
-            <!-- Backup Option (Mobile) -->
-            <li>
-              <a class="dropdown-item" href="#" onclick="sendBackupEmail(); return false;" style="padding: 12px 16px;">
-                <i class="bi bi-cloud-download me-2" style="color: #198754 !important;"></i>
-                <span style="color: #198754 !important; font-weight: 500;">Backup Data</span>
-              </a>
-            </li>
-            
-            <!-- Restore Option (Mobile) -->
-            <li>
-              <a class="dropdown-item" href="#" onclick="document.getElementById('restoreFileInput').click(); return false;" style="padding: 12px 16px;">
-                <i class="bi bi-cloud-upload me-2" style="color: #0d6efd !important;"></i>
-                <span style="color: #0d6efd !important; font-weight: 500;">Restore Data</span>
-              </a>
-            </li>
-            
-            <li><hr class="dropdown-divider" style="margin: 0;"></li>
-            
-            <!-- Change Password (Mobile) -->
-            <li>
-              <a class="dropdown-item" href="#" onclick="openChangePasswordModal(); return false;" style="padding: 12px 16px;">
-                <i class="bi bi-key me-2" style="color: #198754 !important;"></i>
-                <span style="color: #198754 !important; font-weight: 500;">Change Password</span>
-              </a>
-            </li>
-            
-            <!-- Sign Out (Mobile) -->
-            <li>
-              <a class="dropdown-item" href="#" onclick="signOut(); return false;" style="padding: 12px 16px;">
-                <i class="bi bi-box-arrow-right me-2" style="color: #198754 !important;"></i>
-                <span style="color: #198754 !important; font-weight: 500;">Sign Out</span>
-              </a>
-            </li>
-          </ul>
+          <!-- Mobile User Dropdown - FIXED -->
+<ul class="dropdown-menu dropdown-menu-center shadow w-100" aria-labelledby="userDropdownMobile" style="border-radius: 10px; border: none;">
+  <li>
+    <div class="dropdown-header" style="background: linear-gradient(135deg, #25D366 0%, #1FAD5D 100%); border-radius: 10px 10px 0 0; color: white; padding: 12px;">
+      <div class="d-flex align-items-center">
+        <i class="bi bi-person-circle me-2" style="font-size: 2rem;"></i>
+        <div>
+          <strong id="userEmailDropdownMobile" style="font-size: 0.9rem;">user@example.com</strong>
+          <div style="font-size: 0.75rem; opacity: 0.9;">Signed In</div>
+        </div>
+      </div>
+    </div>
+  </li>
+  <li><hr class="dropdown-divider" style="margin: 0;"></li>
+  
+ <!-- Backup Option - with ID -->
+<li>
+  <button id="backupButtonMobile" class="dropdown-item" onclick="sendBackupEmail()" style="padding: 12px 16px; background: none; border: none; width: 100%; text-align: left; cursor: pointer;">
+    <i class="bi bi-cloud-download me-2" style="color: #198754 !important;"></i>
+    <span style="color: #198754 !important; font-weight: 500;">Backup Data</span>
+  </button>
+</li>
+
+  
+  <!-- Restore Option - FIXED -->
+  <li>
+    <button class="dropdown-item" onclick="document.getElementById('restoreFileInput').click()" style="padding: 12px 16px; background: none; border: none; width: 100%; text-align: left; cursor: pointer;">
+      <i class="bi bi-cloud-upload me-2" style="color: #0d6efd !important;"></i>
+      <span style="color: #0d6efd !important; font-weight: 500;">Restore Data</span>
+    </button>
+  </li>
+  
+  <li><hr class="dropdown-divider" style="margin: 0;"></li>
+  
+  <!-- Change Password -->
+  <li>
+    <button class="dropdown-item" onclick="openChangePasswordModal()" style="padding: 12px 16px; background: none; border: none; width: 100%; text-align: left; cursor: pointer;">
+      <i class="bi bi-key me-2" style="color: #198754 !important;"></i>
+      <span style="color: #198754 !important; font-weight: 500;">Change Password</span>
+    </button>
+  </li>
+  
+  <!-- Sign Out -->
+  <li>
+    <button class="dropdown-item" onclick="signOut()" style="padding: 12px 16px; background: none; border: none; width: 100%; text-align: left; cursor: pointer;">
+      <i class="bi bi-box-arrow-right me-2" style="color: #198754 !important;"></i>
+      <span style="color: #198754 !important; font-weight: 500;">Sign Out</span>
+    </button>
+  </li>
+</ul>
+
         </div>
       </div>
       
@@ -7314,71 +7320,83 @@ function resetStockSelection() {
 
 
 
-
 /**
  * ==========================================
- * COMPLETE BACKUP - DOWNLOAD ONLY
+ * COMPLETE BACKUP - DOWNLOAD ONLY (FIXED)
  * ==========================================
  */
 
 /**
  * Download complete backup (ALL DATA)
  */
-async function sendBackupEmail() {
+ async function sendBackupEmail() {
   console.log('📧 Creating complete backup...');
   
-  const button = document.getElementById('backupButton');
-  if (!button) return;
+  // Get button (try both desktop and mobile, or use event target)
+  const button = document.getElementById('backupButton') || 
+                 document.getElementById('backupButtonMobile') ||
+                 event?.target?.closest('button');
+  
+  const originalButtonHTML = button ? button.innerHTML : '';
   
   try {
-    // Disable button
-    button.disabled = true;
-    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating backup...';
+    // Disable button if found
+    if (button) {
+      button.disabled = true;
+      button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating backup...';
+    }
+    
+    // Show loading indicator
+    console.log('⏳ Starting backup process...');
     
     // Get current user
     const user = window.auth?.currentUser;
     if (!user) {
-      alert('Please sign in first');
-      button.disabled = false;
-      button.innerHTML = '<i class="bi bi-cloud-download"></i> Backup';
+      alert('⚠️ Please sign in first to create a backup.');
+      if (button) {
+        button.disabled = false;
+        button.innerHTML = originalButtonHTML;
+      }
       return;
     }
     
     const userId = user.uid;
     const userEmail = user.email;
     
-    console.log('Fetching data for:', userEmail);
+    console.log('✅ User authenticated:', userEmail);
+    console.log('📥 Fetching all data...');
     
     // Get Firebase functions
     const { collection, getDocs } = window.firebaseImports;
     
-    // ✅ Fetch ALL collections
-    console.log('📥 Fetching brands...');
+    // ✅ Fetch ALL collections with progress updates
+    console.log('📥 [1/6] Fetching brands...');
     const brandsRef = collection(window.db, 'tenants', userId, 'brands');
     const brandsSnapshot = await getDocs(brandsRef);
     
-    console.log('📥 Fetching invoices...');
+    console.log('📥 [2/6] Fetching invoices...');
     const invoicesRef = collection(window.db, 'tenants', userId, 'invoices');
     const invoicesSnapshot = await getDocs(invoicesRef);
     
-    console.log('📥 Fetching productGroups...');
+    console.log('📥 [3/6] Fetching productGroups...');
     const productGroupsRef = collection(window.db, 'tenants', userId, 'productGroups');
     const productGroupsSnapshot = await getDocs(productGroupsRef);
     
-    console.log('📥 Fetching products...');
+    console.log('📥 [4/6] Fetching products...');
     const productsRef = collection(window.db, 'tenants', userId, 'products');
     const productsSnapshot = await getDocs(productsRef);
     
-    console.log('📥 Fetching purchases...');
+    console.log('📥 [5/6] Fetching purchases...');
     const purchasesRef = collection(window.db, 'tenants', userId, 'purchases');
     const purchasesSnapshot = await getDocs(purchasesRef);
     
-    console.log('📥 Fetching sales...');
+    console.log('📥 [6/6] Fetching sales...');
     const salesRef = collection(window.db, 'tenants', userId, 'sales');
     const salesSnapshot = await getDocs(salesRef);
     
     // Build complete backup data
     const backupData = {
+      version: '1.0',
       generatedAt: new Date().toISOString(),
       generatedBy: userEmail,
       tenantId: userId,
@@ -7433,7 +7451,8 @@ async function sendBackupEmail() {
     const backupJSON = JSON.stringify(backupData, null, 2);
     const blob = new Blob([backupJSON], { type: 'application/json' });
     const today = new Date().toISOString().split('T')[0];
-    const filename = `TileInventory_Backup_${userEmail.replace('@', '_at_')}_${today}.json`;
+    const timestamp = new Date().toTimeString().slice(0, 5).replace(':', '-');
+    const filename = `TileInventory_Backup_${userEmail.replace('@', '_at_')}_${today}_${timestamp}.json`;
     
     // Download file
     const url = URL.createObjectURL(blob);
@@ -7456,35 +7475,56 @@ async function sendBackupEmail() {
       backupData.purchases.length + 
       backupData.sales.length;
     
-    // ✅ Simple success message (NO EMAIL)
+    // ✅ Success message
     alert(
       '✅ Backup Downloaded Successfully!\n\n' +
       `📁 File: ${filename}\n\n` +
-      `🏷️ Brands: ${backupData.brands.length}\n` +
+      '📊 Data Summary:\n' +
+      `🏷️  Brands: ${backupData.brands.length}\n` +
       `🧾 Invoices: ${backupData.invoices.length}\n` +
       `📁 Product Groups: ${backupData.productGroups.length}\n` +
       `📦 Products: ${backupData.products.length}\n` +
       `🛒 Purchases: ${backupData.purchases.length}\n` +
       `💰 Sales: ${backupData.sales.length}\n\n` +
-      `📊 Total: ${totalItems} items\n\n` +
-      '✅ Backup saved to your Downloads folder!'
+      `✅ Total: ${totalItems} items backed up\n\n` +
+      '💾 Backup saved to your Downloads folder!'
     );
-    
-    // Reset button
-    button.disabled = false;
-    button.innerHTML = '<i class="bi bi-cloud-download"></i> Backup';
-    
-  } catch (error) {
-    console.error('❌ Backup error:', error);
-    alert('Backup failed: ' + error.message);
     
     // Reset button
     if (button) {
       button.disabled = false;
-      button.innerHTML = '<i class="bi bi-cloud-download"></i> Backup';
+      button.innerHTML = originalButtonHTML;
+    }
+    
+  } catch (error) {
+    console.error('❌ Backup error:', error);
+    console.error('Error details:', error.stack);
+    
+    // User-friendly error message
+    let errorMessage = 'Backup failed. ';
+    
+    if (error.message.includes('auth')) {
+      errorMessage += 'Please sign in and try again.';
+    } else if (error.message.includes('permission')) {
+      errorMessage += 'Permission denied. Check your access rights.';
+    } else if (error.message.includes('network')) {
+      errorMessage += 'Network error. Check your internet connection.';
+    } else {
+      errorMessage += error.message;
+    }
+    
+    alert('❌ ' + errorMessage);
+    
+    // Reset button
+    if (button) {
+      button.disabled = false;
+      button.innerHTML = originalButtonHTML;
     }
   }
 }
+
+console.log('✅ Backup function loaded');
+
 
 
 /**
@@ -16011,47 +16051,212 @@ console.log('✅ Password Toggle Module Loaded');
 
 
 /**
- * Add notification badge to backup button
+ * ==========================================
+ * BACKUP REMINDER BADGE (Mobile + Desktop)
+ * ==========================================
  */
-function addBackupButtonBadge() {
+
+/**
+ * Add notification badge to backup buttons (both mobile and desktop)
+ */
+ function addBackupButtonBadge() {
   const today = new Date();
   const dayOfMonth = today.getDate();
   
-  if (dayOfMonth <= 3) {
-    const backupButton = document.getElementById('backupButton');
-    if (backupButton && !backupButton.querySelector('.badge')) {
-      backupButton.style.position = 'relative';
-      
-      const badge = document.createElement('span');
-      badge.className = 'badge bg-danger';
-      badge.style.cssText = `
-        position: absolute;
-        top: -8px;
-        right: -8px;
-        padding: 4px 8px;
-        font-size: 10px;
-        animation: pulse 2s infinite;
-      `;
-      badge.textContent = 'NEW';
-      
-      backupButton.appendChild(badge);
-      
-      // Add pulse animation
-      const style = document.createElement('style');
-      style.textContent = `
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.1); opacity: 0.8; }
-        }
-      `;
-      document.head.appendChild(style);
+  // Show badge on first 3 days of the month
+  if (dayOfMonth <= 5) {
+    console.log('📅 First 3 days of month - Adding backup reminder badge');
+    
+    // Target both desktop and mobile backup buttons
+    const desktopButton = document.getElementById('backupButton');
+    const mobileButton = document.getElementById('backupButtonMobile');
+    
+    // Add badge to desktop button
+    if (desktopButton && !desktopButton.querySelector('.backup-badge')) {
+      addBadgeToButton(desktopButton, 'desktop');
     }
+    
+    // Add badge to mobile button
+    if (mobileButton && !mobileButton.querySelector('.backup-badge')) {
+      addBadgeToButton(mobileButton, 'mobile');
+    }
+    
+    console.log('✅ Backup reminder badges added');
+  } else {
+    console.log(`ℹ️ Day ${dayOfMonth} - No backup reminder needed`);
   }
 }
 
-// Call after buttons are loaded
-setTimeout(addBackupButtonBadge, 1000);
+/**
+ * Add badge to a specific button
+ */
+function addBadgeToButton(button, device) {
+  // Make button position relative
+  button.style.position = 'relative';
+  
+  // Create badge element
+  const badge = document.createElement('span');
+  badge.className = 'badge bg-danger backup-badge';
+  badge.style.cssText = `
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    padding: 3px 6px;
+    font-size: 9px;
+    font-weight: 700;
+    border-radius: 10px;
+    animation: pulse 2s infinite;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.4);
+  `;
+  badge.textContent = 'BACKUP';
+  
+  button.appendChild(badge);
+  
+  console.log(`✅ Badge added to ${device} button`);
+}
 
+/**
+ * Add pulse animation (only once)
+ */
+function addPulseAnimation() {
+  // Check if animation already exists
+  if (document.getElementById('backupBadgePulseAnimation')) {
+    return;
+  }
+  
+  const style = document.createElement('style');
+  style.id = 'backupBadgePulseAnimation';
+  style.textContent = `
+    @keyframes pulse {
+      0%, 100% { 
+        transform: scale(1); 
+        opacity: 1; 
+      }
+      50% { 
+        transform: scale(1.15); 
+        opacity: 0.85; 
+      }
+    }
+    
+    /* Hover effect for backup badge */
+    .backup-badge:hover {
+      animation: none;
+      transform: scale(1.1);
+      cursor: pointer;
+    }
+  `;
+  document.head.appendChild(style);
+  console.log('✅ Pulse animation added');
+}
+
+/**
+ * Remove backup badges (optional - for testing or after backup)
+ */
+function removeBackupBadges() {
+  const badges = document.querySelectorAll('.backup-badge');
+  badges.forEach(badge => {
+    badge.remove();
+  });
+  console.log('✅ Backup badges removed');
+}
+
+/**
+ * Check if backup was done this month
+ */
+function wasBackupDoneThisMonth() {
+  const lastBackupDate = localStorage.getItem('lastBackupDate');
+  if (!lastBackupDate) return false;
+  
+  const lastBackup = new Date(lastBackupDate);
+  const now = new Date();
+  
+  return lastBackup.getMonth() === now.getMonth() && 
+         lastBackup.getFullYear() === now.getFullYear();
+}
+
+/**
+ * Mark backup as completed
+ */
+function markBackupCompleted() {
+  const now = new Date().toISOString();
+  localStorage.setItem('lastBackupDate', now);
+  console.log('✅ Backup marked as completed:', now);
+  
+  // Remove badges after backup
+  removeBackupBadges();
+}
+
+/**
+ * Initialize backup reminder system
+ */
+function initializeBackupReminder() {
+  console.log('🔄 Initializing backup reminder...');
+  
+  // Add pulse animation CSS
+  addPulseAnimation();
+  
+  // Check if backup needed
+  const today = new Date();
+  const dayOfMonth = today.getDate();
+  
+  // Only show badge if:
+  // 1. It's first 3 days of month
+  // 2. Backup hasn't been done this month
+  if (dayOfMonth <= 5 && !wasBackupDoneThisMonth()) {
+    console.log('⚠️ Backup reminder active - No backup this month yet');
+    
+    // Wait for buttons to be loaded, then add badges
+    const checkButtons = setInterval(() => {
+      const desktopBtn = document.getElementById('backupButton');
+      const mobileBtn = document.getElementById('backupButtonMobile');
+      
+      if (desktopBtn || mobileBtn) {
+        clearInterval(checkButtons);
+        addBackupButtonBadge();
+      }
+    }, 100);
+    
+    // Timeout after 5 seconds
+    setTimeout(() => {
+      clearInterval(checkButtons);
+      console.log('⏱️ Button check timeout - Adding badges anyway');
+      addBackupButtonBadge();
+    }, 5000);
+    
+  } else if (dayOfMonth <= 5) {
+    console.log('✅ Backup already done this month');
+  } else {
+    console.log(`ℹ️ Day ${dayOfMonth} - No reminder needed`);
+  }
+}
+
+/**
+ * Update sendBackupEmail to mark backup as completed
+ */
+const originalSendBackupEmail = sendBackupEmail;
+async function sendBackupEmail(event) {
+  try {
+    // Call original backup function
+    await originalSendBackupEmail(event);
+    
+    // Mark backup as completed
+    markBackupCompleted();
+    
+  } catch (error) {
+    console.error('❌ Backup error:', error);
+    throw error;
+  }
+}
+
+// Initialize on page load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeBackupReminder);
+} else {
+  initializeBackupReminder();
+}
+
+console.log('✅ Backup Reminder System Loaded');
 
 
 /**
@@ -16112,9 +16317,15 @@ function initializeUserDisplay() {
 }
 
 /**
+ * ==========================================
+ * USER DROPDOWN DISPLAY (Desktop + Mobile)
+ * ==========================================
+ */
+
+/**
  * Update username display in dropdown (Both Desktop and Mobile)
  */
-function updateUserDropdownDisplay(user) {
+ function updateUserDropdownDisplay(user) {
   // Desktop elements
   const userNameElement = document.getElementById('userName');
   const userEmailDropdown = document.getElementById('userEmailDropdown');
@@ -16167,15 +16378,173 @@ function updateUserDropdownDisplay(user) {
     if (userEmailDropdownMobile) {
       userEmailDropdownMobile.textContent = 'Not signed in';
     }
-    console.log('ℹ️ No user signed in');
+    console.log('ℹ️ No user signed in - Guest mode');
   }
 }
 
-// ✅ Initialize when DOM is ready
-window.addEventListener('DOMContentLoaded', () => {
-  console.log('📄 DOM loaded, waiting for Firebase Auth...');
+/**
+ * Initialize user display on page load
+ */
+function initializeUserDisplay() {
+  console.log('🔄 Initializing user display...');
   
-  // Wait for Firebase Auth to be ready
+  // Check if auth is available
+  if (!window.auth) {
+    console.error('❌ Firebase Auth not initialized');
+    return;
+  }
+  
+  // Listen for auth state changes
+  window.auth.onAuthStateChanged((user) => {
+    if (user) {
+      console.log('✅ User authenticated:', user.email);
+      updateUserDropdownDisplay(user);
+    } else {
+      console.log('⚠️ No user authenticated');
+      updateUserDropdownDisplay(null);
+    }
+  });
+}
+
+/**
+ * ==========================================
+ * MOBILE NAVBAR TOGGLE FUNCTION
+ * ==========================================
+ */
+
+
+/**
+ * Toggle mobile navbar invoice section
+ */
+function toggleMobileNavbar() {
+  const invoiceSection = document.getElementById('mobileInvoiceSection');
+  const toggleIcon = document.getElementById('navbarToggleIcon');
+  
+  if (!invoiceSection || !toggleIcon) {
+    console.error('❌ Mobile navbar elements not found');
+    return;
+  }
+  
+  if (!mobileNavbarExpanded) {
+    // Expand: Show invoice buttons
+    invoiceSection.style.display = 'block';
+    toggleIcon.classList.remove('bi-chevron-down');
+    toggleIcon.classList.add('bi-chevron-up');
+    mobileNavbarExpanded = true;
+    console.log('✅ Mobile navbar expanded');
+  } else {
+    // Collapse: Hide invoice buttons
+    invoiceSection.style.display = 'none';
+    toggleIcon.classList.remove('bi-chevron-up');
+    toggleIcon.classList.add('bi-chevron-down');
+    mobileNavbarExpanded = false;
+    console.log('✅ Mobile navbar collapsed');
+  }
+}
+
+/**
+ * Auto-collapse mobile navbar when clicking outside
+ */
+function setupMobileNavbarAutoCollapse() {
+  document.addEventListener('click', function(event) {
+    const navbar = document.querySelector('.navbar');
+    const invoiceSection = document.getElementById('mobileInvoiceSection');
+    
+    if (mobileNavbarExpanded && navbar && !navbar.contains(event.target)) {
+      toggleMobileNavbar();
+    }
+  });
+}
+
+/**
+ * ==========================================
+ * QUICK ACTIONS CARD FLIP ANIMATION
+ * ==========================================
+ */
+
+
+
+/**
+ * Toggle flip animation for Quick Actions card
+ */
+function toggleQuickActionsFlip() {
+  const flipCardInner = document.getElementById('flipCardInner');
+  
+  if (flipCardInner) {
+    flipCardInner.classList.toggle('flipped');
+    isFlipped = !isFlipped;
+    console.log('✅ Card flipped:', isFlipped ? 'BACK (Buttons)' : 'FRONT (Quick Create)');
+  } else {
+    console.error('❌ Flip card element not found');
+  }
+}
+
+/**
+ * Ensure flip card starts in front position
+ */
+function initializeFlipCard() {
+  const flipCardInner = document.getElementById('flipCardInner');
+  if (flipCardInner) {
+    flipCardInner.classList.remove('flipped');
+    isFlipped = false;
+    console.log('✅ Quick Actions card initialized (Front side visible)');
+  }
+}
+
+/**
+ * ==========================================
+ * DROPDOWN BUTTON FIX (Prevent premature close)
+ * ==========================================
+ */
+
+/**
+ * Prevent dropdown from closing when clicking action buttons
+ */
+function setupDropdownButtonHandlers() {
+  // Wait for Bootstrap dropdowns to be initialized
+  setTimeout(() => {
+    const dropdownButtons = document.querySelectorAll('.dropdown-item');
+    
+    dropdownButtons.forEach(button => {
+      button.addEventListener('click', function(e) {
+        // Only stop propagation for specific actions that need it
+        const action = this.getAttribute('onclick');
+        if (action && (action.includes('Backup') || action.includes('Restore'))) {
+          // Allow dropdown to close after action
+          setTimeout(() => {
+            const dropdown = bootstrap.Dropdown.getInstance(this.closest('.dropdown-toggle'));
+            if (dropdown) dropdown.hide();
+          }, 100);
+        }
+      });
+    });
+    
+    console.log('✅ Dropdown button handlers initialized');
+  }, 500);
+}
+
+/**
+ * ==========================================
+ * INITIALIZATION ON PAGE LOAD
+ * ==========================================
+ */
+
+/**
+ * Main initialization function
+ */
+function initializeNavbar() {
+  console.log('📄 Initializing navbar components...');
+  
+  // Initialize flip card
+  initializeFlipCard();
+  
+  // Setup mobile navbar auto-collapse
+  setupMobileNavbarAutoCollapse();
+  
+  // Setup dropdown button handlers
+  setupDropdownButtonHandlers();
+  
+  // Wait for Firebase Auth
   const checkAuth = setInterval(() => {
     if (window.auth) {
       console.log('✅ Firebase Auth ready');
@@ -16187,11 +16556,82 @@ window.addEventListener('DOMContentLoaded', () => {
   // Timeout after 10 seconds
   setTimeout(() => {
     clearInterval(checkAuth);
-    console.warn('⚠️ Firebase Auth initialization timeout');
+    if (!window.auth) {
+      console.warn('⚠️ Firebase Auth initialization timeout');
+      // Still update UI with guest mode
+      updateUserDropdownDisplay(null);
+    }
   }, 10000);
-});
+}
 
-console.log('✅ User Dropdown Module Loaded (Desktop + Mobile)');
+/**
+ * Wait for DOM to be fully loaded
+ */
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeNavbar);
+} else {
+  // DOM already loaded
+  initializeNavbar();
+}
+
+/**
+ * ==========================================
+ * UTILITY FUNCTIONS
+ * ==========================================
+ */
+
+/**
+ * Get current user
+ */
+function getCurrentUser() {
+  if (window.auth && window.auth.currentUser) {
+    return window.auth.currentUser;
+  }
+  return null;
+}
+
+/**
+ * Check if user is authenticated
+ */
+function isUserAuthenticated() {
+  const user = getCurrentUser();
+  return user !== null;
+}
+
+/**
+ * Get username from email
+ */
+function getUsernameFromEmail(email) {
+  if (!email) return 'Guest';
+  return email.split('@')[0];
+}
+
+/**
+ * Log navbar status (for debugging)
+ */
+function logNavbarStatus() {
+  console.log('📊 Navbar Status:');
+  console.log('  - User authenticated:', isUserAuthenticated());
+  console.log('  - Mobile navbar expanded:', mobileNavbarExpanded);
+  console.log('  - Quick actions flipped:', isFlipped);
+  
+  const user = getCurrentUser();
+  if (user) {
+    console.log('  - Current user:', user.email);
+  }
+}
+
+// Expose functions globally for debugging
+window.navbarDebug = {
+  logStatus: logNavbarStatus,
+  getCurrentUser: getCurrentUser,
+  isAuthenticated: isUserAuthenticated,
+  toggleMobile: toggleMobileNavbar,
+  toggleFlip: toggleQuickActionsFlip
+};
+
+console.log('✅ Navbar Module Loaded (Desktop + Mobile)');
+console.log('💡 Debug commands available via window.navbarDebug');
 
 
 
