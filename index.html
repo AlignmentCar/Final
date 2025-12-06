@@ -476,7 +476,7 @@
 
 
 <!-- ✅ RESPONSIVE NAVBAR - Mobile Collapsible -->
-<nav class="navbar navbar-dark sticky-top" style="background: linear-gradient(135deg, #198754 0%, #157347 100%);">
+<nav id="mainAppNavbar" class="navbar navbar-dark sticky-top" style="background: linear-gradient(135deg, #198754 0%, #157347 100%);">
   <div class="container-fluid">
     <div class="w-100">
       
@@ -1517,7 +1517,7 @@
   </div>
 </div>
 
-<!-- Add Brands Modal -->
+<!-- ✅ Add Brands Modal (WORKING VERSION) -->
 <div class="modal fade" id="addBrandsModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -1528,22 +1528,66 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        
+  
         <!-- Instructions -->
         <div class="alert alert-info" style="font-size: 14px;">
           <i class="bi bi-info-circle"></i>
-          Enter brand names below. Press <strong>Enter</strong> or <strong>Comma (,)</strong> after each brand.
+          Enter brand names below. Press <strong>Enter</strong> or <strong>Comma (,)</strong> after each brand, or click <strong>Add to List</strong>.
         </div>
         
-        <!-- Input Field -->
+        <!-- Input Field with stored value -->
         <input 
           id="brandInput" 
           type="text" 
-          class="form-control form-control-lg" 
+          class="form-control form-control-lg mb-2" 
           placeholder="e.g., Samsung, Apple, Sony..."
           onkeydown="handleBrandInputKeydown(event)"
+          oninput="window.lastBrandInput = this.value"
           autocomplete="off"
+          style="color: #212529; background-color: #fff;"
         >
+        
+        <!-- Add to List Button (FIXED with working clear) -->
+        <button 
+          type="button"
+          class="btn btn-success w-100"
+          onmousedown="event.preventDefault(); (function(){
+            var val = window.lastBrandInput ? window.lastBrandInput.trim() : document.getElementById('brandInput').value.trim();
+            console.log('✅ Button clicked, value:', val);
+            if(!val || val.length === 0) { 
+              alert('⚠️ Please enter a brand name'); 
+              return; 
+            }
+            if(typeof pendingBrands === 'undefined') {
+              pendingBrands = [];
+            }
+            if(pendingBrands.includes(val)) { 
+              alert('⚠️ Brand already in list!'); 
+              return; 
+            }
+            pendingBrands.push(val);
+            if(typeof updateBrandPreviewList === 'function') {
+              updateBrandPreviewList();
+            }
+            console.log('✅ Added:', val);
+            
+            // ✅ Use WORKING clear method
+            document.querySelectorAll('#brandInput').forEach(function(inp){
+              inp.value = '';
+              inp.setAttribute('value', '');
+              window.lastBrandInput = '';
+              inp.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+            console.log('🧹 Input cleared');
+            
+            setTimeout(function(){ 
+              document.getElementById('brandInput').focus(); 
+            }, 50);
+          })()"
+          style="padding: 10px; font-size: 16px;"
+        >
+          <i class="bi bi-plus-lg"></i> Add to List
+        </button>
         
         <!-- Preview Section -->
         <div style="margin-top: 20px;">
@@ -1566,6 +1610,7 @@
         </div>
         
       </div>
+      
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
           <i class="bi bi-x-circle"></i> Cancel
@@ -1577,6 +1622,9 @@
     </div>
   </div>
 </div>
+
+
+
 
 
     
@@ -13822,11 +13870,14 @@ async function deleteVariant(variantId, variantName) {
   }
 }
 
-
-  // Open Add Product modal (from All Products page) - FIXED
+// Open Add Product modal (from All Products page) - FIXED
 function openAddProduct() {
   console.log('📝 Opening Add Product modal');
+  
+  // ✅ FIXED: Force reload brand cache
+  brandCacheLoaded = false;
   loadBrandAutocompleteCache();
+  
   // Reset product modal
   const modalTitle = document.getElementById('modalTitle');
   const productForm = document.getElementById('productForm');
@@ -13840,7 +13891,7 @@ function openAddProduct() {
   if (currentPhotoUrl) currentPhotoUrl.value = '';
   if (photoPreview) photoPreview.style.display = 'none';
   
-  // Show modal - FIXED Bootstrap 5 syntax
+  // Show modal
   const productModal = document.getElementById('productModal');
   if (productModal) {
     const modal = new bootstrap.Modal(productModal);
@@ -13850,7 +13901,8 @@ function openAddProduct() {
     console.error('❌ Product modal not found');
     alert('Error: Product modal not found. Please refresh the page.');
   }
-}  
+}
+
 
 /**
  * ==========================================
@@ -14082,82 +14134,6 @@ function viewProductDetails(productId) {
 }
 
 
-/**
- * Navigate to Brands Page
- */
-/**
- * Navigate to Brands Page
- */
-function navigateToBrands() {
-  console.log('🏷️ Navigating to Brands');
-  
-  currentPage = 'brands';
-  
-  // === STEP 1: Get page elements ===
-  const mainApp = document.getElementById('mainApp');
-  const allProductsPage = document.getElementById('allProductsPage');
-  const productGroupsPage = document.getElementById('productGroupsPage');
-  const customersPage = document.getElementById('customersPage');
-  const groupDetailPage = document.getElementById('groupDetailPage');
-  const brandsPage = document.getElementById('brandsPage');
-  
-  // === STEP 2: Hide all other pages ===
-  if (mainApp) {
-    mainApp.style.display = 'none';
-    mainApp.classList.remove('active');
-  }
-  
-  if (allProductsPage) {
-    allProductsPage.classList.remove('active');
-    allProductsPage.style.display = 'none';
-  }
-  
-  if (productGroupsPage) {
-    productGroupsPage.classList.remove('active');
-    productGroupsPage.style.display = 'none';
-  }
-  
-  if (customersPage) {
-    customersPage.classList.remove('active');
-    customersPage.style.display = 'none';
-  }
-  
-  if (groupDetailPage) {
-    groupDetailPage.classList.remove('active');
-    groupDetailPage.style.display = 'none';
-  }
-  
-  // === STEP 3: Show brands page ===
-  if (brandsPage) {
-    brandsPage.classList.add('active');
-    brandsPage.style.display = 'block';
-    console.log('✅ Brands page displayed');
-  } else {
-    console.error('❌ brandsPage element not found!');
-    return;
-  }
-  
-  // === STEP 4: Hide the blue navbar ===
-  const navbar = document.querySelector('.navbar.navbar-dark.bg-primary');
-  if (navbar) {
-    navbar.style.display = 'none';
-  }
-  
-  // === STEP 5: Load brands from backend ===
-  if (typeof loadBrands === 'function') {
-    loadBrands();
-    console.log('✅ Brands data loaded');
-  } else {
-    console.warn('⚠️ loadBrands function not found');
-  }
-  
-  // === STEP 6: Close sidebar and scroll ===
-  if (typeof closeSidebar === 'function') {
-    closeSidebar();
-  }
-  
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
 
     
 /**
@@ -14253,7 +14229,7 @@ let brandCacheLoaded = false;
 
 /**
  * Load brands from Firestore and cache them
- * ✅ FIREBASE VERSION
+ * ✅ FIXED - Uses 'name' field consistently
  */
 async function loadBrandAutocompleteCache() {
   if (brandCacheLoaded) {
@@ -14279,7 +14255,12 @@ async function loadBrandAutocompleteCache() {
     
     const brands = [];
     snapshot.forEach((doc) => {
-      brands.push(doc.data().brandName);
+      const data = doc.data();
+      // ✅ FIXED: Use 'name' field (with fallback to 'brandName' for old data)
+      const brandName = data.name || data.brandName;
+      if (brandName) {
+        brands.push(brandName);
+      }
     });
     
     brandAutocompleteCache = brands;
@@ -14306,7 +14287,59 @@ async function loadBrandAutocompleteCache() {
       console.error('❌ Fallback brand extraction failed:', fallbackError);
     }
   }
+}async function loadBrands() {
+  try {
+    console.log('📡 Fetching brands from Firebase...');
+    
+    const user = window.auth.currentUser;
+    
+    if (!user) {
+      console.error('❌ No user authenticated');
+      throw new Error('Please sign in first');
+    }
+    
+    const { collection, getDocs } = window.firebaseImports;
+    const userId = user.uid;
+    
+    const brandsRef = collection(window.db, 'tenants', userId, 'brands');
+    const brandsSnap = await getDocs(brandsRef);
+    
+    brandsCache = [];
+    brandsSnap.forEach((doc) => {
+      const data = doc.data();
+      const brandName = data.name || data.brandName;
+      if (brandName) {
+        brandsCache.push(brandName);
+      }
+    });
+    
+    console.log('✅ Loaded', brandsCache.length, 'brands from Firebase');
+    console.log('  Brands:', brandsCache);
+    
+    // ✅ CRITICAL: Always sync after loading
+    syncBrandCaches();
+    
+    renderBrandsList();
+    
+  } catch (error) {
+    console.error('❌ Error loading brands:', error);
+    
+    const container = document.getElementById('brandsListContainer');
+    if (container) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:40px; color:#dc3545;">
+          <i class="bi bi-exclamation-circle" style="font-size:48px;"></i>
+          <h4 style="margin-top:20px;">Error Loading Brands</h4>
+          <p>${error.message}</p>
+          <button class="btn btn-primary mt-3" onclick="loadBrands()">
+            <i class="bi bi-arrow-clockwise"></i> Retry
+          </button>
+        </div>
+      `;
+    }
+  }
 }
+
 
 /**
  * Filter and show brand suggestions
@@ -14336,7 +14369,6 @@ function filterBrandSuggestions(inputText) {
   // ✅ Also check if we should show save button
   checkAndShowSaveBrandButton(inputText);
 }
-
 
 /**
  * Render brand suggestions in dropdown
@@ -14374,36 +14406,68 @@ function selectBrandSuggestion(brandName) {
   document.getElementById('brand').value = brandName;
   
   // ✅ Hide save button when brand is selected
-  document.getElementById('saveBrandInsideBtn').style.display = 'none';
+  const saveBtn = document.getElementById('saveBrandInsideBtn');
+  if (saveBtn) {
+    saveBtn.style.display = 'none';
+  }
   
   hideBrandSuggestions();
   console.log('✅ Selected brand:', brandName);
 }
-
-
-/**
- * Show suggestions (when field is focused)
- */
 /**
  * Show all brands when field is focused (clicked)
- * If user has typed text, show filtered suggestions
+ * ✅ FIXED - Always ensures cache is loaded
  */
-function showBrandSuggestions() {
+ async function showBrandSuggestions() {
   const input = document.getElementById('brand');
   if (!input) return;
   
+  console.log('👆 Brand field clicked');
+  console.log('  Current cache size:', brandAutocompleteCache.length);
+  
+  // ✅ CRITICAL FIX: If cache is empty, force load immediately
+  if (!brandAutocompleteCache || brandAutocompleteCache.length === 0) {
+    console.log('⚠️ Cache empty, force loading now...');
+    
+    const user = window.auth.currentUser;
+    if (user) {
+      try {
+        const { collection, getDocs } = window.firebaseImports;
+        const brandsRef = collection(window.db, 'tenants', user.uid, 'brands');
+        const snapshot = await getDocs(brandsRef);
+        
+        const brands = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const brandName = data.name || data.brandName;
+          if (brandName) {
+            brands.push(brandName);
+          }
+        });
+        
+        brandAutocompleteCache = brands;
+        brandCacheLoaded = true;
+        
+        console.log('✅ Force loaded', brands.length, 'brands');
+        console.log('  Brands:', brands);
+      } catch (error) {
+        console.error('❌ Error force loading brands:', error);
+        return;
+      }
+    }
+  }
+  
   const inputValue = input.value.trim();
   
-  // ✅ If field is empty, show ALL brands
+  // Show all brands or filtered
   if (!inputValue || inputValue.length === 0) {
     if (brandAutocompleteCache && brandAutocompleteCache.length > 0) {
       renderBrandSuggestions(brandAutocompleteCache);
       console.log('📋 Showing all', brandAutocompleteCache.length, 'brands');
     } else {
-      console.warn('⚠️ No brands in cache');
+      console.warn('⚠️ Still no brands after force load');
     }
   } else {
-    // If user has typed something, filter based on input
     filterBrandSuggestions(inputValue);
   }
 }
@@ -14414,18 +14478,19 @@ function showBrandSuggestions() {
  */
 function hideBrandSuggestions() {
   const dropdown = document.getElementById('brandSuggestionsDropdown');
-  dropdown.style.display = 'none';
+  if (dropdown) {
+    dropdown.style.display = 'none';
+  }
 }
 
-/**
- * Check if brand exists and show/hide save button
- */
 /**
  * Check if brand exists and show/hide save button
  * Hides "Saved" state when user modifies the field
  */
 function checkAndShowSaveBrandButton(inputText) {
   const btn = document.getElementById('saveBrandInsideBtn');
+  if (!btn) return;
+  
   const input = inputText.trim();
   
   // Hide button if input is empty
@@ -14457,7 +14522,7 @@ function checkAndShowSaveBrandButton(inputText) {
 
 /**
  * Save new brand to Firestore
- * ✅ FIREBASE VERSION
+ * ✅ FIXED - Uses 'name' field consistently
  */
 async function saveNewBrandFromProductField() {
   const input = document.getElementById('brand');
@@ -14481,17 +14546,21 @@ async function saveNewBrandFromProductField() {
   );
   
   if (brandExists) {
-    btn.style.display = 'none';
+    if (btn) {
+      btn.style.display = 'none';
+    }
     return;
   }
   
   console.log('💾 Saving new brand to Firestore:', brandName);
   
   // Instant feedback
-  btn.innerHTML = '✅ Saved';
-  btn.style.background = '#218838';
-  btn.disabled = true;
-  btn.style.cursor = 'default';
+  if (btn) {
+    btn.innerHTML = '✅ Saved';
+    btn.style.background = '#218838';
+    btn.disabled = true;
+    btn.style.cursor = 'default';
+  }
   
   try {
     const { collection, addDoc } = window.firebaseImports;
@@ -14499,8 +14568,9 @@ async function saveNewBrandFromProductField() {
     // Save to Firestore
     const brandsRef = collection(window.db, 'tenants', user.uid, 'brands');
     await addDoc(brandsRef, {
-      brandName: brandName,
+      name: brandName,  // ✅ FIXED: Use 'name' instead of 'brandName'
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),  // ✅ Added updatedAt
       userId: user.uid
     });
     
@@ -14515,29 +14585,51 @@ async function saveNewBrandFromProductField() {
     console.error('❌ Error saving brand to Firestore:', error);
     
     // Show error on button
-    btn.innerHTML = '❌ Error';
-    btn.style.background = '#dc3545';
-    
-    // Reset after 2 seconds
-    setTimeout(() => {
-      btn.innerHTML = '💾';
-      btn.style.background = '#28a745';
-      btn.disabled = false;
-      btn.style.cursor = 'pointer';
-    }, 2000);
+    if (btn) {
+      btn.innerHTML = '❌ Error';
+      btn.style.background = '#dc3545';
+      
+      // Reset after 2 seconds
+      setTimeout(() => {
+        btn.innerHTML = '💾';
+        btn.style.background = '#28a745';
+        btn.disabled = false;
+        btn.style.cursor = 'pointer';
+      }, 2000);
+    }
   }
 }
 
-
-    
 /**
  * Refresh brand cache
- * ✅ Updated for Firebase
+ * ✅ FIXED - Forces reload
  */
-function refreshBrandAutocompleteCache() {
+ function refreshBrandAutocompleteCache() {
+  console.log('🔄 Forcing brand cache refresh...');
   brandCacheLoaded = false;
+  brandAutocompleteCache = [];  // ✅ Clear cache first
   loadBrandAutocompleteCache();
 }
+/**
+ * Sync autocomplete cache with brands cache
+ * ✅ FIXED - Syncs both ways (add AND remove)
+ */
+ function syncBrandCaches() {
+  console.log('🔄 Syncing brand caches...');
+  console.log('  brandsCache:', brandsCache.length, 'items');
+  console.log('  brandAutocompleteCache (before):', brandAutocompleteCache.length, 'items');
+  
+  // ✅ METHOD 1: Complete sync (replace autocomplete with brands)
+  brandAutocompleteCache = [...brandsCache];
+  
+  // Remove duplicates (just in case)
+  brandAutocompleteCache = [...new Set(brandAutocompleteCache)];
+  
+  console.log('  brandAutocompleteCache (after):', brandAutocompleteCache.length, 'items');
+  console.log('✅ Sync complete');
+}
+
+
 
 
 
@@ -17916,6 +18008,10 @@ document.addEventListener('DOMContentLoaded', function() {
   console.log('✅ Sort system initialized');
 });
 
+
+
+console.log('✅ Brand Manager Module Loaded (Firebase)');
+
 /**
  * ==========================================
  * DEBUG HELPER (Optional - can remove in production)
@@ -18341,6 +18437,8 @@ console.log('✅ Sales functions made globally available');
     </div>
   </div>
 </div>
+
+
 
 
 
@@ -18941,7 +19039,6 @@ console.log('✅ Sales functions made globally available');
   
 </body>
 </html>
-
 
 
 
