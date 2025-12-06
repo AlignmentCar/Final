@@ -1,6 +1,6 @@
 /**
  * ==========================================
- * BRANDS MANAGEMENT MODULE
+ * BRANDS MANAGEMENT MODULE (FIREBASE)
  * File: brand-manager.js
  * ==========================================
  */
@@ -66,10 +66,10 @@ function navigateToBrands() {
     navbar.style.display = 'none';
   }
   
-  // === STEP 5: Load brands from backend ===
+  // === STEP 5: Load brands from Firebase ===
   if (typeof loadBrands === 'function') {
     loadBrands();
-    console.log('✅ Brands data loaded');
+    console.log('✅ Brands data loading...');
   } else {
     console.warn('⚠️ loadBrands function not found');
   }
@@ -88,29 +88,37 @@ function navigateToBrands() {
  * ==========================================
  */
 
-// Load Brands from Backend
+/**
+ * Load Brands from Firebase
+ */
 async function loadBrands() {
   try {
-    console.log('📡 Fetching brands from server...');
+    console.log('📡 Fetching brands from Firebase...');
     
-    // Fetch data (no auth needed - bypassed in doPost)
-    const response = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'getBrands' })
+    const user = window.auth.currentUser;
+    
+    if (!user) {
+      console.error('❌ No user authenticated');
+      throw new Error('Please sign in first');
+    }
+    
+    const { collection, getDocs } = window.firebaseImports;
+    const userId = user.uid;
+    
+    // Get brands collection reference
+    const brandsRef = collection(window.db, 'tenants', userId, 'brands');
+    const brandsSnap = await getDocs(brandsRef);
+    
+    // Extract brand names
+    brandsCache = [];
+    brandsSnap.forEach((doc) => {
+      brandsCache.push(doc.data().name);
     });
     
-    const data = await response.json();
+    console.log('✅ Loaded', brandsCache.length, 'brands from Firebase');
     
-    // Check response
-    if (data.success && data.brands) {
-      brandsCache = data.brands;
-      console.log('✅ Loaded', data.brands.length, 'brands');
-      
-      // ✅ RENDER IMMEDIATELY - Don't wait for anything
-      renderBrandsList();
-    } else {
-      throw new Error(data.error || 'Failed to load brands');
-    }
+    // Render immediately
+    renderBrandsList();
     
   } catch (error) {
     console.error('❌ Error loading brands:', error);
@@ -138,7 +146,9 @@ async function loadBrands() {
  * ==========================================
  */
 
-// Render Brands List
+/**
+ * Render Brands List
+ */
 function renderBrandsList() {
   console.log('🎨 Rendering brands list...');
   
@@ -165,10 +175,13 @@ function renderBrandsList() {
     emptyState.style.display = 'none';
   }
   
+  // Sort brands alphabetically
+  const sortedBrands = [...brandsCache].sort((a, b) => a.localeCompare(b));
+  
   // Build HTML
   let html = '<div style="padding:20px; max-width:1200px; margin:0 auto;">';
   
-  brandsCache.forEach(brand => {
+  sortedBrands.forEach(brand => {
     // Create brand card
     html += `
       <div class="card mb-3 shadow-sm" style="cursor:pointer; transition:transform 0.2s;" 
@@ -185,7 +198,7 @@ function renderBrandsList() {
               <button class="btn btn-sm btn-danger" 
                       onclick="confirmDeleteBrand('${escapeHtml(brand)}')"
                       title="Delete Brand">
-                <i class="bi bi-trash"></i>
+                <i class="bi bi-trash"></i> Delete
               </button>
             </div>
           </div>
@@ -207,7 +220,9 @@ function renderBrandsList() {
  * ==========================================
  */
 
-// Open Add Brands Modal
+/**
+ * Open Add Brands Modal
+ */
 function openAddBrandModal() {
   console.log('➕ Opening Add Brands modal');
   
@@ -246,9 +261,11 @@ function handleBrandInputKeydown(event) {
       const brand = value.replace(/,\s*$/, '').trim();
       
       // Add only if not duplicate
-      if (brand && !pendingBrands.includes(brand)) {
+      if (brand && !pendingBrands.includes(brand) && !brandsCache.includes(brand)) {
         pendingBrands.push(brand);
         console.log('✅ Brand added to preview:', brand);
+      } else if (brandsCache.includes(brand)) {
+        alert(`⚠️ Brand "${brand}" already exists!`);
       }
       
       // Clear input
@@ -320,123 +337,102 @@ function removePendingBrand(brand) {
 
 /**
  * ==========================================
- * SECTION 7: SAVE ALL BRANDS
+ * SECTION 7: SAVE ALL BRANDS TO FIREBASE
  * ==========================================
  */
 
-/**
- * ==========================================
- * SECTION 7: SAVE ALL BRANDS (SEQUENTIAL)
- * ==========================================
- */
-
-function saveAllBrands() {
+async function saveAllBrands() {
   if (pendingBrands.length === 0) {
     alert('⚠️ Please add at least one brand');
     return;
   }
   
-  console.log('💾 Saving', pendingBrands.length, 'brands...');
+  console.log('💾 Saving', pendingBrands.length, 'brands to Firebase...');
   
-  // ✅ CLOSE MODAL IMMEDIATELY (Optimistic UI)
-  const modal = bootstrap.Modal.getInstance(document.getElementById('addBrandsModal'));
-  if (modal) {
-    modal.hide();
-  }
+  const user = window.auth.currentUser;
   
-  // ✅ ADD BRANDS TO CACHE IMMEDIATELY (Optimistic UI)
-  const brandsToSave = [...pendingBrands];
-  brandsCache.push(...brandsToSave);
-  
-  // ✅ REFRESH DISPLAY IMMEDIATELY
-  renderBrandsList();
-  
-  // ✅ SHOW SUCCESS ALERT IMMEDIATELY
-  alert(`✅ Success!\n\n${brandsToSave.length} brand(s) added!`);
-  
-  // ✅ CLEAR PENDING BRANDS
-  pendingBrands = [];
-  
-  // ✅ SAVE SEQUENTIALLY IN BACKGROUND (one after another)
-  saveBrandsSequentially(brandsToSave, 0, [], []);
-}
-
-/**
- * Save brands one by one sequentially
- * This prevents concurrent request issues
- */
-function saveBrandsSequentially(brands, index, savedBrands, failedBrands) {
-  // Base case: All done
-  if (index >= brands.length) {
-    handleBackendResults(savedBrands.length, failedBrands.length, failedBrands);
+  if (!user) {
+    alert('❌ Please sign in first');
     return;
   }
   
-  const brand = brands[index];
-  console.log(`💾 Saving brand ${index + 1}/${brands.length}:`, brand);
-  
-  // Save this brand
-  fetch(SCRIPT_URL, {
-    method: 'POST',
-    body: JSON.stringify({ 
-      action: 'addBrand',
-      brandName: brand
-    })
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      savedBrands.push(brand);
-      console.log(`✅ Backend saved (${index + 1}/${brands.length}):`, brand);
-    } else {
-      failedBrands.push(brand);
-      console.warn(`⚠️ Backend failed (${index + 1}/${brands.length}):`, brand, data.error);
+  try {
+    // Close modal immediately (Optimistic UI)
+    const modal = bootstrap.Modal.getInstance(document.getElementById('addBrandsModal'));
+    if (modal) {
+      modal.hide();
     }
     
-    // ✅ Save next brand (sequential)
-    saveBrandsSequentially(brands, index + 1, savedBrands, failedBrands);
-  })
-  .catch(error => {
-    failedBrands.push(brand);
-    console.error(`❌ Backend error (${index + 1}/${brands.length}):`, brand, error);
+    // Add brands to cache immediately (Optimistic UI)
+    const brandsToSave = [...pendingBrands];
+    brandsCache.push(...brandsToSave);
     
-    // ✅ Continue to next brand even if this one failed
-    saveBrandsSequentially(brands, index + 1, savedBrands, failedBrands);
-  });
-}
-
-/**
- * Handle backend results (silent, no alert)
- */
-function handleBackendResults(saved, failed, failedBrands) {
-  if (failed > 0) {
-    console.warn(`⚠️ Backend: ${saved} saved, ${failed} failed`);
-    console.warn('Failed brands:', failedBrands);
+    // Refresh display immediately
+    renderBrandsList();
     
-    // ✅ Optional: Reload brands from server to sync
-    setTimeout(() => {
-      loadBrands();
-    }, 1000);
-  } else {
-    console.log(`✅ All ${saved} brands saved to backend`);
-  }
-}
-
-/**
- * Handle backend results (silent, no alert)
- */
-function handleBackendResults(saved, failed, failedBrands) {
-  if (failed > 0) {
-    console.warn(`⚠️ Backend: ${saved} saved, ${failed} failed`);
-    console.warn('Failed brands:', failedBrands);
-  } else {
-    console.log(`✅ All ${saved} brands saved to backend`);
+    // Show success alert immediately
+    alert(`✅ Success!\n\n${brandsToSave.length} brand(s) added!`);
+    
+    // Clear pending brands
+    pendingBrands = [];
+    
+    // Save to Firebase in background
+    const { collection, addDoc, serverTimestamp } = window.firebaseImports;
+    const userId = user.uid;
+    
+    const brandsRef = collection(window.db, 'tenants', userId, 'brands');
+    
+    // Save each brand
+    const savePromises = brandsToSave.map(async (brandName) => {
+      try {
+        await addDoc(brandsRef, {
+          name: brandName,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        console.log('✅ Firebase: Brand saved:', brandName);
+        return { success: true, brand: brandName };
+      } catch (error) {
+        console.error('❌ Firebase: Failed to save brand:', brandName, error);
+        return { success: false, brand: brandName, error };
+      }
+    });
+    
+    // Wait for all saves to complete
+    const results = await Promise.all(savePromises);
+    
+    // Check results
+    const failed = results.filter(r => !r.success);
+    
+    if (failed.length > 0) {
+      console.warn(`⚠️ ${failed.length} brand(s) failed to save to Firebase`);
+      console.warn('Failed brands:', failed.map(f => f.brand));
+      
+      // Reload brands from Firebase to sync
+      setTimeout(() => {
+        loadBrands();
+      }, 1000);
+    } else {
+      console.log(`✅ All ${brandsToSave.length} brands saved to Firebase`);
+    }
+    
+    // Refresh brand autocomplete cache
+    if (typeof refreshBrandAutocompleteCache === 'function') {
+      refreshBrandAutocompleteCache();
+    }
+    
+  } catch (error) {
+    console.error('❌ Error saving brands:', error);
+    alert('❌ Error saving brands. Please try again.');
+    
+    // Reload brands to sync with Firebase
+    loadBrands();
   }
 }
 
 /**
  * ==========================================
- * SECTION 8: DELETE BRAND (OPTIMISTIC UI)
+ * SECTION 8: DELETE BRAND FROM FIREBASE
  * ==========================================
  */
 
@@ -453,60 +449,70 @@ function confirmDeleteBrand(brand) {
 
 /**
  * Delete brand with Optimistic UI
- * Removes from UI immediately, deletes from backend in background
  */
-function deleteBrand(brand) {
-  console.log('🗑️ Deleting brand:', brand);
+async function deleteBrand(brandName) {
+  console.log('🗑️ Deleting brand:', brandName);
   
-  // ✅ REMOVE FROM CACHE IMMEDIATELY (Optimistic UI)
-  brandsCache = brandsCache.filter(b => b !== brand);
+  const user = window.auth.currentUser;
   
-  // ✅ REFRESH DISPLAY IMMEDIATELY
-  renderBrandsList();
+  if (!user) {
+    alert('❌ Please sign in first');
+    return;
+  }
   
-  // ✅ SHOW SUCCESS ALERT IMMEDIATELY
-  alert(`✅ Brand "${brand}" deleted successfully!`);
-  
-  // ✅ DELETE FROM BACKEND IN BACKGROUND (async)
-  fetch(SCRIPT_URL, {
-    method: 'POST',
-    body: JSON.stringify({ 
-      action: 'deleteBrand',
-      brandName: brand
-    })
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      console.log('✅ Backend: Brand deleted:', brand);
-      
-      // ✅ Update autocomplete cache in product form
-      if (typeof refreshBrandAutocompleteCache === 'function') {
-        refreshBrandAutocompleteCache();
-      }
-    } else {
-      console.warn('⚠️ Backend delete failed:', data.error);
-      
-      // If backend fails, restore to cache
-      brandsCache.push(brand);
-      renderBrandsList();
-      
-      // Show error
-      alert('⚠️ Note: Backend deletion may have failed. Refreshing list...');
+  try {
+    // Remove from cache immediately (Optimistic UI)
+    brandsCache = brandsCache.filter(b => b !== brandName);
+    
+    // Refresh display immediately
+    renderBrandsList();
+    
+    // Show success alert immediately
+    alert(`✅ Brand "${brandName}" deleted successfully!`);
+    
+    // Delete from Firebase in background
+    const { collection, query, where, getDocs, deleteDoc } = window.firebaseImports;
+    const userId = user.uid;
+    
+    const brandsRef = collection(window.db, 'tenants', userId, 'brands');
+    const q = query(brandsRef, where('name', '==', brandName));
+    
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      console.warn('⚠️ Brand not found in Firebase:', brandName);
+      return;
     }
-  })
-  .catch(error => {
-    console.error('❌ Backend error deleting brand:', error);
+    
+    // Delete all matching documents (should be only one)
+    const deletePromises = [];
+    querySnapshot.forEach((doc) => {
+      deletePromises.push(deleteDoc(doc.ref));
+    });
+    
+    await Promise.all(deletePromises);
+    
+    console.log('✅ Firebase: Brand deleted:', brandName);
+    
+    // Update autocomplete cache in product form
+    if (typeof refreshBrandAutocompleteCache === 'function') {
+      refreshBrandAutocompleteCache();
+    }
+    
+  } catch (error) {
+    console.error('❌ Firebase: Error deleting brand:', error);
     
     // If error, restore to cache
-    brandsCache.push(brand);
+    brandsCache.push(brandName);
     renderBrandsList();
     
     // Show error
-    alert('⚠️ Note: Error deleting from backend. Refreshing list...');
-  });
+    alert('⚠️ Error deleting from Firebase. Refreshing list...');
+    
+    // Reload brands to sync
+    loadBrands();
+  }
 }
-
 
 /**
  * ==========================================
@@ -541,14 +547,9 @@ function escapeHtml(text) {
     '<': '&lt;',
     '>': '&gt;',
     '"': '&quot;',
-    "'": '&#039;'
+    "'": '&#39;'
   };
   return String(text).replace(/[&<>"']/g, m => map[m]);
 }
 
-console.log('✅ Brand Manager Module Loaded');
-
-
-
-
-
+console.log('✅ Brand Manager Module Loaded (Firebase)');
