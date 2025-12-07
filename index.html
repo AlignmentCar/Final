@@ -236,6 +236,12 @@
 <!-- MANAGEMENT Section (add this new section) -->
 <div class="sidebar-section-title">MANAGEMENT</div>
 
+<!-- ✅ NEW: Categories -->
+<div class="sidebar-item" onclick="navigateTo('categories')">
+  <i class="bi bi-grid-3x3-gap"></i>
+  <span>Categories</span>
+</div>
+
 <div class="sidebar-item" onclick="navigateTo('brands')">
   <i class="bi bi-tag"></i>
   <span>Brands</span>
@@ -1292,22 +1298,21 @@
     <button id="updateStockStatusBtn" class="btn btn-success" style="display: none; font-weight: 600;" onclick="applyBulkStockStatusUpdate()">
       <i class="bi bi-check-circle"></i> Update Stock Status (<span id="selectedCountStockStatus">0</span> selected)
     </button>
+<!-- ✅ Dynamic Category Dropdown for Bulk Edit -->
+<div id="categorySelectionDropdown" class="dropdown" style="display: none;">
+  <button class="btn btn-outline-primary dropdown-toggle" type="button" id="categoryDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" style="font-weight: 600;">
+    <i class="bi bi-funnel"></i> <span id="selectedCategoryText">Select Category</span>
+  </button>
+  <ul class="dropdown-menu shadow" aria-labelledby="categoryDropdownBtn" id="bulkCategoryDropdownMenu">
+    <!-- Categories will be populated dynamically from categoriesCache -->
+    <li><a class="dropdown-item text-muted" href="javascript:void(0);">Loading categories...</a></li>
+  </ul>
+</div>
 
-    <div id="categorySelectionDropdown" class="dropdown" style="display: none;">
-      <button class="btn btn-outline-primary dropdown-toggle" type="button" id="categoryDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" style="font-weight: 600;">
-        <i class="bi bi-funnel"></i> <span id="selectedCategoryText">Select Category</span>
-      </button>
-      <ul class="dropdown-menu shadow" aria-labelledby="categoryDropdownBtn">
-        <li><button type="button" class="dropdown-item" onclick="selectBulkCategory('Tiles');"><i class="bi bi-grid-3x3-gap"></i> Tiles</button></li>
-        <li><button type="button" class="dropdown-item" onclick="selectBulkCategory('Sanitaryware');"><i class="bi bi-droplet"></i> Sanitaryware</button></li>
-        <li><button type="button" class="dropdown-item" onclick="selectBulkCategory('Accessories');"><i class="bi bi-wrench"></i> Accessories</button></li>
-        <li><button type="button" class="dropdown-item" onclick="selectBulkCategory('Custom');"><i class="bi bi-star"></i> Custom</button></li>
-      </ul>
-    </div>
-    
-    <button id="updateCategoryBtn" class="btn btn-success" style="display: none; font-weight: 600;" onclick="applyBulkCategoryUpdate()">
-      <i class="bi bi-check-circle"></i> Update Category (<span id="selectedCount" style="font-weight: 700;">0</span> selected)
-    </button>
+<button id="updateCategoryBtn" class="btn btn-success" style="display: none; font-weight: 600;" onclick="applyBulkCategoryUpdate()">
+  <i class="bi bi-check-circle"></i> Update Category (<span id="selectedCount" style="font-weight: 700;">0</span> selected)
+</button>
+
 
     <div id="unitTypeSelectionDropdown" class="dropdown" style="display: none;">
       <button class="btn btn-outline-info dropdown-toggle" type="button" id="unitTypeDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" style="font-weight: 600;">
@@ -1582,6 +1587,159 @@
     </div>
   </div>
 </div>
+
+
+<!-- ✅✅✅ CATEGORIES PAGE ✅✅✅ -->
+<div class="page-view" id="categoriesPage">
+  <!-- Header -->
+  <div class="page-header">
+    <button class="back-btn" onclick="navigateTo('dashboard')">
+      <i class="bi bi-arrow-left"></i> Back
+    </button>
+    <h3><i class="bi bi-grid-3x3-gap"></i> Categories</h3>
+    <button class="btn btn-success" onclick="openAddCategoryModal()">
+      <i class="bi bi-plus-lg"></i> Add
+    </button>
+  </div>
+  
+  <!-- Search Box -->
+  <div class="container-fluid" style="padding: 20px;">
+    <input 
+      type="text" 
+      class="form-control mb-3" 
+      id="searchCategoriesInput" 
+      placeholder="🔍 Search categories..." 
+      onkeyup="filterCategories(this.value)"
+      style="max-width: 600px; margin: 0 auto;"
+    >
+    
+    <!-- Categories List Container -->
+    <div id="categoriesListContainer">
+      <!-- Category cards will be rendered here by JavaScript -->
+      <div style="text-align:center; padding:40px;">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-3">Loading categories...</p>
+      </div>
+    </div>
+    
+    <!-- Empty State -->
+    <div id="categoriesEmptyState" style="display:none; text-align:center; padding:60px 20px;">
+      <i class="bi bi-grid-3x3-gap" style="font-size:64px; color:#ccc;"></i>
+      <h4 style="margin-top:20px;">No Categories Yet</h4>
+      <p>Add your first category to get started</p>
+      <button class="btn btn-primary mt-3" onclick="openAddCategoryModal()">
+        <i class="bi bi-plus-lg"></i> Add First Category
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ Add Categories Modal -->
+<div class="modal fade" id="addCategoriesModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-plus-circle"></i> Add New Categories
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+  
+        <!-- Instructions -->
+        <div class="alert alert-info" style="font-size: 14px;">
+          <i class="bi bi-info-circle"></i>
+          Enter category names below. Press <strong>Enter</strong> or <strong>Comma (,)</strong> after each category, or click <strong>Add to List</strong>.
+        </div>
+        
+        <!-- Input Field -->
+        <input 
+          id="categoryInput" 
+          type="text" 
+          class="form-control form-control-lg mb-2" 
+          placeholder="e.g., Kitchen Tiles, Bathroom Tiles, Floor Tiles..."
+          onkeydown="handleCategoryInputKeydown(event)"
+          oninput="window.lastCategoryInput = this.value"
+          autocomplete="off"
+          style="color: #212529; background-color: #fff;"
+        >
+        
+        <!-- Add to List Button -->
+        <button 
+          type="button"
+          class="btn btn-info w-100"
+          onmousedown="event.preventDefault(); (function(){
+            var val = window.lastCategoryInput ? window.lastCategoryInput.trim() : document.getElementById('categoryInput').value.trim();
+            console.log('✅ Button clicked, value:', val);
+            if(!val || val.length === 0) { 
+              alert('⚠️ Please enter a category'); 
+              return; 
+            }
+            if(typeof pendingCategories === 'undefined') {
+              pendingCategories = [];
+            }
+            if(pendingCategories.includes(val)) { 
+              alert('⚠️ Category already in list!'); 
+              return; 
+            }
+            pendingCategories.push(val);
+            if(typeof updateCategoryPreviewList === 'function') {
+              updateCategoryPreviewList();
+            }
+            console.log('✅ Added:', val);
+            
+            // Clear input
+            document.querySelectorAll('#categoryInput').forEach(function(inp){
+              inp.value = '';
+              inp.setAttribute('value', '');
+              window.lastCategoryInput = '';
+              inp.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+            console.log('🧹 Input cleared');
+            
+            setTimeout(function(){ 
+              document.getElementById('categoryInput').focus(); 
+            }, 50);
+          })()"
+          style="padding: 10px; font-size: 16px;"
+        >
+          <i class="bi bi-plus-lg"></i> Add to List
+        </button>
+        
+        <!-- Preview Section -->
+        <div style="margin-top: 20px;">
+          <p style="font-weight: 600; margin-bottom: 10px; font-size: 14px; color: #333;" id="categoryPreviewCount">
+            📝 Categories to Save (0):
+          </p>
+          <div id="categoryPreviewList" style="
+            background: #f8f9fa; 
+            border: 1px solid #e0e0e0;
+            border-radius: 8px; 
+            max-height: 250px; 
+            overflow-y: auto;
+            min-height: 80px; 
+            padding: 10px;
+          ">
+            <div style="padding: 15px; color: #999; text-align: center; font-size: 14px;">
+              No categories added yet
+            </div>
+          </div>
+        </div>
+        
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle"></i> Cancel
+        </button>
+        <button type="button" class="btn btn-info" onclick="saveAllCategories()">
+          <i class="bi bi-check-circle"></i> Save All Categories
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
  <!-- ✅✅✅ BRANDS PAGE ✅✅✅ -->
 <div class="page-view" id="brandsPage">
@@ -2258,23 +2416,27 @@
           
           <!-- ESSENTIAL FIELDS -->
           <hr>
-          
-          <!-- Product Name & Category -->
-          <div class="row mb-3">
-            <div class="col-md-8">
-              <label class="form-label">Product Name *</label>
-              <input id="productName" class="form-control" required/>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">Category *</label>
-              <select id="category" class="form-select" required>
-                <option value="">Select</option>
-                <option value="Tiles">Tiles</option>
-                <option value="Sanitaryware">Sanitaryware</option>
-                <option value="Accessories">Accessories</option>
-              </select>
-            </div>
-          </div>
+         <!-- Product Name & Category -->
+<div class="row mb-3">
+  <div class="col-md-8">
+    <label class="form-label">Product Name *</label>
+    <input id="productName" class="form-control" required/>
+  </div>
+  
+  <!-- ✅ DROPDOWN ONLY Category (No typing allowed) -->
+  <div class="col-md-4">
+    <label class="form-label">Category *</label>
+    <select id="category" class="form-select" required>
+      <option value="">Select Category</option>
+      <!-- Options will be populated dynamically from categoriesCache -->
+    </select>
+    <small class="text-muted">
+      <i class="bi bi-info-circle"></i> Manage categories from sidebar menu
+    </small>
+  </div>
+</div>
+
+
           
         <!-- Unit Type, Price, Current Stock (OPTIONAL) -->
 <div class="row mb-3">
@@ -3180,6 +3342,13 @@ var bulkEditMode = {
 };
 
 console.log('✅ bulkEditMode initialized');
+
+// Category Management
+var categoryAutocompleteCache = [];
+var categoryCacheLoaded = false;
+var categoriesCache = [];
+var pendingCategories = [];
+
     
  // ==========================================
 // FIREBASE CONFIGURATION
@@ -4538,29 +4707,61 @@ async function processBackgroundSaveQueue() {
     }
   }
 }
-
-
 /***********************
  * Product CRUD UI - FIREBASE VERSION
  ***********************/
-let editingProductId = null;
+ let editingProductId = null;
 
-function showAddProduct() { 
+
+/**
+ * Show Add Product Modal
+ */
+async function showAddProduct() { 
   editingProductId = null; 
   document.getElementById('modalTitle').textContent = 'Add New Product'; 
   document.getElementById('productForm').reset(); 
   document.getElementById('productId').value = ''; 
   
-  // ✅ Clear variant flags
+  // Clear variant flags
   const form = document.getElementById('productForm');
   form.dataset.isVariant = 'false';
   form.dataset.groupId = '';
   form.dataset.variantId = '';
   
-  new bootstrap.Modal(document.getElementById('productModal')).show(); 
+  // ✅ Populate category dropdown from cache (await for loading)
+  await populateCategoryDropdown();
+  
+  // Reset photo preview
+  if (document.getElementById('productPhotoPreviewContainer')) {
+    document.getElementById('productPhotoPreviewContainer').style.display = 'none';
+  }
+  if (document.getElementById('productPhotoUploadArea')) {
+    document.getElementById('productPhotoUploadArea').style.display = 'block';
+  }
+  
+  // Clear photo data
+  window.editingProductImageUrl = '';
+  productPhotoBase64 = null;
+  productPhotoFileName = null;
+  
+  // Make name/brand/size editable (in case they were readonly from variant edit)
+  document.getElementById('productName').readOnly = false;
+  document.getElementById('brand').readOnly = false;
+  document.getElementById('size').readOnly = false;
+  
+  document.getElementById('productName').style.background = '';
+  document.getElementById('brand').style.background = '';
+  document.getElementById('size').style.background = '';
+  
+  new bootstrap.Modal(document.getElementById('productModal')).show();
+  console.log('✅ Add Product modal opened with categories populated');
 }
 
-function editProduct(id, isVariant = false) {
+
+/**
+ * Edit Product
+ */
+async function editProduct(id, isVariant = false) {
   console.log('✏️ Editing product ID:', id, 'Is variant:', isVariant);
   
   const p = (cachedProducts||[]).find(x => x.id === id);
@@ -4571,31 +4772,45 @@ function editProduct(id, isVariant = false) {
   
   console.log('📦 Found product:', p);
   
-  // ✅ CHECK IF THIS IS A VARIANT
+  // CHECK IF THIS IS A VARIANT
   if (isVariant || p.isGroupVariant) {
-    openEditVariantModalFromProduct(p);
+    await openEditVariantModalFromProduct(p);
     return;
   }
   
-  // ✅ CRITICAL: Set editingProductId BEFORE opening modal
+  // CRITICAL: Set editingProductId BEFORE opening modal
   editingProductId = id;
   console.log('✅ Set editingProductId to:', editingProductId);
   
   document.getElementById('modalTitle').textContent = 'Edit Product';
-  document.getElementById('productId').value = id; // Use actual ID
-  document.getElementById('productName').value = p.name;
-  document.getElementById('category').value = p.category;
+  document.getElementById('productId').value = id;
+  
+  // ✅ Populate category dropdown BEFORE setting value (await for loading)
+  await populateCategoryDropdown();
+  
+  // Fill form fields
+  document.getElementById('productName').value = p.name || '';
+  document.getElementById('category').value = p.category || '';
   document.getElementById('brand').value = p.brand || '';
   document.getElementById('size').value = p.size || '';
-  document.getElementById('unitType').value = p.unitType;
+  document.getElementById('unitType').value = p.unitType || 'Box';
   document.getElementById('piecesPerBox').value = p.piecesPerBox || 1;
   document.getElementById('sftPerBox').value = p.sftPerBox || '';
-  document.getElementById('price').value = p.price;
-  document.getElementById('minStock').value = p.minStock;
+  document.getElementById('price').value = p.price || '';
+  document.getElementById('minStock').value = p.minStock || 5;
   
   window.editingProductImageUrl = p.imageUrl || '';
   
-  // Stock handling (keep your existing code)
+  // Make fields editable (in case they were readonly from variant edit)
+  document.getElementById('productName').readOnly = false;
+  document.getElementById('brand').readOnly = false;
+  document.getElementById('size').readOnly = false;
+  
+  document.getElementById('productName').style.background = '';
+  document.getElementById('brand').style.background = '';
+  document.getElementById('size').style.background = '';
+  
+  // Stock handling
   resetStockSelection();
   document.getElementById('productCurrentStock').value = '';
   
@@ -4619,7 +4834,7 @@ function editProduct(id, isVariant = false) {
     }
   }
   
-  // Photo handling (keep your existing code)
+  // Photo handling
   if (p.imageUrl) {
     document.getElementById('productPhotoPreviewImage').src = p.imageUrl;
     document.getElementById('productPhotoPreviewContainer').style.display = 'block';
@@ -4637,8 +4852,10 @@ function editProduct(id, isVariant = false) {
 }
 
 
-// ✅ Open edit modal for variant (KEEP SAME)
-function openEditVariantModalFromProduct(variant) {
+/**
+ * Open edit modal for variant
+ */
+async function openEditVariantModalFromProduct(variant) {
   console.log('📝 Opening variant edit modal:', variant);
   
   editingProductId = variant.id || variant.variantId;
@@ -4650,6 +4867,10 @@ function openEditVariantModalFromProduct(variant) {
   
   document.getElementById('modalTitle').textContent = 'Edit Variant';
   document.getElementById('productId').value = variant.variantId || variant.id;
+  
+  // ✅ Populate category dropdown BEFORE setting value
+  await populateCategoryDropdown();
+  
   document.getElementById('productName').value = variant.name || variant.variantName;
   document.getElementById('category').value = variant.category || '';
   document.getElementById('brand').value = variant.brand || '';
@@ -4657,6 +4878,8 @@ function openEditVariantModalFromProduct(variant) {
   document.getElementById('unitType').value = variant.unitType || 'Box';
   document.getElementById('price').value = variant.price || variant.sellingPrice || 0;
   document.getElementById('minStock').value = variant.minStock || 0;
+  document.getElementById('piecesPerBox').value = variant.piecesPerBox || 1;
+  document.getElementById('sftPerBox').value = variant.sftPerBox || '';
   
   document.getElementById('productCurrentStock').value = variant.stock || 0;
   
@@ -4669,8 +4892,31 @@ function openEditVariantModalFromProduct(variant) {
   document.getElementById('brand').style.background = '#f0f0f0';
   document.getElementById('size').style.background = '#f0f0f0';
   
+  // Photo handling for variant
+  if (variant.imageUrl) {
+    document.getElementById('productPhotoPreviewImage').src = variant.imageUrl;
+    document.getElementById('productPhotoPreviewContainer').style.display = 'block';
+    document.getElementById('productPhotoUploadArea').style.display = 'none';
+  } else {
+    document.getElementById('productPhotoPreviewContainer').style.display = 'none';
+    document.getElementById('productPhotoUploadArea').style.display = 'block';
+  }
+  
+  window.editingProductImageUrl = variant.imageUrl || '';
+  productPhotoBase64 = null;
+  productPhotoFileName = null;
+  
   new bootstrap.Modal(document.getElementById('productModal')).show();
+  console.log('✅ Variant edit modal opened');
 }
+
+
+// ✅ Make functions global
+window.showAddProduct = showAddProduct;
+window.editProduct = editProduct;
+window.openEditVariantModalFromProduct = openEditVariantModalFromProduct;
+
+console.log('✅ Product CRUD UI functions loaded');
 
 
 async function saveProduct() {
@@ -9106,14 +9352,11 @@ function viewPhotoProduct(productId) {
   modal.show();
 }
 
-
-
 /**
  * ==========================================
  * INITIALIZATION ON PAGE LOAD - FIREBASE VERSION
  * ==========================================
  */
-
  document.addEventListener('DOMContentLoaded', async function() {
   console.log('🚀 Initializing Inventory App with Firebase...');
   
@@ -9126,12 +9369,14 @@ function viewPhotoProduct(productId) {
   const groupDetailPage = document.getElementById('groupDetailPage');
   const brandsPage = document.getElementById('brandsPage');
   const sizesPage = document.getElementById('sizesPage');
+  const categoriesPage = document.getElementById('categoriesPage');
   
   if (allProductsPage) allProductsPage.classList.remove('active');
   if (productGroupsPage) productGroupsPage.classList.remove('active');
   if (groupDetailPage) groupDetailPage.classList.remove('active');
   if (brandsPage) brandsPage.classList.remove('active');
   if (sizesPage) sizesPage.classList.remove('active');
+  if (categoriesPage) categoriesPage.classList.remove('active');
   
   // Show main dashboard
   const mainApp = document.getElementById('mainApp');
@@ -9157,7 +9402,7 @@ function viewPhotoProduct(productId) {
       const brandField = document.getElementById('brand');
       if (brandField) brandField.value = '';
       
-      // ✅ Reset Size Button
+      // Reset Size Button
       const saveSizeBtn = document.getElementById('saveSizeInsideBtn');
       if (saveSizeBtn) {
         saveSizeBtn.style.display = 'none';
@@ -9166,9 +9411,13 @@ function viewPhotoProduct(productId) {
         saveSizeBtn.disabled = false;
       }
       
-      // ✅ Reset Size Field
+      // Reset Size Field
       const sizeField = document.getElementById('size');
       if (sizeField) sizeField.value = '';
+      
+      // ✅ Reset Category Dropdown (no button needed - it's a select)
+      const categoryField = document.getElementById('category');
+      if (categoryField) categoryField.value = '';
       
       // Clear photo selection
       if (typeof clearProductPhotoSelection === 'function') {
@@ -9179,7 +9428,7 @@ function viewPhotoProduct(productId) {
       const brandDropdown = document.getElementById('addProductBrandSuggestionsDropdown');
       if (brandDropdown) brandDropdown.style.display = 'none';
       
-      // ✅ Hide Size Dropdown
+      // Hide Size Dropdown
       const sizeDropdown = document.getElementById('addProductSizeSuggestionsDropdown');
       if (sizeDropdown) sizeDropdown.style.display = 'none';
       
@@ -9203,11 +9452,18 @@ function viewPhotoProduct(productId) {
     console.warn('⚠️ loadSizeAutocompleteCache function not found');
   }
   
-  // ✅ FIREBASE INITIALIZATION: Firebase Auth will handle sync
-  // The auth state listener in handleEmailPasswordAuth will trigger syncFromFirestore()
+  // ✅ Load Category Cache
+  if (typeof loadCategoryAutocompleteCache === 'function') {
+    console.log('📦 Loading category cache...');
+    await loadCategoryAutocompleteCache();
+  } else {
+    console.warn('⚠️ loadCategoryAutocompleteCache function not found');
+  }
+  
+  // ✅ FIREBASE INITIALIZATION
   console.log('📱 Waiting for Firebase authentication...');
   
-  // Load from localStorage cache first (instant display)
+  // Load from localStorage cache first
   try {
     cachedProducts = JSON.parse(localStorage.getItem('inventory_products_cache') || '[]');
     cachedSales = JSON.parse(localStorage.getItem('inventory_sales_cache') || '[]');
@@ -9218,13 +9474,13 @@ function viewPhotoProduct(productId) {
     console.warn('⚠️ Cache load failed:', e);
   }
   
-  // Load purchases (if function exists)
+  // Load purchases
   if (typeof loadRecentPurchases === 'function') {
     console.log('📦 Loading purchases...');
     await loadRecentPurchases();
   }
   
-  // Load customer invoices (if function exists)
+  // Load customer invoices
   if (typeof loadCustomerInvoices === 'function') {
     console.log('📄 Loading customer invoices...');
     await loadCustomerInvoices();
@@ -9232,7 +9488,6 @@ function viewPhotoProduct(productId) {
   
   console.log('✅ App initialization complete');
 });
-
 
 
 /**
@@ -16218,10 +16473,9 @@ async function createProductGroup(groupData) {
 
 
 
-
 /**
  * ==========================================
- * NAVIGATE TO HOME - UPDATED WITH SIZES
+ * NAVIGATE TO HOME - UPDATED WITH CATEGORIES
  * ==========================================
  */
  function navigateToHome() {
@@ -16235,7 +16489,8 @@ async function createProductGroup(groupData) {
   const customersPage = document.getElementById('customersPage');
   const groupDetailPage = document.getElementById('groupDetailPage');
   const brandsPage = document.getElementById('brandsPage');
-  const sizesPage = document.getElementById('sizesPage'); // ✅ NEW
+  const sizesPage = document.getElementById('sizesPage');
+  const categoriesPage = document.getElementById('categoriesPage'); // ✅ NEW
   
   // Show main app
   if (mainApp) mainApp.style.display = 'block';
@@ -16257,9 +16512,13 @@ async function createProductGroup(groupData) {
     brandsPage.classList.remove('active');
     brandsPage.style.display = 'none';
   }
-  if (sizesPage) { // ✅ NEW
+  if (sizesPage) {
     sizesPage.classList.remove('active');
     sizesPage.style.display = 'none';
+  }
+  if (categoriesPage) { // ✅ NEW
+    categoriesPage.classList.remove('active');
+    categoriesPage.style.display = 'none';
   }
   if (groupDetailPage) {
     groupDetailPage.classList.remove('active');
@@ -16272,7 +16531,7 @@ async function createProductGroup(groupData) {
   
   window.scrollTo({ top: 0, behavior: 'smooth' });
   
-  // ✅ AUTO-LOAD SALES AND PURCHASES FOR HOMEPAGE
+  // Auto-load sales and purchases
   console.log('🔄 Loading sales and purchases...');
   
   if (typeof loadRecentSales === 'function') {
@@ -16289,13 +16548,12 @@ async function createProductGroup(groupData) {
   
   console.log('✅ Home displayed');
 }
-
 /**
  * ==========================================
  * CENTRALIZED NAVIGATION FUNCTION - UPDATED
  * ==========================================
  */
-function navigateTo(page) {
+ function navigateTo(page) {
   console.log('🔷 navigateTo called with:', page);
   
   if (page === 'dashboard') {
@@ -16309,8 +16567,10 @@ function navigateTo(page) {
   } else if (page === 'brands') {
     navigateToBrands();
   } else if (page === 'sizes') {
-    // ✅ NEW: Navigate to sizes page
     navigateToSizes();
+  } else if (page === 'categories') {
+    // ✅ NEW: Navigate to categories page
+    navigateToCategories();
   } else if (page === 'sales') {
     navigateToSales();
   } else if (page === 'purchases') {
@@ -19570,6 +19830,521 @@ function debugSortPreferences() {
 window.debugSortPreferences = debugSortPreferences;
 
 
+
+/**
+ * ==========================================
+ * CATEGORY MANAGEMENT SYSTEM - FIREBASE VERSION
+ * ==========================================
+ */
+/**
+ * Load categories from Firestore and cache them
+ */
+ async function loadCategoryAutocompleteCache() {
+  if (categoryCacheLoaded) {
+    console.log('✅ Category cache already loaded');
+    return;
+  }
+  
+  const user = window.auth?.currentUser;
+  
+  if (!user) {
+    console.log('⚠️ No user authenticated, skipping category cache load');
+    return;
+  }
+  
+  console.log('📥 Loading category autocomplete cache from Firestore...');
+  
+  try {
+    const { collection, getDocs } = window.firebaseImports;
+    
+    const categoriesRef = collection(window.db, 'tenants', user.uid, 'categories');
+    const snapshot = await getDocs(categoriesRef);
+    
+    const categories = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      const categoryName = data.name || data.categoryName;
+      if (categoryName) {
+        categories.push(categoryName);
+      }
+    });
+    
+    categoriesCache = categories;
+    categoryAutocompleteCache = categories;
+    categoryCacheLoaded = true;
+    
+    console.log('✅ Loaded', categories.length, 'categories into cache from Firestore');
+    
+  } catch (error) {
+    console.error('❌ Error loading category cache from Firestore:', error);
+    
+    // Fallback: Extract from products
+    try {
+      const uniqueCategories = [...new Set(
+        cachedProducts
+          .map(p => p.category)
+          .filter(c => c && c.trim() !== '')
+      )];
+      
+      categoriesCache = uniqueCategories;
+      categoryAutocompleteCache = uniqueCategories;
+      categoryCacheLoaded = true;
+      
+      console.log('✅ Extracted', uniqueCategories.length, 'categories from products as fallback');
+    } catch (fallbackError) {
+      console.error('❌ Fallback category extraction failed:', fallbackError);
+    }
+  }
+}
+
+/**
+ * Navigate to Categories Page
+ */
+function navigateToCategories() {
+  console.log('📦 Navigating to Categories page');
+  
+  // Hide all pages manually
+  const mainApp = document.getElementById('mainApp');
+  const allProductsPage = document.getElementById('allProductsPage');
+  const productGroupsPage = document.getElementById('productGroupsPage');
+  const customersPage = document.getElementById('customersPage');
+  const groupDetailPage = document.getElementById('groupDetailPage');
+  const brandsPage = document.getElementById('brandsPage');
+  const sizesPage = document.getElementById('sizesPage');
+  const categoriesPage = document.getElementById('categoriesPage');
+  
+  if (mainApp) mainApp.style.display = 'none';
+  if (allProductsPage) {
+    allProductsPage.classList.remove('active');
+    allProductsPage.style.display = 'none';
+  }
+  if (productGroupsPage) {
+    productGroupsPage.classList.remove('active');
+    productGroupsPage.style.display = 'none';
+  }
+  if (customersPage) {
+    customersPage.classList.remove('active');
+    customersPage.style.display = 'none';
+  }
+  if (brandsPage) {
+    brandsPage.classList.remove('active');
+    brandsPage.style.display = 'none';
+  }
+  if (sizesPage) {
+    sizesPage.classList.remove('active');
+    sizesPage.style.display = 'none';
+  }
+  if (groupDetailPage) {
+    groupDetailPage.classList.remove('active');
+    groupDetailPage.style.display = 'none';
+  }
+  
+  // Show categories page
+  if (categoriesPage) {
+    categoriesPage.style.display = 'block';
+    categoriesPage.classList.add('active');
+  }
+  
+  // Hide navbar
+  const navbar = document.querySelector('.navbar');
+  if (navbar) navbar.style.display = 'none';
+  
+  if (typeof closeSidebar === 'function') {
+    closeSidebar();
+  }
+  
+  loadCategories();
+}
+/**
+ * Load categories from Firebase
+ */
+ async function loadCategories() {
+  try {
+    console.log('📡 Fetching categories from Firebase...');
+    
+    const user = window.auth.currentUser;
+    
+    if (!user) {
+      console.error('❌ No user authenticated');
+      throw new Error('Please sign in first');
+    }
+    
+    const { collection, getDocs } = window.firebaseImports;
+    const userId = user.uid;
+    
+    const categoriesRef = collection(window.db, 'tenants', userId, 'categories');
+    const categoriesSnap = await getDocs(categoriesRef);
+    
+    categoriesCache = [];
+    categoriesSnap.forEach((doc) => {
+      const data = doc.data();
+      const categoryName = data.name || data.categoryName;
+      if (categoryName) {
+        categoriesCache.push(categoryName);
+      }
+    });
+    
+    console.log('✅ Loaded', categoriesCache.length, 'categories from Firebase');
+    
+    // Sync caches
+    syncCategoryCaches();
+    
+    renderCategoriesList();
+    
+    // ✅ Update category dropdown in Add Product modal (if open)
+    if (typeof populateCategoryDropdown === 'function') {
+      populateCategoryDropdown();
+    }
+    
+  } catch (error) {
+    console.error('❌ Error loading categories:', error);
+    
+    const container = document.getElementById('categoriesListContainer');
+    if (container) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:40px; color:#dc3545;">
+          <i class="bi bi-exclamation-circle" style="font-size:48px;"></i>
+          <h4 style="margin-top:20px;">Error Loading Categories</h4>
+          <p>${error.message}</p>
+          <button class="btn btn-primary mt-3" onclick="loadCategories()">
+            <i class="bi bi-arrow-clockwise"></i> Retry
+          </button>
+        </div>
+      `;
+    }
+  }
+}
+
+/**
+ * Render categories list
+ */
+function renderCategoriesList() {
+  const container = document.getElementById('categoriesListContainer');
+  const emptyState = document.getElementById('categoriesEmptyState');
+  
+  if (!container) return;
+  
+  if (categoriesCache.length === 0) {
+    container.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'block';
+    return;
+  }
+  
+  container.style.display = 'grid';
+  if (emptyState) emptyState.style.display = 'none';
+  
+  // Sort alphabetically
+  const sortedCategories = [...categoriesCache].sort((a, b) => a.localeCompare(b));
+  
+  let html = '<div class="row g-3">';
+  
+  sortedCategories.forEach(category => {
+    html += `
+      <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+        <div class="card h-100" style="border-radius: 8px; transition: all 0.2s;">
+          <div class="card-body d-flex align-items-center justify-content-between">
+            <div>
+              <h6 class="mb-0" style="font-weight: 600;">
+                <i class="bi bi-grid-3x3-gap text-info"></i> ${category}
+              </h6>
+            </div>
+            <button 
+              class="btn btn-sm btn-outline-danger" 
+              onclick="deleteCategory('${escapeHtml(category)}')"
+              title="Delete">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  
+  container.innerHTML = html;
+}
+
+/**
+ * Filter categories (search)
+ */
+function filterCategories(query) {
+  const cards = document.querySelectorAll('#categoriesListContainer .card');
+  const lowerQuery = query.toLowerCase().trim();
+  
+  cards.forEach(card => {
+    const text = card.textContent.toLowerCase();
+    if (text.includes(lowerQuery)) {
+      card.parentElement.style.display = 'block';
+    } else {
+      card.parentElement.style.display = 'none';
+    }
+  });
+}
+
+/**
+ * Open Add Category Modal
+ */
+function openAddCategoryModal() {
+  const modal = new bootstrap.Modal(document.getElementById('addCategoriesModal'));
+  modal.show();
+  
+  // Clear previous data
+  pendingCategories = [];
+  updateCategoryPreviewList();
+  
+  // Focus on input
+  setTimeout(() => {
+    document.getElementById('categoryInput').focus();
+  }, 300);
+}
+
+/**
+ * Handle category input keydown (Enter or Comma)
+ */
+function handleCategoryInputKeydown(event) {
+  const input = event.target;
+  const value = input.value.trim();
+  
+  if (event.key === 'Enter' || event.key === ',') {
+    event.preventDefault();
+    
+    if (!value || value.length === 0) {
+      return;
+    }
+    
+    if (pendingCategories.includes(value)) {
+      alert('⚠️ Category already in list!');
+      return;
+    }
+    
+    pendingCategories.push(value);
+    updateCategoryPreviewList();
+    
+    // Clear input
+    input.value = '';
+    window.lastCategoryInput = '';
+    
+    console.log('✅ Added category:', value);
+  }
+}
+
+/**
+ * Update category preview list
+ */
+function updateCategoryPreviewList() {
+  const previewList = document.getElementById('categoryPreviewList');
+  const previewCount = document.getElementById('categoryPreviewCount');
+  
+  if (pendingCategories.length === 0) {
+    previewList.innerHTML = '<div style="padding: 15px; color: #999; text-align: center; font-size: 14px;">No categories added yet</div>';
+    previewCount.textContent = '📝 Categories to Save (0):';
+    return;
+  }
+  
+  previewCount.textContent = `📝 Categories to Save (${pendingCategories.length}):`;
+  
+  let html = '';
+  pendingCategories.forEach((category, index) => {
+    html += `
+      <div style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px;
+        background: white;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        border: 1px solid #e0e0e0;
+      ">
+        <span style="font-weight: 500;"><i class="bi bi-grid-3x3-gap text-info"></i> ${category}</span>
+        <button 
+          onclick="removePendingCategory(${index})" 
+          style="
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 18px;
+          "
+          title="Remove">
+          <i class="bi bi-x-circle"></i>
+        </button>
+      </div>
+    `;
+  });
+  
+  previewList.innerHTML = html;
+}
+
+/**
+ * Remove pending category
+ */
+function removePendingCategory(index) {
+  const removed = pendingCategories.splice(index, 1);
+  console.log('🗑️ Removed:', removed[0]);
+  updateCategoryPreviewList();
+}
+/**
+ * Save all categories to Firebase
+ */
+ async function saveAllCategories() {
+  if (pendingCategories.length === 0) {
+    alert('⚠️ Please add at least one category');
+    return;
+  }
+  
+  console.log('💾 Saving', pendingCategories.length, 'categories...');
+  
+  const user = window.auth.currentUser;
+  
+  if (!user) {
+    alert('❌ Please sign in first');
+    return;
+  }
+  
+  try {
+    const { collection, addDoc } = window.firebaseImports;
+    const userId = user.uid;
+    
+    let successCount = 0;
+    let skipCount = 0;
+    
+    for (const category of pendingCategories) {
+      // Check if already exists
+      if (categoriesCache.includes(category)) {
+        skipCount++;
+        console.log('⚠️ Skipped (already exists):', category);
+        continue;
+      }
+      
+      // Save to Firestore
+      const categoriesRef = collection(window.db, 'tenants', userId, 'categories');
+      await addDoc(categoriesRef, {
+        name: category,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId: userId
+      });
+      
+      successCount++;
+      console.log('✅ Saved:', category);
+    }
+    
+    console.log(`✅ Complete: ${successCount} saved, ${skipCount} skipped`);
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('addCategoriesModal'));
+    if (modal) modal.hide();
+    
+    // Reload categories
+    await loadCategories();
+    
+    // ✅ Update dropdown in Add Product modal
+    if (typeof populateCategoryDropdown === 'function') {
+      populateCategoryDropdown();
+    }
+    
+    // Show result
+    if (skipCount > 0) {
+      alert(`✅ Saved ${successCount} category(ies)\nℹ️ ${skipCount} already existed`);
+    } else {
+      alert(`✅ Successfully saved ${successCount} category(ies)!`);
+    }
+    
+  } catch (error) {
+    console.error('❌ Error saving categories:', error);
+    alert('❌ Error saving categories: ' + error.message);
+  }
+}
+
+/**
+ * Delete category
+ */
+async function deleteCategory(categoryName) {
+  if (!confirm(`Delete category "${categoryName}"?`)) {
+    return;
+  }
+  
+  try {
+    const user = window.auth.currentUser;
+    if (!user) throw new Error('Not authenticated');
+    
+    const { collection, getDocs, deleteDoc, doc } = window.firebaseImports;
+    const userId = user.uid;
+    
+    // Find and delete
+    const categoriesRef = collection(window.db, 'tenants', userId, 'categories');
+    const snapshot = await getDocs(categoriesRef);
+    
+    let deleted = false;
+    for (const docSnapshot of snapshot.docs) {
+      const data = docSnapshot.data();
+      if ((data.name || data.categoryName) === categoryName) {
+        await deleteDoc(doc(window.db, 'tenants', userId, 'categories', docSnapshot.id));
+        deleted = true;
+        break;
+      }
+    }
+    
+    if (deleted) {
+      console.log('✅ Deleted category:', categoryName);
+      await loadCategories();
+    } else {
+      console.warn('⚠️ Category not found:', categoryName);
+    }
+    
+  } catch (error) {
+    console.error('❌ Error deleting category:', error);
+    alert('❌ Error deleting category: ' + error.message);
+  }
+}
+
+/**
+ * Sync category caches
+ */
+function syncCategoryCaches() {
+  console.log('🔄 Syncing category caches...');
+  categoryAutocompleteCache = [...categoriesCache];
+  categoryAutocompleteCache = [...new Set(categoryAutocompleteCache)];
+  console.log('✅ Sync complete -', categoryAutocompleteCache.length, 'categories');
+}
+
+/**
+ * ==========================================
+ * ADD PRODUCT MODAL - CATEGORY AUTOCOMPLETE
+ * ==========================================
+ */
+
+
+
+// Make functions global
+window.navigateToCategories = navigateToCategories;
+window.loadCategories = loadCategories;
+window.loadCategoryAutocompleteCache = loadCategoryAutocompleteCache;
+window.renderCategoriesList = renderCategoriesList;
+window.filterCategories = filterCategories;
+window.openAddCategoryModal = openAddCategoryModal;
+window.handleCategoryInputKeydown = handleCategoryInputKeydown;
+window.updateCategoryPreviewList = updateCategoryPreviewList;
+window.removePendingCategory = removePendingCategory;
+window.saveAllCategories = saveAllCategories;
+window.deleteCategory = deleteCategory;
+window.syncCategoryCaches = syncCategoryCaches;
+window.showCategorySuggestions = showCategorySuggestions;
+window.filterCategorySuggestions = filterCategorySuggestions;
+window.renderCategorySuggestions = renderCategorySuggestions;
+window.selectCategorySuggestion = selectCategorySuggestion;
+window.hideCategorySuggestions = hideCategorySuggestions;
+window.checkAndShowSaveCategoryButton = checkAndShowSaveCategoryButton;
+window.saveNewCategoryFromProductField = saveNewCategoryFromProductField;
+
+console.log('✅ Category management system loaded');
+
+
+
+
+
 /**
  * ==========================================
  * SIZE MANAGEMENT SYSTEM - FIREBASE VERSION
@@ -20428,47 +21203,140 @@ console.log('✅ Sales functions made globally available');
  * ==========================================
  */
 
-
-
 /**
  * ==========================================
- * 🎯 BULK EDIT - CATEGORY
+ * 🎯 BULK EDIT - CATEGORY (DYNAMIC)
  * ==========================================
  */
 
 /**
- * Show Category Bulk Edit - FIXED: Shows cancel button immediately
+ * Populate bulk category dropdown from cache
  */
- function showCategoryBulkEdit() {
+ async function populateBulkCategoryDropdown() {
+  const dropdownMenu = document.getElementById('bulkCategoryDropdownMenu');
+  
+  if (!dropdownMenu) {
+    console.warn('⚠️ Bulk category dropdown menu not found');
+    return;
+  }
+  
+  // ✅ Load categories if cache is empty
+  if ((!categoriesCache || categoriesCache.length === 0) && !categoryCacheLoaded) {
+    console.log('📥 Categories not loaded, loading now...');
+    
+    const user = window.auth?.currentUser;
+    if (user) {
+      try {
+        const { collection, getDocs } = window.firebaseImports;
+        const categoriesRef = collection(window.db, 'tenants', user.uid, 'categories');
+        const snapshot = await getDocs(categoriesRef);
+        
+        const categories = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const categoryName = data.name || data.categoryName;
+          if (categoryName) categories.push(categoryName);
+        });
+        
+        categoriesCache = categories;
+        categoryAutocompleteCache = categories;
+        categoryCacheLoaded = true;
+        
+        console.log('✅ Loaded', categories.length, 'categories for bulk edit');
+      } catch (error) {
+        console.error('❌ Error loading categories:', error);
+      }
+    }
+  }
+  
+  // Clear existing items
+  dropdownMenu.innerHTML = '';
+  
+  // Check if categories exist
+  if (!categoriesCache || categoriesCache.length === 0) {
+    dropdownMenu.innerHTML = `
+      <li><a class="dropdown-item text-muted" href="javascript:void(0);">No categories available</a></li>
+      <li><hr class="dropdown-divider"></li>
+      <li><a class="dropdown-item text-info" href="javascript:void(0);" onclick="navigateTo('categories')">
+        <i class="bi bi-plus-circle"></i> Add categories from sidebar
+      </a></li>
+    `;
+    console.log('⚠️ No categories found');
+    return;
+  }
+  
+  // Sort categories alphabetically
+  const sortedCategories = [...categoriesCache].sort((a, b) => a.localeCompare(b));
+  
+  // Add each category as a dropdown item
+  sortedCategories.forEach(category => {
+    const li = document.createElement('li');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'dropdown-item';
+    button.onclick = function() { selectBulkCategory(category); };
+    button.innerHTML = `<i class="bi bi-grid-3x3-gap"></i> ${category}`;
+    li.appendChild(button);
+    dropdownMenu.appendChild(li);
+  });
+  
+  console.log('✅ Populated bulk category dropdown with', sortedCategories.length, 'categories');
+}
+
+/**
+ * Show Category Bulk Edit
+ */
+async function showCategoryBulkEdit() {
   console.log('📝 Opening category bulk edit mode...');
   
-  // ✅ HIDE THE MAIN DROPDOWN BUTTON
+  // Reset state
+  bulkEditMode = {
+    active: false,
+    field: null,
+    value: null,
+    selectedProducts: []
+  };
+  
+  // ✅ Load categories into dropdown
+  await populateBulkCategoryDropdown();
+  
+  // Hide main dropdown button
   const mainDropdownContainer = document.querySelector('#bulkEditDropdown').closest('.dropdown');
   if (mainDropdownContainer) {
     mainDropdownContainer.style.display = 'none';
   }
   
-  // ✅ Show category selection UI AND cancel button
+  // Show category selection UI and cancel button
   document.getElementById('categorySelectionDropdown').style.display = 'inline-block';
-  document.getElementById('cancelBulkEditBtn').style.display = 'inline-block'; // ← FIXED: Show immediately
+  document.getElementById('cancelBulkEditBtn').style.display = 'inline-block';
   document.getElementById('bulkEditInfoText').style.display = 'block';
   document.getElementById('bulkEditToolbar').classList.add('active');
   
-  console.log('✅ Category selection UI shown');
+  // Reset button text
+  document.getElementById('selectedCategoryText').textContent = 'Select Category';
+  document.getElementById('updateCategoryBtn').style.display = 'none';
+  
+  const countEl = document.getElementById('selectedCount');
+  if (countEl) countEl.textContent = '0';
+  
+  console.log('✅ Category selection UI shown with dynamic categories');
 }
 
-
 /**
- * Select Bulk Category - FIXED: No toast message
+ * Select Bulk Category
  */
 function selectBulkCategory(category) {
   console.log('📦 Selected category:', category);
   
-  // ✅ Close category dropdown
-  document.getElementById('categoryDropdownBtn').click();
+  // Close category dropdown
+  const dropdownBtn = document.getElementById('categoryDropdownBtn');
+  if (dropdownBtn) {
+    const dropdown = bootstrap.Dropdown.getInstance(dropdownBtn);
+    if (dropdown) dropdown.hide();
+  }
   
   setTimeout(() => {
-    // ✅ Set bulk edit mode
+    // Set bulk edit mode
     bulkEditMode = {
       active: true,
       field: 'category',
@@ -20476,31 +21344,36 @@ function selectBulkCategory(category) {
       selectedProducts: []
     };
     
-    // ✅ Update UI
+    // Update UI
     document.getElementById('selectedCategoryText').textContent = category;
     document.getElementById('updateCategoryBtn').style.display = 'inline-block';
-    // Cancel button already shown by showCategoryBulkEdit()
     document.getElementById('selectedCount').textContent = '0';
     
-    // ✅ Enable product selection
-    enableProductSelection();
+    // Enable product selection
+    if (typeof enableProductSelection === 'function') {
+      enableProductSelection();
+    }
     
-    // ❌ REMOVED: showToast() - No longer showing toast message
+    console.log('✅ Category set:', category);
   }, 100);
 }
-
 
 /**
  * Apply Bulk Category Update - FIRESTORE VERSION
  */
 async function applyBulkCategoryUpdate() {
-  if (bulkEditMode.selectedProducts.length === 0) {
+  if (!bulkEditMode.selectedProducts || bulkEditMode.selectedProducts.length === 0) {
     alert('⚠️ Please select at least one product');
     return;
   }
   
   const category = bulkEditMode.value;
   const count = bulkEditMode.selectedProducts.length;
+  
+  if (!category || category === '') {
+    alert('⚠️ Please select a category');
+    return;
+  }
   
   if (!confirm(`Update category to "${category}" for ${count} product(s)?`)) {
     return;
@@ -20520,12 +21393,19 @@ async function applyBulkCategoryUpdate() {
     const { doc, setDoc } = window.firebaseImports;
     const userId = user.uid;
     
-    // ✅ Update each product in Firestore
+    console.log(`📝 Updating ${count} products to category: "${category}"`);
+    
+    // Update each product in Firestore
     let successCount = 0;
+    let errorCount = 0;
+    
     for (const productId of bulkEditMode.selectedProducts) {
       try {
         const product = cachedProducts.find(p => p.id === productId);
-        if (!product) continue;
+        if (!product) {
+          errorCount++;
+          continue;
+        }
         
         // Update product data
         const updatedProduct = {
@@ -20546,23 +21426,34 @@ async function applyBulkCategoryUpdate() {
         
         successCount++;
       } catch (error) {
-        console.error('Error updating product:', productId, error);
+        console.error('❌ Error updating product:', productId, error);
+        errorCount++;
       }
     }
     
-    // Update cache
-    localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+    // Update localStorage cache
+    try {
+      localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+    } catch (e) {
+      console.warn('⚠️ Failed to update cache:', e);
+    }
     
-    console.log(`✅ Updated ${successCount}/${count} products`);
+    console.log(`✅ Complete: ${successCount} success, ${errorCount} errors`);
     
-    // Cancel and re-render
+    // Cancel bulk edit mode
     cancelBulkEdit();
     
+    // Re-render products
     if (typeof renderProducts === 'function') {
       renderProducts();
     }
     
-    alert(`✅ Updated ${successCount} products successfully!`);
+    // Show result
+    if (errorCount > 0) {
+      alert(`✅ Updated ${successCount} product(s)\n⚠️ ${errorCount} error(s)`);
+    } else {
+      alert(`✅ Successfully updated ${successCount} product(s)!`);
+    }
     
   } catch (error) {
     console.error('❌ Error:', error);
@@ -20572,6 +21463,14 @@ async function applyBulkCategoryUpdate() {
     btn.innerHTML = originalText;
   }
 }
+
+// ✅ Make functions global
+window.populateBulkCategoryDropdown = populateBulkCategoryDropdown;
+window.showCategoryBulkEdit = showCategoryBulkEdit;
+window.selectBulkCategory = selectBulkCategory;
+window.applyBulkCategoryUpdate = applyBulkCategoryUpdate;
+
+console.log('✅ Bulk category edit functions loaded (dynamic)');
 
 
 /**
@@ -22772,9 +23671,75 @@ window.saveNewBrandFromBulkField = saveNewBrandFromBulkField;
 
 });
 
+/**
+ * Populate category dropdown with categories from cache
+ */
+ async function populateCategoryDropdown() {
+  const categorySelect = document.getElementById('category');
+  
+  if (!categorySelect) {
+    console.warn('⚠️ Category dropdown not found');
+    return;
+  }
+  
+  // ✅ Load categories if cache is empty
+  if ((!categoriesCache || categoriesCache.length === 0) && !categoryCacheLoaded) {
+    console.log('📥 Categories not loaded, loading now...');
+    
+    const user = window.auth?.currentUser;
+    if (user) {
+      try {
+        const { collection, getDocs } = window.firebaseImports;
+        const categoriesRef = collection(window.db, 'tenants', user.uid, 'categories');
+        const snapshot = await getDocs(categoriesRef);
+        
+        const categories = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const categoryName = data.name || data.categoryName;
+          if (categoryName) categories.push(categoryName);
+        });
+        
+        categoriesCache = categories;
+        categoryAutocompleteCache = categories;
+        categoryCacheLoaded = true;
+        
+        console.log('✅ Loaded', categories.length, 'categories');
+      } catch (error) {
+        console.error('❌ Error loading categories:', error);
+      }
+    }
+  }
+  
+  // Clear existing options except the first (placeholder)
+  categorySelect.innerHTML = '<option value="">Select Category</option>';
+  
+  // Check if categories are loaded
+  if (!categoriesCache || categoriesCache.length === 0) {
+    console.log('⚠️ No categories found in cache');
+    categorySelect.innerHTML = `
+      <option value="">No categories available</option>
+      <option value="" disabled>➜ Add categories from sidebar menu</option>
+    `;
+    return;
+  }
+  
+  // Sort categories alphabetically
+  const sortedCategories = [...categoriesCache].sort((a, b) => a.localeCompare(b));
+  
+  // Add each category as an option
+  sortedCategories.forEach(category => {
+    const option = document.createElement('option');
+    option.value = category;
+    option.textContent = category;
+    categorySelect.appendChild(option);
+  });
+  
+  console.log('✅ Populated category dropdown with', sortedCategories.length, 'categories');
+}
 
-
-
+// Make it global
+window.populateCategoryDropdown = populateCategoryDropdown;
 
 
 
