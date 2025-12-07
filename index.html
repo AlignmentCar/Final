@@ -1676,6 +1676,157 @@
 
 
 
+<!-- ✅✅✅ SIZES PAGE ✅✅✅ -->
+<div class="page-view" id="sizesPage">
+  <!-- Header -->
+  <div class="page-header">
+    <button class="back-btn" onclick="navigateTo('dashboard')">
+      <i class="bi bi-arrow-left"></i> Back
+    </button>
+    <h3><i class="bi bi-rulers"></i> Sizes</h3>
+    <button class="btn btn-success" onclick="openAddSizeModal()">
+      <i class="bi bi-plus-lg"></i> Add
+    </button>
+  </div>
+  
+  <!-- Search Box -->
+  <div class="container-fluid" style="padding: 20px;">
+    <input 
+      type="text" 
+      class="form-control mb-3" 
+      id="searchSizesInput" 
+      placeholder="🔍 Search sizes..." 
+      onkeyup="filterSizes(this.value)"
+      style="max-width: 600px; margin: 0 auto;"
+    >
+    
+    <!-- Sizes List Container -->
+    <div id="sizesListContainer">
+      <!-- Size cards will be rendered here by JavaScript -->
+      <div style="text-align:center; padding:40px;">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-3">Loading sizes...</p>
+      </div>
+    </div>
+    
+    <!-- Empty State -->
+    <div id="sizesEmptyState" style="display:none; text-align:center; padding:60px 20px;">
+      <i class="bi bi-rulers" style="font-size:64px; color:#ccc;"></i>
+      <h4 style="margin-top:20px;">No Sizes Yet</h4>
+      <p>Add your first size to get started</p>
+      <button class="btn btn-primary mt-3" onclick="openAddSizeModal()">
+        <i class="bi bi-plus-lg"></i> Add First Size
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ Add Sizes Modal -->
+<div class="modal fade" id="addSizesModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-plus-circle"></i> Add New Sizes
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+  
+        <!-- Instructions -->
+        <div class="alert alert-info" style="font-size: 14px;">
+          <i class="bi bi-info-circle"></i>
+          Enter size names below. Press <strong>Enter</strong> or <strong>Comma (,)</strong> after each size, or click <strong>Add to List</strong>.
+        </div>
+        
+        <!-- Input Field -->
+        <input 
+          id="sizeInput" 
+          type="text" 
+          class="form-control form-control-lg mb-2" 
+          placeholder="e.g., 2x2 feet, 600x600 mm, Standard..."
+          onkeydown="handleSizeInputKeydown(event)"
+          oninput="window.lastSizeInput = this.value"
+          autocomplete="off"
+          style="color: #212529; background-color: #fff;"
+        >
+        
+        <!-- Add to List Button -->
+        <button 
+          type="button"
+          class="btn btn-primary w-100"
+          onmousedown="event.preventDefault(); (function(){
+            var val = window.lastSizeInput ? window.lastSizeInput.trim() : document.getElementById('sizeInput').value.trim();
+            console.log('✅ Button clicked, value:', val);
+            if(!val || val.length === 0) { 
+              alert('⚠️ Please enter a size'); 
+              return; 
+            }
+            if(typeof pendingSizes === 'undefined') {
+              pendingSizes = [];
+            }
+            if(pendingSizes.includes(val)) { 
+              alert('⚠️ Size already in list!'); 
+              return; 
+            }
+            pendingSizes.push(val);
+            if(typeof updateSizePreviewList === 'function') {
+              updateSizePreviewList();
+            }
+            console.log('✅ Added:', val);
+            
+            // Clear input
+            document.querySelectorAll('#sizeInput').forEach(function(inp){
+              inp.value = '';
+              inp.setAttribute('value', '');
+              window.lastSizeInput = '';
+              inp.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+            console.log('🧹 Input cleared');
+            
+            setTimeout(function(){ 
+              document.getElementById('sizeInput').focus(); 
+            }, 50);
+          })()"
+          style="padding: 10px; font-size: 16px;"
+        >
+          <i class="bi bi-plus-lg"></i> Add to List
+        </button>
+        
+        <!-- Preview Section -->
+        <div style="margin-top: 20px;">
+          <p style="font-weight: 600; margin-bottom: 10px; font-size: 14px; color: #333;" id="sizePreviewCount">
+            📝 Sizes to Save (0):
+          </p>
+          <div id="sizePreviewList" style="
+            background: #f8f9fa; 
+            border: 1px solid #e0e0e0;
+            border-radius: 8px; 
+            max-height: 250px; 
+            overflow-y: auto;
+            min-height: 80px; 
+            padding: 10px;
+          ">
+            <div style="padding: 15px; color: #999; text-align: center; font-size: 14px;">
+              No sizes added yet
+            </div>
+          </div>
+        </div>
+        
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle"></i> Cancel
+        </button>
+        <button type="button" class="btn btn-primary" onclick="saveAllSizes()">
+          <i class="bi bi-check-circle"></i> Save All Sizes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 
     
@@ -2212,12 +2363,71 @@
       </div>
     </div>
     
-    <!-- Size Field -->
-    <div class="col-md-6">
-      <label class="form-label">Size</label>
-      <input id="size" class="form-control" placeholder="e.g., 2x2 feet or Standard"/>
-    </div>
+    <!-- Size Field with Autocomplete -->
+<div class="col-md-6" style="position: relative;">
+  <label class="form-label">Size</label>
+  
+  <!-- Input Field Container -->
+  <div style="position: relative;">
+    <input 
+      id="size" 
+      class="form-control" 
+      type="text"
+      autocomplete="off"
+      oninput="filterSizeSuggestions(this.value); checkAndShowSaveSizeButton(this.value)"
+      onfocus="showSizeSuggestions()"
+      onblur="setTimeout(() => hideSizeSuggestions(), 200)"
+      placeholder="Type to search sizes..."
+      style="padding-right: 40px;">
+    
+    <!-- 💾 Save Size Button (Inside Field) -->
+    <button id="saveSizeInsideBtn" 
+      type="button"
+      onclick="saveNewSizeFromProductField()"
+      style="
+        display: none;
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+        transition: all 0.2s;
+        z-index: 10;
+      "
+      onmouseover="this.style.background='#0056b3'"
+      onmouseout="this.style.background='#007bff'"
+      title="Save this size">
+      💾
+    </button>
   </div>
+  
+  <!-- ✅ Size Suggestions Dropdown for Add Product Modal -->
+  <div id="addProductSizeSuggestionsDropdown" style="
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-top: -1px;
+  ">
+    <!-- Suggestions rendered here -->
+  </div>
+</div>
   
   <!-- Pieces per Box & SFT per Box -->
   <div class="row mb-0">
@@ -2878,6 +3088,19 @@
 
 let currentUser = null;
 let userEmail = null;
+
+
+    /**
+ * ==========================================
+ * SIZE MANAGEMENT SYSTEM - FIREBASE VERSION
+ * ==========================================
+ */
+
+// Global size cache
+let sizeAutocompleteCache = [];
+let sizeCacheLoaded = false;
+let sizesCache = [];
+let pendingSizes = [];
     
  // ==========================================
 // FIREBASE CONFIGURATION
@@ -18158,6 +18381,691 @@ function debugSortPreferences() {
 window.debugSortPreferences = debugSortPreferences;
 
 
+
+/**
+ * Load sizes from Firestore and cache them
+ */
+async function loadSizeAutocompleteCache() {
+  if (sizeCacheLoaded) {
+    console.log('✅ Size cache already loaded');
+    return;
+  }
+  
+  const user = window.auth.currentUser;
+  
+  if (!user) {
+    console.log('No user authenticated, skipping size cache load');
+    return;
+  }
+  
+  console.log('📥 Loading size autocomplete cache from Firestore...');
+  
+  try {
+    const { collection, getDocs } = window.firebaseImports;
+    
+    const sizesRef = collection(window.db, 'tenants', user.uid, 'sizes');
+    const snapshot = await getDocs(sizesRef);
+    
+    const sizes = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      const sizeName = data.name || data.sizeName;
+      if (sizeName) {
+        sizes.push(sizeName);
+      }
+    });
+    
+    sizeAutocompleteCache = sizes;
+    sizeCacheLoaded = true;
+    
+    console.log('✅ Loaded', sizes.length, 'sizes into cache from Firestore');
+    
+  } catch (error) {
+    console.error('❌ Error loading size cache from Firestore:', error);
+    
+    // Fallback: Extract from products
+    try {
+      const uniqueSizes = [...new Set(
+        cachedProducts
+          .map(p => p.size)
+          .filter(s => s && s.trim() !== '')
+      )];
+      
+      sizeAutocompleteCache = uniqueSizes;
+      sizeCacheLoaded = true;
+      
+      console.log('✅ Extracted', uniqueSizes.length, 'sizes from products as fallback');
+    } catch (fallbackError) {
+      console.error('❌ Fallback size extraction failed:', fallbackError);
+    }
+  }
+}
+/**
+ * Navigate to Sizes Page
+ */
+ function navigateToSizes() {
+  console.log('📏 Navigating to Sizes page');
+  
+  // Hide all pages manually
+  const mainApp = document.getElementById('mainApp');
+  const allProductsPage = document.getElementById('allProductsPage');
+  const productGroupsPage = document.getElementById('productGroupsPage');
+  const customersPage = document.getElementById('customersPage');
+  const groupDetailPage = document.getElementById('groupDetailPage');
+  const brandsPage = document.getElementById('brandsPage');
+  const sizesPage = document.getElementById('sizesPage');
+  
+  if (mainApp) mainApp.style.display = 'none';
+  if (allProductsPage) {
+    allProductsPage.classList.remove('active');
+    allProductsPage.style.display = 'none';
+  }
+  if (productGroupsPage) {
+    productGroupsPage.classList.remove('active');
+    productGroupsPage.style.display = 'none';
+  }
+  if (customersPage) {
+    customersPage.classList.remove('active');
+    customersPage.style.display = 'none';
+  }
+  if (brandsPage) {
+    brandsPage.classList.remove('active');
+    brandsPage.style.display = 'none';
+  }
+  if (groupDetailPage) {
+    groupDetailPage.classList.remove('active');
+    groupDetailPage.style.display = 'none';
+  }
+  
+  // Show sizes page
+  if (sizesPage) {
+    sizesPage.style.display = 'block';
+    sizesPage.classList.add('active');
+  }
+  
+  // Hide navbar
+  const navbar = document.querySelector('.navbar');
+  if (navbar) navbar.style.display = 'none';
+  
+  closeSidebar();
+  
+  loadSizes();
+}
+
+/**
+ * Load sizes from Firebase
+ */
+async function loadSizes() {
+  try {
+    console.log('📡 Fetching sizes from Firebase...');
+    
+    const user = window.auth.currentUser;
+    
+    if (!user) {
+      console.error('❌ No user authenticated');
+      throw new Error('Please sign in first');
+    }
+    
+    const { collection, getDocs } = window.firebaseImports;
+    const userId = user.uid;
+    
+    const sizesRef = collection(window.db, 'tenants', userId, 'sizes');
+    const sizesSnap = await getDocs(sizesRef);
+    
+    sizesCache = [];
+    sizesSnap.forEach((doc) => {
+      const data = doc.data();
+      const sizeName = data.name || data.sizeName;
+      if (sizeName) {
+        sizesCache.push(sizeName);
+      }
+    });
+    
+    console.log('✅ Loaded', sizesCache.length, 'sizes from Firebase');
+    
+    // Sync caches
+    syncSizeCaches();
+    
+    renderSizesList();
+    
+  } catch (error) {
+    console.error('❌ Error loading sizes:', error);
+    
+    const container = document.getElementById('sizesListContainer');
+    if (container) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:40px; color:#dc3545;">
+          <i class="bi bi-exclamation-circle" style="font-size:48px;"></i>
+          <h4 style="margin-top:20px;">Error Loading Sizes</h4>
+          <p>${error.message}</p>
+          <button class="btn btn-primary mt-3" onclick="loadSizes()">
+            <i class="bi bi-arrow-clockwise"></i> Retry
+          </button>
+        </div>
+      `;
+    }
+  }
+}
+
+/**
+ * Render sizes list
+ */
+function renderSizesList() {
+  const container = document.getElementById('sizesListContainer');
+  const emptyState = document.getElementById('sizesEmptyState');
+  
+  if (!container) return;
+  
+  if (sizesCache.length === 0) {
+    container.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'block';
+    return;
+  }
+  
+  container.style.display = 'grid';
+  if (emptyState) emptyState.style.display = 'none';
+  
+  // Sort alphabetically
+  const sortedSizes = [...sizesCache].sort((a, b) => a.localeCompare(b));
+  
+  let html = '<div class="row g-3">';
+  
+  sortedSizes.forEach(size => {
+    html += `
+      <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+        <div class="card h-100" style="border-radius: 8px; transition: all 0.2s;">
+          <div class="card-body d-flex align-items-center justify-content-between">
+            <div>
+              <h6 class="mb-0" style="font-weight: 600;">
+                <i class="bi bi-rulers text-primary"></i> ${size}
+              </h6>
+            </div>
+            <button 
+              class="btn btn-sm btn-outline-danger" 
+              onclick="deleteSize('${escapeHtml(size)}')"
+              title="Delete">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  
+  container.innerHTML = html;
+}
+
+/**
+ * Filter sizes (search)
+ */
+function filterSizes(query) {
+  const cards = document.querySelectorAll('#sizesListContainer .card');
+  const lowerQuery = query.toLowerCase().trim();
+  
+  cards.forEach(card => {
+    const text = card.textContent.toLowerCase();
+    if (text.includes(lowerQuery)) {
+      card.parentElement.style.display = 'block';
+    } else {
+      card.parentElement.style.display = 'none';
+    }
+  });
+}
+
+/**
+ * Open Add Size Modal
+ */
+function openAddSizeModal() {
+  const modal = new bootstrap.Modal(document.getElementById('addSizesModal'));
+  modal.show();
+  
+  // Clear previous data
+  pendingSizes = [];
+  updateSizePreviewList();
+  
+  // Focus on input
+  setTimeout(() => {
+    document.getElementById('sizeInput').focus();
+  }, 300);
+}
+
+/**
+ * Handle size input keydown (Enter or Comma)
+ */
+function handleSizeInputKeydown(event) {
+  const input = event.target;
+  const value = input.value.trim();
+  
+  if (event.key === 'Enter' || event.key === ',') {
+    event.preventDefault();
+    
+    if (!value || value.length === 0) {
+      return;
+    }
+    
+    if (pendingSizes.includes(value)) {
+      alert('⚠️ Size already in list!');
+      return;
+    }
+    
+    pendingSizes.push(value);
+    updateSizePreviewList();
+    
+    // Clear input
+    input.value = '';
+    window.lastSizeInput = '';
+    
+    console.log('✅ Added size:', value);
+  }
+}
+
+/**
+ * Update size preview list
+ */
+function updateSizePreviewList() {
+  const previewList = document.getElementById('sizePreviewList');
+  const previewCount = document.getElementById('sizePreviewCount');
+  
+  if (pendingSizes.length === 0) {
+    previewList.innerHTML = '<div style="padding: 15px; color: #999; text-align: center; font-size: 14px;">No sizes added yet</div>';
+    previewCount.textContent = '📝 Sizes to Save (0):';
+    return;
+  }
+  
+  previewCount.textContent = `📝 Sizes to Save (${pendingSizes.length}):`;
+  
+  let html = '';
+  pendingSizes.forEach((size, index) => {
+    html += `
+      <div style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px;
+        background: white;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        border: 1px solid #e0e0e0;
+      ">
+        <span style="font-weight: 500;"><i class="bi bi-rulers text-primary"></i> ${size}</span>
+        <button 
+          onclick="removePendingSize(${index})" 
+          style="
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 18px;
+          "
+          title="Remove">
+          <i class="bi bi-x-circle"></i>
+        </button>
+      </div>
+    `;
+  });
+  
+  previewList.innerHTML = html;
+}
+
+/**
+ * Remove pending size
+ */
+function removePendingSize(index) {
+  const removed = pendingSizes.splice(index, 1);
+  console.log('🗑️ Removed:', removed[0]);
+  updateSizePreviewList();
+}
+
+/**
+ * Save all sizes to Firebase
+ */
+async function saveAllSizes() {
+  if (pendingSizes.length === 0) {
+    alert('⚠️ Please add at least one size');
+    return;
+  }
+  
+  console.log('💾 Saving', pendingSizes.length, 'sizes...');
+  
+  const user = window.auth.currentUser;
+  
+  if (!user) {
+    alert('❌ Please sign in first');
+    return;
+  }
+  
+  try {
+    const { collection, addDoc } = window.firebaseImports;
+    const userId = user.uid;
+    
+    let successCount = 0;
+    let skipCount = 0;
+    
+    for (const size of pendingSizes) {
+      // Check if already exists
+      if (sizesCache.includes(size)) {
+        skipCount++;
+        console.log('⚠️ Skipped (already exists):', size);
+        continue;
+      }
+      
+      // Save to Firestore
+      const sizesRef = collection(window.db, 'tenants', userId, 'sizes');
+      await addDoc(sizesRef, {
+        name: size,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId: userId
+      });
+      
+      successCount++;
+      console.log('✅ Saved:', size);
+    }
+    
+    console.log(`✅ Complete: ${successCount} saved, ${skipCount} skipped`);
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('addSizesModal'));
+    if (modal) modal.hide();
+    
+    // Reload sizes
+    await loadSizes();
+    
+    // Show result
+    if (skipCount > 0) {
+      alert(`✅ Saved ${successCount} size(s)\nℹ️ ${skipCount} already existed`);
+    } else {
+      alert(`✅ Successfully saved ${successCount} size(s)!`);
+    }
+    
+  } catch (error) {
+    console.error('❌ Error saving sizes:', error);
+    alert('❌ Error saving sizes: ' + error.message);
+  }
+}
+
+/**
+ * Delete size
+ */
+async function deleteSize(sizeName) {
+  if (!confirm(`Delete size "${sizeName}"?`)) {
+    return;
+  }
+  
+  try {
+    const user = window.auth.currentUser;
+    if (!user) throw new Error('Not authenticated');
+    
+    const { collection, getDocs, deleteDoc, doc } = window.firebaseImports;
+    const userId = user.uid;
+    
+    // Find and delete
+    const sizesRef = collection(window.db, 'tenants', userId, 'sizes');
+    const snapshot = await getDocs(sizesRef);
+    
+    let deleted = false;
+    for (const docSnapshot of snapshot.docs) {
+      const data = docSnapshot.data();
+      if ((data.name || data.sizeName) === sizeName) {
+        await deleteDoc(doc(window.db, 'tenants', userId, 'sizes', docSnapshot.id));
+        deleted = true;
+        break;
+      }
+    }
+    
+    if (deleted) {
+      console.log('✅ Deleted size:', sizeName);
+      await loadSizes();
+    } else {
+      console.warn('⚠️ Size not found:', sizeName);
+    }
+    
+  } catch (error) {
+    console.error('❌ Error deleting size:', error);
+    alert('❌ Error deleting size: ' + error.message);
+  }
+}
+/**
+ * ==========================================
+ * ADD PRODUCT MODAL - SIZE AUTOCOMPLETE FUNCTIONS
+ * ==========================================
+ */
+
+/**
+ * Show size suggestions for ADD PRODUCT modal
+ */
+ async function showSizeSuggestions() {
+  const input = document.getElementById('size');
+  if (!input) return;
+  
+  console.log('👆 Add Product size field clicked');
+  
+  // Load cache if empty
+  if (!sizeAutocompleteCache || sizeAutocompleteCache.length === 0) {
+    const user = window.auth.currentUser;
+    if (user) {
+      try {
+        const { collection, getDocs } = window.firebaseImports;
+        const sizesRef = collection(window.db, 'tenants', user.uid, 'sizes');
+        const snapshot = await getDocs(sizesRef);
+        
+        const sizes = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const sizeName = data.name || data.sizeName;
+          if (sizeName) sizes.push(sizeName);
+        });
+        
+        sizeAutocompleteCache = sizes;
+        sizeCacheLoaded = true;
+        console.log('✅ Force loaded', sizes.length, 'sizes for Add Product');
+      } catch (error) {
+        console.error('❌ Error:', error);
+        return;
+      }
+    }
+  }
+  
+  const inputValue = input.value.trim();
+  
+  if (!inputValue || inputValue.length === 0) {
+    if (sizeAutocompleteCache && sizeAutocompleteCache.length > 0) {
+      renderSizeSuggestions(sizeAutocompleteCache);
+    }
+  } else {
+    filterSizeSuggestions(inputValue);
+  }
+}
+
+/**
+ * Filter size suggestions for ADD PRODUCT modal
+ */
+function filterSizeSuggestions(inputText) {
+  const dropdown = document.getElementById('addProductSizeSuggestionsDropdown');
+  
+  if (!inputText || inputText.trim().length === 0) {
+    if (dropdown) dropdown.style.display = 'none';
+    return;
+  }
+  
+  const query = inputText.toLowerCase().trim();
+  const matches = sizeAutocompleteCache.filter(size => 
+    size.toLowerCase().includes(query)
+  );
+  
+  if (matches.length > 0) {
+    renderSizeSuggestions(matches);
+  } else {
+    if (dropdown) dropdown.style.display = 'none';
+  }
+  
+  checkAndShowSaveSizeButton(inputText);
+}
+
+/**
+ * Render size suggestions for ADD PRODUCT modal
+ */
+function renderSizeSuggestions(matches) {
+  const dropdown = document.getElementById('addProductSizeSuggestionsDropdown');
+  if (!dropdown) return;
+  
+  const limitedMatches = matches.slice(0, 15);
+  
+  let html = '';
+  limitedMatches.forEach(size => {
+    const escaped = escapeHtml(size);
+    html += `
+      <div onclick="selectSizeSuggestion('${escaped}')" style="
+        padding: 10px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background 0.2s;
+      " onmouseover="this.style.background='#f5f5f5'" 
+         onmouseout="this.style.background='transparent'">
+        <strong>${size}</strong>
+      </div>
+    `;
+  });
+  
+  dropdown.innerHTML = html;
+  dropdown.style.display = 'block';
+  
+  console.log('✅ Rendered', limitedMatches.length, 'sizes for Add Product');
+}
+
+/**
+ * Select size for ADD PRODUCT modal
+ */
+function selectSizeSuggestion(sizeName) {
+  const input = document.getElementById('size');
+  const dropdown = document.getElementById('addProductSizeSuggestionsDropdown');
+  
+  if (input) {
+    input.value = sizeName;
+  }
+  
+  // Hide dropdown
+  if (dropdown) dropdown.style.display = 'none';
+  
+  // Hide save button
+  const saveBtn = document.getElementById('saveSizeInsideBtn');
+  if (saveBtn) saveBtn.style.display = 'none';
+  
+  console.log('✅ Selected size:', sizeName);
+}
+
+/**
+ * Hide size suggestions for ADD PRODUCT modal
+ */
+function hideSizeSuggestions() {
+  const dropdown = document.getElementById('addProductSizeSuggestionsDropdown');
+  if (dropdown) {
+    dropdown.style.display = 'none';
+  }
+}
+
+/**
+ * Check if size exists and show/hide save button
+ */
+function checkAndShowSaveSizeButton(inputText) {
+  const btn = document.getElementById('saveSizeInsideBtn');
+  if (!btn) return;
+  
+  const input = inputText.trim();
+  
+  if (!input || input.length === 0) {
+    btn.style.display = 'none';
+    return;
+  }
+  
+  const sizeExists = sizeAutocompleteCache.some(size => 
+    size.toLowerCase() === input.toLowerCase()
+  );
+  
+  if (!sizeExists) {
+    btn.innerHTML = '💾';
+    btn.style.background = '#007bff';
+    btn.style.cursor = 'pointer';
+    btn.disabled = false;
+    btn.style.display = 'block';
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+/**
+ * Save new size from ADD PRODUCT field
+ */
+async function saveNewSizeFromProductField() {
+  const input = document.getElementById('size');
+  const sizeName = input.value.trim();
+  const btn = document.getElementById('saveSizeInsideBtn');
+  
+  if (!sizeName || sizeName.length === 0) {
+    return;
+  }
+  
+  const user = window.auth.currentUser;
+  
+  if (!user) {
+    console.log('No user authenticated');
+    return;
+  }
+  
+  const sizeExists = sizeAutocompleteCache.some(size => 
+    size.toLowerCase() === sizeName.toLowerCase()
+  );
+  
+  if (sizeExists) {
+    if (btn) btn.style.display = 'none';
+    return;
+  }
+  
+  console.log('💾 Saving new size:', sizeName);
+  
+  if (btn) {
+    btn.innerHTML = '✅ Saved';
+    btn.style.background = '#0056b3';
+    btn.disabled = true;
+  }
+  
+  try {
+    const { collection, addDoc } = window.firebaseImports;
+    
+    const sizesRef = collection(window.db, 'tenants', user.uid, 'sizes');
+    await addDoc(sizesRef, {
+      name: sizeName,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      userId: user.uid
+    });
+    
+    console.log('✅ Size saved successfully:', sizeName);
+    
+    // Add to cache
+    sizeAutocompleteCache.push(sizeName);
+    
+  } catch (error) {
+    console.error('❌ Error saving size:', error);
+    
+    if (btn) {
+      btn.innerHTML = '❌ Error';
+      btn.style.background = '#dc3545';
+      
+      setTimeout(() => {
+        btn.innerHTML = '💾';
+        btn.style.background = '#007bff';
+        btn.disabled = false;
+      }, 2000);
+    }
+  }
+}
+
+
+
+    
 /**
  * ==========================================
  * MAKE ALL FUNCTIONS GLOBAL FOR BUTTONS
@@ -21223,6 +22131,7 @@ window.saveNewBrandFromBulkField = saveNewBrandFromBulkField;
   
 </body>
 </html>
+
 
 
 
