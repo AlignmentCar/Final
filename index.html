@@ -18038,7 +18038,6 @@ window.toggleOptionsDropdown = toggleOptionsDropdown;
 window.closeOptionsDropdown = closeOptionsDropdown;
 
 console.log('✅ Options Dropdown Module Loaded (Desktop + Mobile)');
-
 /**
  * ==========================================
  * INSTANT PRODUCTS MODULE - WITH STOCK ENTRY MODE
@@ -18052,25 +18051,176 @@ let pendingInstantProducts = [];
 let instantProductMode = 'product'; // 'product' or 'stock'
 let selectedProductIndex = -1; // Currently selected product for stock entry
 
+
 /**
- * Open Instant Products Modal - WITH RESET
+ * Add focus/blur handlers to input for keyboard detection
  */
- function openInstantProductsModal() {
+function setupInputKeyboardHandlers() {
+  const input = document.getElementById('instantProductInput');
+  
+  if (input) {
+    input.addEventListener('focus', () => {
+      console.log('📱 Input focused');
+      
+      // ✅ Scroll preview for BOTH product and stock modes
+      setTimeout(() => {
+        scrollPreviewIntoView();
+        if (instantProductMode === 'stock') {
+          scrollToSelectedProduct();
+        }
+      }, 400); // Wait for keyboard animation
+    });
+    
+    input.addEventListener('blur', () => {
+      console.log('📱 Input blurred');
+    });
+  }
+}
+
+
+/**
+ * Call this when modal opens
+ */
+function openInstantProductsModal() {
   console.log('⚡ Opening Instant Products modal');
   
-  // ✅ Use reset function for consistency
   resetInstantProductsModal();
   
   const modal = new bootstrap.Modal(document.getElementById('instantProductsModal'));
   modal.show();
   
+  // ✅ Setup keyboard handlers
   setTimeout(() => {
+    setupInputKeyboardHandlers();
     document.getElementById('instantProductInput').focus();
   }, 200);
 }
 
+
 /**
- * Switch between Product and Stock modes - WITH AUTOSCROLL
+ * ✅ CANCEL BUTTON - RESET TRANSFORM TOO
+ */
+ function cancelInstantProducts() {
+  console.log('❌ Cancel clicked - closing and resetting modal');
+  
+  // Reset modal transform
+  const modalDialog = document.querySelector('#instantProductsModal .modal-dialog');
+  if (modalDialog) {
+    modalDialog.style.transform = '';
+  }
+  
+  // Close modal
+  const modal = bootstrap.Modal.getInstance(document.getElementById('instantProductsModal'));
+  if (modal) {
+    modal.hide();
+  }
+  
+  // Reset modal data
+  resetInstantProductsModal();
+}
+
+/**
+ * ✅ UNIVERSAL KEYBOARD SCROLL FIX - ENHANCED UPWARD SCROLL
+ */
+ function setupSimpleKeyboardScroll() {
+  const input = document.getElementById('instantProductInput');
+  
+  if (!input) return;
+  
+  // When input gets focus in ANY mode
+  input.addEventListener('focus', () => {
+    console.log('🔍 Input focused, will scroll preview upward');
+    
+    // Wait for mobile keyboard to fully open (300-500ms)
+    setTimeout(() => {
+      const previewList = document.getElementById('instantProductPreviewList');
+      const modalBody = document.querySelector('#instantProductsModal .modal-body');
+      const modalDialog = document.querySelector('#instantProductsModal .modal-dialog');
+      
+      if (previewList && modalBody) {
+        // ✅ Scroll preview to top of visible area
+        previewList.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start' // Start = top of viewport
+        });
+        
+        // ✅ Additional adjustment after scroll
+        setTimeout(() => {
+          const previewRect = previewList.getBoundingClientRect();
+          const keyboardHeight = window.innerHeight - window.visualViewport?.height || 300;
+          
+          // If preview is hidden by keyboard or too low
+          if (previewRect.bottom > window.innerHeight - keyboardHeight - 50) {
+            // Scroll modal dialog up
+            if (modalDialog) {
+              modalDialog.style.transform = 'translateY(-60px)';
+              modalDialog.style.transition = 'transform 0.3s ease';
+            }
+            
+            // Also scroll modal body
+            modalBody.scrollBy({
+              top: -100, // Scroll up 100px
+              behavior: 'smooth'
+            });
+            
+            console.log('✅ Applied additional upward scroll for keyboard');
+          }
+        }, 150);
+        
+        console.log('✅ Scrolled preview into view for keyboard');
+      }
+    }, 400);
+  });
+  
+  // Reset transform when input loses focus
+  input.addEventListener('blur', () => {
+    setTimeout(() => {
+      const modalDialog = document.querySelector('#instantProductsModal .modal-dialog');
+      if (modalDialog) {
+        modalDialog.style.transform = '';
+      }
+    }, 300);
+  });
+}
+
+
+/**
+ * Scroll preview area into view - ENHANCED FOR BETTER VISIBILITY
+ */
+ function scrollPreviewIntoView() {
+  const previewContainer = document.getElementById('instantProductPreviewList');
+  const modalBody = document.querySelector('#instantProductsModal .modal-body');
+  
+  if (previewContainer && modalBody) {
+    // ✅ Scroll more aggressively to show preview prominently
+    previewContainer.scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'start', // Changed from 'nearest' to 'start' for more upward scroll
+      inline: 'nearest'
+    });
+    
+    // ✅ Additional scroll adjustment for better visibility
+    setTimeout(() => {
+      const previewRect = previewContainer.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      
+      // If preview is too low, scroll modal body up more
+      if (previewRect.top > viewportHeight * 0.3) {
+        modalBody.scrollBy({
+          top: -80, // Scroll up an additional 80px
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
+    
+    console.log('📜 Scrolled preview into view (enhanced)');
+  }
+}
+
+
+
+/**
+ * Switch between Product and Stock modes - ENHANCED SCROLL
  */
  function switchInstantProductMode(mode) {
   console.log('🔄 Switching to mode:', mode);
@@ -18095,10 +18245,51 @@ let selectedProductIndex = -1; // Currently selected product for stock entry
     stockBtn.classList.remove('active');
     skipBtn.style.display = 'none';
     addBtn.innerHTML = '<i class="bi bi-plus-lg"></i> Add to List';
-    input.placeholder = 'e.g., Tilecleaner, Grout, Adhesive...';
-    input.type = 'text';
-    instructions.innerHTML = 'Enter product names below. Press <strong>Enter</strong> or <strong>Comma (,)</strong> after each product, or click <strong>Add to List</strong>.';
-    selectedProductIndex = -1;
+    
+    input.blur();
+    
+    setTimeout(() => {
+      input.type = 'text';
+      input.removeAttribute('inputmode');
+      input.removeAttribute('pattern');
+      input.removeAttribute('min');
+      input.removeAttribute('step');
+      input.placeholder = 'e.g., Tilecleaner, Grout, Adhesive...';
+      input.value = '';
+      
+      instructions.innerHTML = 'Enter product names below. Press <strong>Enter</strong> or <strong>Comma (,)</strong> after each product, or click <strong>Add to List</strong>.';
+      selectedProductIndex = -1;
+      updateInstantProductPreview();
+      
+      requestAnimationFrame(() => {
+        input.focus();
+        
+        // ✅ Enhanced scroll for QWERTY keyboard
+        setTimeout(() => {
+          scrollPreviewIntoView();
+          
+          // ✅ Extra upward adjustment for product mode
+          setTimeout(() => {
+            const modalBody = document.querySelector('#instantProductsModal .modal-body');
+            const modalDialog = document.querySelector('#instantProductsModal .modal-dialog');
+            
+            if (modalBody && modalDialog) {
+              // Move modal up
+              modalDialog.style.transform = 'translateY(-60px)';
+              modalDialog.style.transition = 'transform 0.3s ease';
+              
+              // Scroll body up
+              modalBody.scrollBy({
+                top: -80,
+                behavior: 'smooth'
+              });
+              
+              console.log('✅ Applied extra upward scroll for QWERTY');
+            }
+          }, 200);
+        }, 400);
+      });
+    }, 150);
     
   } else if (mode === 'stock') {
     // Stock entry mode
@@ -18106,24 +18297,94 @@ let selectedProductIndex = -1; // Currently selected product for stock entry
     stockBtn.classList.add('active');
     skipBtn.style.display = 'block';
     addBtn.innerHTML = '<i class="bi bi-check-lg"></i> Set Stock';
-    input.placeholder = 'Enter stock quantity...';
-    input.type = 'number';
-    instructions.innerHTML = 'Enter stock quantity for each product. Press <strong>Enter</strong>, <strong>Comma (,)</strong>, or click <strong>Set Stock</strong>. Click <strong>Skip</strong> to skip a product.';
     
-    // Select first product without stock
-    selectNextProductWithoutStock();
+    input.blur();
+    input.value = '';
+    input.readOnly = true;
+    
+    setTimeout(() => {
+      input.type = 'tel';
+      input.setAttribute('inputmode', 'numeric');
+      input.setAttribute('pattern', '[0-9]*');
+      input.setAttribute('min', '0');
+      input.setAttribute('step', '1');
+      input.placeholder = 'Enter stock quantity...';
+      input.readOnly = false;
+      
+      instructions.innerHTML = 'Enter stock quantity for each product. Press <strong>Enter</strong> or click <strong>Set Stock</strong>. Click <strong>Skip</strong> to skip a product.';
+      
+      selectNextProductWithoutStock();
+      updateInstantProductPreview();
+      
+      requestAnimationFrame(() => {
+        input.focus();
+        
+        setTimeout(() => {
+          input.click();
+          
+          setTimeout(() => {
+            if (document.activeElement !== input) {
+              input.focus();
+              input.setSelectionRange(0, 0);
+            }
+            
+            // ✅ Enhanced scroll for numeric keyboard
+            setTimeout(() => {
+              scrollPreviewIntoView();
+              scrollToSelectedProduct();
+              
+              // ✅ Extra upward adjustment for stock mode
+              setTimeout(() => {
+                const modalBody = document.querySelector('#instantProductsModal .modal-body');
+                const modalDialog = document.querySelector('#instantProductsModal .modal-dialog');
+                
+                if (modalBody && modalDialog) {
+                  modalDialog.style.transform = 'translateY(-60px)';
+                  modalDialog.style.transition = 'transform 0.3s ease';
+                  
+                  modalBody.scrollBy({
+                    top: -80,
+                    behavior: 'smooth'
+                  });
+                }
+              }, 200);
+            }, 300);
+            
+            console.log('✅ Numeric keyboard should be open');
+          }, 100);
+        }, 50);
+      });
+    }, 250);
   }
+}
+
+/**
+ * ✅ FORCE NUMERIC KEYBOARD OPEN (iOS/Android)
+ */
+function forceNumericKeyboardOpen() {
+  const input = document.getElementById('instantProductInput');
   
-  input.value = '';
-  input.focus();
-  updateInstantProductPreview();
+  if (instantProductMode === 'stock' && input) {
+    // Create a touch event to simulate user interaction
+    const touchEvent = new TouchEvent('touchstart', {
+      bubbles: true,
+      cancelable: true,
+      view: window
+    });
+    
+    input.dispatchEvent(touchEvent);
+    input.focus();
+    input.click();
+    
+    console.log('📱 Forced numeric keyboard open via touch event');
+  }
 }
 
 
 /**
  * Select next product without stock - WITH SKIP PRIORITY
  */
- function selectNextProductWithoutStock() {
+function selectNextProductWithoutStock() {
   // ✅ PHASE 1: Find non-skipped products without stock
   for (let i = 0; i < pendingInstantProducts.length; i++) {
     const product = pendingInstantProducts[i];
@@ -18172,11 +18433,10 @@ let selectedProductIndex = -1; // Currently selected product for stock entry
 }
 
 
-
 /**
  * Select specific product - WITH VALIDATION
  */
- function selectProduct(index) {
+function selectProduct(index) {
   if (instantProductMode !== 'stock') return;
   
   selectedProductIndex = index;
@@ -18195,32 +18455,34 @@ let selectedProductIndex = -1; // Currently selected product for stock entry
 
 
 /**
- * Skip current product - MARK AS SKIPPED
+ * Skip current product - KEEP KEYBOARD OPEN
  */
- function skipCurrentProduct() {
+function skipCurrentProduct() {
   if (selectedProductIndex === -1) return;
   
   console.log('⏭️ Skipping product:', selectedProductIndex);
   
-  // ✅ Mark product as skipped (not permanently, just for this session)
+  // ✅ Mark product as skipped
   pendingInstantProducts[selectedProductIndex].skipped = true;
   
-  // ✅ Find next product to select (prioritize non-skipped)
+  // ✅ Find next product to select
   selectNextProductWithoutStock();
   
   updateInstantProductPreview();
   
-  // Auto-scroll to selected product
+  // ✅ Keep keyboard open
+  const input = document.getElementById('instantProductInput');
   setTimeout(() => {
     scrollToSelectedProduct();
-    focusInput();
+    input.focus();
   }, 100);
 }
 
+
 /**
- * Handle "Add to List" button click - CLEAR SKIPPED FLAG
+ * Handle "Add to List" button click - KEEP KEYBOARD OPEN
  */
- function handleAddToListClick() {
+function handleAddToListClick() {
   const input = document.getElementById('instantProductInput');
   const value = input.value.trim();
   
@@ -18228,6 +18490,7 @@ let selectedProductIndex = -1; // Currently selected product for stock entry
     // Add product name
     if (!value || value.length === 0) {
       alert('⚠️ Please enter a product name');
+      input.focus();
       return;
     }
     
@@ -18235,27 +18498,44 @@ let selectedProductIndex = -1; // Currently selected product for stock entry
     
     if (pendingInstantProducts.find(p => p.name === productName)) {
       alert('⚠️ Product already in list!');
+      input.focus();
       return;
     }
     
     pendingInstantProducts.push({ name: productName, stock: null, skipped: false });
     console.log('✅ Added product:', productName);
     
+    input.value = '';
+    window.lastInstantProductInput = '';
+    updateInstantProductPreview();
+    
+    // ✅ Keep keyboard open and scroll preview
+    setTimeout(() => {
+      const previewList = document.getElementById('instantProductPreviewList');
+      if (previewList) {
+        previewList.scrollTop = previewList.scrollHeight;
+      }
+      input.focus();
+    }, 50);
+    
   } else if (instantProductMode === 'stock') {
     // Add stock to selected product
     if (selectedProductIndex === -1) {
       alert('⚠️ No product selected');
+      input.focus();
       return;
     }
     
     if (!value || value.length === 0) {
       alert('⚠️ Please enter stock quantity');
+      input.focus();
       return;
     }
     
     const stockValue = parseInt(value);
     if (isNaN(stockValue) || stockValue < 0) {
       alert('⚠️ Please enter a valid stock number');
+      input.focus();
       return;
     }
     
@@ -18265,25 +18545,27 @@ let selectedProductIndex = -1; // Currently selected product for stock entry
     
     console.log('✅ Set stock:', stockValue, 'for product:', pendingInstantProducts[selectedProductIndex].name);
     
+    input.value = '';
+    window.lastInstantProductInput = '';
+    
     // Select next product without stock
     selectNextProductWithoutStock();
+    updateInstantProductPreview();
+    
+    // ✅ CRITICAL: Keep keyboard open and focused
+    setTimeout(() => {
+      scrollToSelectedProduct();
+      // Force focus to keep numeric keyboard open
+      input.focus();
+    }, 100);
   }
-  
-  input.value = '';
-  window.lastInstantProductInput = '';
-  updateInstantProductPreview();
-  
-  setTimeout(() => {
-    scrollToSelectedProduct();
-    focusInput();
-  }, 100);
 }
 
 
 /**
  * Handle product input (Enter or Comma) - CLEAR SKIPPED FLAG
  */
- function handleInstantProductInputKeydown(event) {
+function handleInstantProductInputKeydown(event) {
   const input = document.getElementById('instantProductInput');
   const value = input.value.trim();
   
@@ -18353,6 +18635,23 @@ let selectedProductIndex = -1; // Currently selected product for stock entry
   }
 }
 
+
+/**
+ * Handle input validation in stock mode
+ */
+function handleInstantProductInput(event) {
+  const input = document.getElementById('instantProductInput');
+  
+  // ✅ In stock mode, only allow numbers
+  if (instantProductMode === 'stock') {
+    // Remove any non-numeric characters
+    input.value = input.value.replace(/[^0-9]/g, '');
+  }
+  
+  window.lastInstantProductInput = input.value;
+}
+
+
 /**
  * ✅ SCROLL TO SELECTED PRODUCT (SMOOTH ANIMATION)
  */
@@ -18397,7 +18696,7 @@ function focusInput() {
 /**
  * Update product preview list - WITH SKIPPED STATUS
  */
- function updateInstantProductPreview() {
+function updateInstantProductPreview() {
   const previewList = document.getElementById('instantProductPreviewList');
   const previewCount = document.getElementById('instantProductPreviewCount');
   
@@ -18485,10 +18784,11 @@ function removePendingInstantProduct(index) {
   console.log('🗑️ Removed product at index:', index);
 }
 
+
 /**
  * Save all instant products to Firebase - WITH COMPLETE RESET
  */
- async function saveAllInstantProducts() {
+async function saveAllInstantProducts() {
   if (pendingInstantProducts.length === 0) {
     alert('⚠️ Please add at least one product');
     return;
@@ -18588,8 +18888,9 @@ function removePendingInstantProduct(index) {
   }
 }
 
+
 /**
- * ✅ RESET INSTANT PRODUCTS MODAL - CLEAR SKIPPED FLAGS
+ * ✅ RESET MODAL - CLEAR TRANSFORM
  */
  function resetInstantProductsModal() {
   console.log('🔄 Resetting Instant Products modal...');
@@ -18600,12 +18901,22 @@ function removePendingInstantProduct(index) {
   selectedProductIndex = -1;
   window.lastInstantProductInput = '';
   
+  // Reset modal transform
+  const modalDialog = document.querySelector('#instantProductsModal .modal-dialog');
+  if (modalDialog) {
+    modalDialog.style.transform = '';
+  }
+  
   // Reset input field
   const input = document.getElementById('instantProductInput');
   if (input) {
     input.value = '';
     input.placeholder = 'e.g., Tilecleaner, Grout, Adhesive...';
     input.type = 'text';
+    input.removeAttribute('inputmode');
+    input.removeAttribute('pattern');
+    input.removeAttribute('min');
+    input.removeAttribute('step');
   }
   
   // Reset tabs
@@ -18637,6 +18948,8 @@ function removePendingInstantProduct(index) {
   
   console.log('✅ Instant Products modal reset complete');
 }
+
+
 
 /**
  * Escape HTML
@@ -25439,6 +25752,69 @@ window.saveNewBrandFromBulkField = saveNewBrandFromBulkField;
 // Make it global
 window.populateCategoryDropdown = populateCategoryDropdown;
 
+/**
+ * ==========================================
+ * KEYBOARD DETECTION & MODAL SCROLL
+ * ==========================================
+ */
+
+ let keyboardOpen = false;
+let originalViewportHeight = window.innerHeight;
+
+/**
+ * Detect keyboard open/close using Visual Viewport API
+ */
+function setupKeyboardDetection() {
+  if (!window.visualViewport) {
+    console.warn('⚠️ Visual Viewport API not supported');
+    return;
+  }
+  
+  window.visualViewport.addEventListener('resize', () => {
+    const currentHeight = window.visualViewport.height;
+    const heightDifference = originalViewportHeight - currentHeight;
+    
+    // Keyboard is open if viewport height decreased significantly
+    if (heightDifference > 150) {
+      if (!keyboardOpen) {
+        keyboardOpen = true;
+        document.body.classList.add('keyboard-open');
+        console.log('⌨️ Keyboard opened');
+        
+        // Scroll to show preview area
+        setTimeout(() => {
+          scrollPreviewIntoView();
+        }, 100);
+      }
+    } else {
+      if (keyboardOpen) {
+        keyboardOpen = false;
+        document.body.classList.remove('keyboard-open');
+        console.log('⌨️ Keyboard closed');
+      }
+    }
+  });
+  
+  // Update original height when page loads
+  window.addEventListener('load', () => {
+    originalViewportHeight = window.visualViewport.height;
+  });
+}
+
+/**
+ * Initialize keyboard detection when modal opens
+ */
+function initKeyboardDetection() {
+  if (!window.keyboardDetectionInitialized) {
+    setupKeyboardDetection();
+    window.keyboardDetectionInitialized = true;
+  }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+  initKeyboardDetection();
+});
 
 
 
@@ -25802,93 +26178,97 @@ window.populateCategoryDropdown = populateCategoryDropdown;
       </div>
       
       <div class="modal-body">
-        <!-- Instructions -->
-        <div class="alert alert-success" style="font-size: 14px;">
-          <i class="bi bi-info-circle"></i>
-          <span id="instantProductInstructions">
-            Enter product names below. Press <strong>Enter</strong> or <strong>Comma (,)</strong> after each product, or click <strong>Add to List</strong>.
-          </span>
-        </div>
-        
-        <!-- ✅ MODE TABS -->
-        <div class="btn-group w-100 mb-3" role="group">
-          <button 
-            type="button" 
-            id="productNameModeBtn"
-            class="btn btn-outline-success active"
-            onclick="switchInstantProductMode('product')"
-            style="font-weight: 600;">
-            <i class="bi bi-box"></i> Product Names
-          </button>
-          <button 
-            type="button" 
-            id="stockModeBtn"
-            class="btn btn-outline-success"
-            onclick="switchInstantProductMode('stock')"
-            style="font-weight: 600;">
-            <i class="bi bi-calculator"></i> Stock
-          </button>
-        </div>
-        
-        <!-- Input Field Container -->
-        <div style="position: relative;">
-          <input 
-            id="instantProductInput" 
-            type="text" 
-            class="form-control form-control-lg mb-2" 
-            placeholder="e.g., Tilecleaner, Grout, Adhesive..."
-            onkeydown="handleInstantProductInputKeydown(event)"
-            oninput="window.lastInstantProductInput = this.value"
-            autocomplete="off"
-            style="padding: 12px; font-size: 15px; color: #212529; background-color: #fff;">
+    
+          <!-- Instructions -->
+          <div class="alert alert-success" style="font-size: 14px;">
+            <i class="bi bi-info-circle"></i>
+            <span id="instantProductInstructions">
+              Enter product names below. Press <strong>Enter</strong> or <strong>Comma (,)</strong> after each product, or click <strong>Add to List</strong>.
+            </span>
+          </div>
           
-          <!-- ✅ Skip Button (Hidden by default) -->
+          <!-- ✅ MODE TABS -->
+          <div class="btn-group w-100 mb-3" role="group">
+            <button 
+              type="button" 
+              id="productNameModeBtn"
+              class="btn btn-outline-success active"
+              onclick="switchInstantProductMode('product')"
+              style="font-weight: 600;">
+              <i class="bi bi-box"></i> Product Names
+            </button>
+            <button 
+              type="button" 
+              id="stockModeBtn"
+              class="btn btn-outline-success"
+              onclick="switchInstantProductMode('stock')"
+              style="font-weight: 600;">
+              <i class="bi bi-calculator"></i> Stock
+            </button>
+          </div>
+          
+          <!-- Input Field Container -->
+          <div style="position: relative;">
+            <input 
+              id="instantProductInput" 
+              type="text" 
+              class="form-control form-control-lg mb-2" 
+              placeholder="e.g., Tilecleaner, Grout, Adhesive..."
+              onkeydown="handleInstantProductInputKeydown(event)"
+              oninput="window.lastInstantProductInput = this.value"
+              autocomplete="off"
+              style="padding: 12px 48px 12px 12px; font-size: 15px; color: #212529; background-color: #fff;">
+            
+            <button 
+              id="skipStockBtn"
+              type="button"
+              class="btn btn-sm btn-warning"
+              onmousedown="event.preventDefault(); skipCurrentProduct();"
+              style="position: absolute; right: 10px; top: 8px; display: none; z-index: 10; font-weight: 600;">
+              <i class="bi bi-skip-forward"></i> Skip
+            </button>
+          </div>
+          
           <button 
-            id="skipStockBtn"
             type="button"
-            class="btn btn-sm btn-warning"
-            onclick="skipCurrentProduct()"
-            style="position: absolute; right: 10px; top: 8px; display: none; z-index: 10; font-weight: 600;">
-            <i class="bi bi-skip-forward"></i> Skip
+            id="addToListBtn"
+            class="btn btn-success w-100"
+            onmousedown="event.preventDefault(); handleAddToListClick();"
+            style="padding: 10px; font-size: 16px; font-weight: 600;">
+            <i class="bi bi-plus-lg"></i> Add to List
           </button>
-        </div>
-        
-        <!-- ✅ Add to List Button -->
-        <button 
-          type="button"
-          id="addToListBtn"
-          class="btn btn-success w-100"
-          onclick="handleAddToListClick()"
-          style="padding: 10px; font-size: 16px; font-weight: 600;">
-          <i class="bi bi-plus-lg"></i> Add to List
-        </button>
-        
-        <!-- Preview Section -->
-        <div style="margin-top: 20px;">
-          <p style="font-weight: 600; margin-bottom: 10px; font-size: 14px; color: #333;" id="instantProductPreviewCount">
-            📝 Products to Save (0):
-          </p>
-          <div 
-            id="instantProductPreviewList" 
-            style="background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; max-height: 250px; overflow-y: auto; min-height: 80px; padding: 10px;">
-            <div style="padding: 15px; color: #999; text-align: center; font-size: 14px;">
-              No products added yet
+          
+          <!-- ✅ Preview Section with ID for scrolling -->
+          <div style="margin-top: 20px;" id="instantProductPreviewSection">
+            <p style="font-weight: 600; margin-bottom: 10px; font-size: 14px; color: #333;" id="instantProductPreviewCount">
+              📝 Products to Save (0):
+            </p>
+            <div 
+              id="instantProductPreviewList" 
+              style="background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; max-height: 250px; overflow-y: auto; min-height: 80px; padding: 10px;">
+              <div style="padding: 15px; color: #999; text-align: center; font-size: 14px;">
+                No products added yet
+              </div>
             </div>
           </div>
         </div>
-      </div>
+        
       
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-          <i class="bi bi-x-circle me-1"></i>Cancel
-        </button>
-        <button type="button" class="btn btn-success" onclick="saveAllInstantProducts()">
-          <i class="bi bi-check-circle me-1"></i>Save All
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
+        <div class="modal-footer">
+          <button 
+            type="button" 
+            class="btn btn-secondary" 
+            onclick="cancelInstantProducts()">
+            <i class="bi bi-x-circle me-1"></i>Cancel
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-success" 
+            onclick="saveAllInstantProducts()">
+            <i class="bi bi-check-circle me-1"></i>Save All
+          </button>
+        </div>
+        
 
 
 
