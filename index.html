@@ -242,6 +242,12 @@
   <span>Categories</span>
 </div>
 
+<!-- ✅ NEW: Unit Types -->
+<div class="sidebar-item" onclick="navigateTo('unitTypes')">
+  <i class="bi bi-card-text"></i>
+  <span>Unit Types</span>
+</div>
+
 <div class="sidebar-item" onclick="navigateTo('brands')">
   <i class="bi bi-tag"></i>
   <span>Brands</span>
@@ -693,7 +699,7 @@
 <!-- Summary - 2 Cards (Side-by-Side on ALL screens) -->
 <div class="row g-2 mb-3">
   
-  <!-- 1. Total Products Card (Merged with Low Stock) -->
+  <!-- 1. Total Products Card (with Qty in Hand, In Stock, Low Stock) -->
   <div class="col-md-6 col-6">
     <div class="card summary-card shadow-sm h-100">
       <div class="card-body p-2">
@@ -718,6 +724,15 @@
           <span class="fw-bold" id="quantityInHand" style="font-size:1rem; color: var(--primary-green);">0</span>
         </div>
         
+        <!-- ✅ NEW: In Stock Items -->
+        <div class="d-flex justify-content-between align-items-center px-1 mb-2">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-check-circle me-1" style="color: #28a745; font-size: 1rem;"></i>
+            <span class="text-muted" style="font-size:0.7rem;">In Stock Items</span>
+          </div>
+          <span class="fw-bold" id="inStockItems" style="font-size:1rem; color: #28a745;">0</span>
+        </div>
+        
         <!-- Low Stock Items -->
         <div class="d-flex justify-content-between align-items-center px-1">
           <div class="d-flex align-items-center">
@@ -729,6 +744,9 @@
       </div>
     </div>
   </div>
+  
+  <!-- Second card continues here... -->
+
   
   <!-- 2. Quick Actions Card - WITH FLIP ANIMATION -->
   <div class="col-md-6 col-6">
@@ -1314,22 +1332,21 @@
 </button>
 
 
-    <div id="unitTypeSelectionDropdown" class="dropdown" style="display: none;">
-      <button class="btn btn-outline-info dropdown-toggle" type="button" id="unitTypeDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" style="font-weight: 600;">
-        <i class="bi bi-card-text"></i> <span id="selectedUnitTypeText">Select Unit Type</span>
-      </button>
-      <ul class="dropdown-menu shadow" aria-labelledby="unitTypeDropdownBtn">
-        <li><button type="button" class="dropdown-item" onclick="selectBulkUnitType('Box');"><i class="bi bi-box"></i> Box</button></li>
-        <li><button type="button" class="dropdown-item" onclick="selectBulkUnitType('Piece');"><i class="bi bi-circle"></i> Piece</button></li>
-        <li><button type="button" class="dropdown-item" onclick="selectBulkUnitType('Square Feet');"><i class="bi bi-square"></i> Square Feet</button></li>
-        <li><button type="button" class="dropdown-item" onclick="selectBulkUnitType('Meter');"><i class="bi bi-rulers"></i> Meter</button></li>
-        <li><button type="button" class="dropdown-item" onclick="selectBulkUnitType('Set');"><i class="bi bi-collection"></i> Set</button></li>
-      </ul>
-    </div>
-    
-    <button id="updateUnitTypeBtn" class="btn btn-info" style="display: none; font-weight: 600; color: white;" onclick="applyBulkUnitTypeUpdate()">
-      <i class="bi bi-check-circle"></i> Update Unit Type (<span id="selectedCountUnitType" style="font-weight: 700;">0</span> selected)
-    </button>
+    <!-- ✅ Dynamic Unit Type Dropdown for Bulk Edit -->
+<div id="unitTypeSelectionDropdown" class="dropdown" style="display: none;">
+  <button class="btn btn-outline-info dropdown-toggle" type="button" id="unitTypeDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" style="font-weight: 600;">
+    <i class="bi bi-card-text"></i> <span id="selectedUnitTypeText">Select Unit Type</span>
+  </button>
+  <ul class="dropdown-menu shadow" aria-labelledby="unitTypeDropdownBtn" id="bulkUnitTypeDropdownMenu">
+    <!-- Unit types will be populated dynamically from unitTypesCache -->
+    <li><a class="dropdown-item text-muted" href="javascript:void(0);">Loading unit types...</a></li>
+  </ul>
+</div>
+
+<button id="updateUnitTypeBtn" class="btn btn-info" style="display: none; font-weight: 600; color: white;" onclick="applyBulkUnitTypeUpdate()">
+  <i class="bi bi-check-circle"></i> Update Unit Type (<span id="selectedCountUnitType" style="font-weight: 700;">0</span> selected)
+</button>
+
 
     <button id="cancelBulkEditBtn" class="btn btn-secondary" style="display: none;" onclick="cancelBulkEdit()">
       <i class="bi bi-x-circle"></i> Cancel
@@ -1437,46 +1454,67 @@
     </div>
   </div>
 </div>
-
 <!-- ==========================================
      PURCHASES SECTION (HIDDEN BY DEFAULT)
      ========================================== -->
-<div id="purchasesSection" style="display: none;">
-  <div class="row">
-    <div class="col-12">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="mb-0">Recent Purchases</h4>
-        <button class="btn btn-outline-success btn-sm" onclick="loadRecentPurchases()">
-          <i class="bi bi-arrow-clockwise"></i> Refresh
-        </button>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-striped table-hover">
-          <thead class="table-success">
-            <tr>
-              <th>Serial No.</th>
-              <th>Date & Time</th>
-              <th>Photo</th>
-              <th>Products</th>
-              <th>Vendor</th>
-              <th>Total Amount</th>
-              <th>Payment Mode</th>
-              <th>Other Info</th>
-            </tr>
-          </thead>
-          <tbody id="purchasesList">
-            <tr>
-              <td colspan="8" style="text-align: center; padding: 20px; color: #999;">
-                <i class="bi bi-hourglass-split"></i> Loading purchases...
-              </td>
-            </tr>
-          </tbody>
-        </table>
+     <div id="purchasesSection" style="display: none;">
+      <div class="row">
+        <div class="col-12">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0">Recent Purchases</h4>
+            <button class="btn btn-outline-success btn-sm" onclick="loadRecentPurchases()">
+              <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-striped table-hover">
+              <thead class="table-success">
+                <tr>
+                  <!-- Desktop headers -->
+                  <th class="d-none d-lg-table-cell">Serial No.</th>
+                  <th class="d-none d-lg-table-cell">Date & Time</th>
+                  <th class="d-none d-lg-table-cell">Photo</th>
+                  <th class="d-none d-lg-table-cell">Products</th>
+                  <th class="d-none d-lg-table-cell">Vendor</th>
+                  <th class="d-none d-lg-table-cell">Total Amount</th>
+                  <th class="d-none d-lg-table-cell">Payment Mode</th>
+                  <th class="d-none d-lg-table-cell">Other Info</th>
+                  
+                  <!-- Mobile headers -->
+                  <th class="d-table-cell d-lg-none">Date</th>
+                  <th class="d-table-cell d-lg-none">Vendor</th>
+                  <th class="d-table-cell d-lg-none">Amount</th>
+                  <th class="d-table-cell d-lg-none">Photo</th>
+                </tr>
+              </thead>
+              <tbody id="purchasesList">
+                <tr>
+                  <td colspan="8" style="text-align: center; padding: 20px; color: #999;">
+                    <i class="bi bi-hourglass-split"></i> Loading purchases...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Mobile: Products displayed below table row -->
+          <style>
+            .mobile-products-row {
+              display: none;
+              background: #f8f9fa;
+              border-left: 3px solid #28a745;
+            }
+            
+            @media (max-width: 991px) {
+              .mobile-products-row {
+                display: table-row;
+              }
+            }
+          </style>
+        </div>
       </div>
     </div>
-  </div>
-</div>
-
+    
 
 
   
@@ -1584,6 +1622,158 @@
       <button class="btn btn-primary mt-3" onclick="openAddCustomerModal()">
         <i class="bi bi-plus-lg"></i> Add First Customer
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- ✅✅✅ UNIT TYPES PAGE ✅✅✅ -->
+<div class="page-view" id="unitTypesPage">
+  <!-- Header -->
+  <div class="page-header">
+    <button class="back-btn" onclick="navigateTo('dashboard')">
+      <i class="bi bi-arrow-left"></i> Back
+    </button>
+    <h3><i class="bi bi-card-text"></i> Unit Types</h3>
+    <button class="btn btn-success" onclick="openAddUnitTypeModal()">
+      <i class="bi bi-plus-lg"></i> Add
+    </button>
+  </div>
+  
+  <!-- Search Box -->
+  <div class="container-fluid" style="padding: 20px;">
+    <input 
+      type="text" 
+      class="form-control mb-3" 
+      id="searchUnitTypesInput" 
+      placeholder="🔍 Search unit types..." 
+      onkeyup="filterUnitTypes(this.value)"
+      style="max-width: 600px; margin: 0 auto;"
+    >
+    
+    <!-- Unit Types List Container -->
+    <div id="unitTypesListContainer">
+      <!-- Unit type cards will be rendered here by JavaScript -->
+      <div style="text-align:center; padding:40px;">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-3">Loading unit types...</p>
+      </div>
+    </div>
+    
+    <!-- Empty State -->
+    <div id="unitTypesEmptyState" style="display:none; text-align:center; padding:60px 20px;">
+      <i class="bi bi-card-text" style="font-size:64px; color:#ccc;"></i>
+      <h4 style="margin-top:20px;">No Unit Types Yet</h4>
+      <p>Add your first unit type to get started</p>
+      <button class="btn btn-primary mt-3" onclick="openAddUnitTypeModal()">
+        <i class="bi bi-plus-lg"></i> Add First Unit Type
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ✅✅✅ ADD UNIT TYPES MODAL ✅✅✅ -->
+<div class="modal fade" id="addUnitTypesModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title">
+          <i class="bi bi-plus-circle"></i> Add New Unit Types
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+  
+        <!-- Instructions -->
+        <div class="alert alert-warning" style="font-size: 14px;">
+          <i class="bi bi-info-circle"></i>
+          Enter unit type names below. Press <strong>Enter</strong> or <strong>Comma (,)</strong> after each unit type, or click <strong>Add to List</strong>.
+        </div>
+        
+        <!-- Input Field -->
+        <input 
+          id="unitTypeInput" 
+          type="text" 
+          class="form-control form-control-lg mb-2" 
+          placeholder="e.g., Box, Piece, Square Feet, Meter..."
+          onkeydown="handleUnitTypeInputKeydown(event)"
+          oninput="window.lastUnitTypeInput = this.value"
+          autocomplete="off"
+          style="color: #212529; background-color: #fff;"
+        >
+        
+        <!-- Add to List Button -->
+        <button 
+          type="button"
+          class="btn btn-warning w-100"
+          onmousedown="event.preventDefault(); (function(){
+            var val = window.lastUnitTypeInput ? window.lastUnitTypeInput.trim() : document.getElementById('unitTypeInput').value.trim();
+            console.log('✅ Button clicked, value:', val);
+            if(!val || val.length === 0) { 
+              alert('⚠️ Please enter a unit type'); 
+              return; 
+            }
+            if(typeof pendingUnitTypes === 'undefined') {
+              pendingUnitTypes = [];
+            }
+            if(pendingUnitTypes.includes(val)) { 
+              alert('⚠️ Unit type already in list!'); 
+              return; 
+            }
+            pendingUnitTypes.push(val);
+            if(typeof updateUnitTypePreviewList === 'function') {
+              updateUnitTypePreviewList();
+            }
+            console.log('✅ Added:', val);
+            
+            // Clear input
+            document.querySelectorAll('#unitTypeInput').forEach(function(inp){
+              inp.value = '';
+              inp.setAttribute('value', '');
+              window.lastUnitTypeInput = '';
+              inp.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+            console.log('🧹 Input cleared');
+            
+            setTimeout(function(){ 
+              document.getElementById('unitTypeInput').focus(); 
+            }, 50);
+          })()"
+          style="padding: 10px; font-size: 16px;"
+        >
+          <i class="bi bi-plus-lg"></i> Add to List
+        </button>
+        
+        <!-- Preview Section -->
+        <div style="margin-top: 20px;">
+          <p style="font-weight: 600; margin-bottom: 10px; font-size: 14px; color: #333;" id="unitTypePreviewCount">
+            📝 Unit Types to Save (0):
+          </p>
+          <div id="unitTypePreviewList" style="
+            background: #f8f9fa; 
+            border: 1px solid #e0e0e0;
+            border-radius: 8px; 
+            max-height: 250px; 
+            overflow-y: auto;
+            min-height: 80px; 
+            padding: 10px;
+          ">
+            <div style="padding: 15px; color: #999; text-align: center; font-size: 14px;">
+              No unit types added yet
+            </div>
+          </div>
+        </div>
+        
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle"></i> Cancel
+        </button>
+        <button type="button" class="btn btn-warning" onclick="saveAllUnitTypes()">
+          <i class="bi bi-check-circle"></i> Save All Unit Types
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -2416,96 +2606,98 @@
           
           <!-- ESSENTIAL FIELDS -->
           <hr>
-         <!-- Product Name & Category -->
-<div class="row mb-3">
-  <div class="col-md-8">
-    <label class="form-label">Product Name *</label>
-    <input id="productName" class="form-control" required/>
-  </div>
-  
-  <!-- ✅ DROPDOWN ONLY Category (No typing allowed) -->
-  <div class="col-md-4">
-    <label class="form-label">Category *</label>
-    <select id="category" class="form-select" required>
-      <option value="">Select Category</option>
-      <!-- Options will be populated dynamically from categoriesCache -->
-    </select>
-    <small class="text-muted">
-      <i class="bi bi-info-circle"></i> Manage categories from sidebar menu
-    </small>
-  </div>
-</div>
-
-
           
-        <!-- Unit Type, Price, Current Stock (OPTIONAL) -->
-<div class="row mb-3">
-  <div class="col-md-3">
-    <label class="form-label">Unit Type *</label>
-    <select id="unitType" class="form-select" required>
-      <option value="Box">Box</option>
-      <option value="Piece">Piece</option>
-      <option value="SFT">Square Feet</option>
-    </select>
-  </div>
-  <div class="col-md-3">
-    <label class="form-label">Selling price *</label>
-    <input id="price" class="form-control" type="number" step="0.01" required/>
-  </div>
-  <div class="col-md-3">
-    <label class="form-label">Current Stock (Optional)</label>
-    <input id="productCurrentStock" class="form-control" type="number" min="0" max="9999" placeholder="Leave empty"/>
-    <small class="text-muted">For exact quantity</small>
-  </div>
-  <div class="col-md-3">
-    <label class="form-label">Minimum Stock</label>
-    <input id="minStock" class="form-control" type="number" value="5"/>
-  </div>
-</div>
+          <!-- Product Name & Category -->
+          <div class="row mb-3">
+            <div class="col-md-8">
+              <label class="form-label">Product Name *</label>
+              <input id="productName" class="form-control" required/>
+            </div>
+            
+            <!-- ✅ DROPDOWN ONLY Category (No typing allowed) -->
+            <div class="col-md-4">
+              <label class="form-label">Category *</label>
+              <select id="category" class="form-select" required>
+                <option value="">Select Category</option>
+                <!-- Options will be populated dynamically from categoriesCache -->
+              </select>
+            </div>
+          </div>
 
-<!-- Stock Status Selection -->
-<div class="row mb-3">
-  <div class="col-md-12">
-    <label class="form-label">Stock Status *</label>
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
-      <!-- Good -->
-      <button type="button" class="btn stock-btn" 
-              id="stockBtn-good" 
-              onclick="selectStockStatus('good')"
-              style="background: #28a745; color: white; padding: 10px; border-radius: 6px; font-weight: bold; border: 2px solid transparent; font-size: 12px;">
-        🟢 Good
-      </button>
-      
-      <!-- Medium -->
-      <button type="button" class="btn stock-btn" 
-              id="stockBtn-medium" 
-              onclick="selectStockStatus('medium')"
-              style="background: #ffc107; color: black; padding: 10px; border-radius: 6px; font-weight: bold; border: 2px solid transparent; font-size: 12px;">
-        🟡 Medium
-      </button>
-      
-      <!-- Low -->
-      <button type="button" class="btn stock-btn" 
-              id="stockBtn-low" 
-              onclick="selectStockStatus('low')"
-              style="background: #dc3545; color: white; padding: 10px; border-radius: 6px; font-weight: bold; border: 2px solid transparent; font-size: 12px;">
-        🔴 Low
-      </button>
-      
-      <!-- Urgent -->
-      <button type="button" class="btn stock-btn" 
-              id="stockBtn-urgent" 
-              onclick="selectStockStatus('urgent')"
-              style="background: #6f42c1; color: white; padding: 10px; border-radius: 6px; font-weight: bold; border: 2px solid transparent; font-size: 12px;">
-        🔵 Urgent
-      </button>
-    </div>
-    
-    <!-- Hidden input to track selected status -->
-    <input type="hidden" id="selectedStockStatus" value="">
-  </div>
-</div>
+          <!-- Unit Type, Price, Current Stock (WITHOUT Min Stock) -->
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label class="form-label">Unit Type *</label>
+              <select id="unitType" class="form-select" required>
+                <option value="">Select Unit Type</option>
+                <!-- Options will be populated dynamically from unitTypesCache -->
+              </select>
+            </div>
+            
+            <div class="col-md-4">
+              <label class="form-label">Selling Price *</label>
+              <input id="price" class="form-control" type="number" step="0.01" required/>
+            </div>
+            
+            <div class="col-md-4">
+              <label class="form-label">Current Stock (Optional)</label>
+              <input id="productCurrentStock" class="form-control" type="number" min="0" max="9999" placeholder="Leave empty"/>
+              <small class="text-muted">For exact quantity</small>
+            </div>
+          </div>
 
+          <!-- Stock Status Selection -->
+          <div class="row mb-3">
+            <div class="col-md-12">
+              <label class="form-label">Stock Status *</label>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+                <!-- Good -->
+                <button type="button" class="btn stock-btn" 
+                        id="stockBtn-good" 
+                        onclick="selectStockStatus('good')"
+                        style="background: #28a745; color: white; padding: 10px; border-radius: 6px; font-weight: bold; border: 2px solid transparent; font-size: 12px;">
+                  🟢 Good
+                </button>
+                
+                <!-- Medium -->
+                <button type="button" class="btn stock-btn" 
+                        id="stockBtn-medium" 
+                        onclick="selectStockStatus('medium')"
+                        style="background: #ffc107; color: black; padding: 10px; border-radius: 6px; font-weight: bold; border: 2px solid transparent; font-size: 12px;">
+                  🟡 Medium
+                </button>
+                
+                <!-- Low -->
+                <button type="button" class="btn stock-btn" 
+                        id="stockBtn-low" 
+                        onclick="selectStockStatus('low')"
+                        style="background: #dc3545; color: white; padding: 10px; border-radius: 6px; font-weight: bold; border: 2px solid transparent; font-size: 12px;">
+                  🔴 Low
+                </button>
+                
+                <!-- Urgent -->
+                <button type="button" class="btn stock-btn" 
+                        id="stockBtn-urgent" 
+                        onclick="selectStockStatus('urgent')"
+                        style="background: #6f42c1; color: white; padding: 10px; border-radius: 6px; font-weight: bold; border: 2px solid transparent; font-size: 12px;">
+                  🔵 Urgent
+                </button>
+              </div>
+              
+              <!-- Hidden input to track selected status -->
+              <input type="hidden" id="selectedStockStatus" value="">
+            </div>
+          </div>
+
+          <!-- ✅ MINIMUM STOCK (MOVED HERE - BELOW STOCK STATUS) -->
+          <div class="row mb-3">
+            <div class="col-md-12">
+              <label class="form-label">Minimum Stock</label>
+              <input id="minStock" class="form-control" type="number" value="5" style="max-width: 200px;"/>
+              <small class="text-muted"></small>
+            </div>
+          </div>
+          
 
           
           <!-- ✅ ADVANCED OPTIONS (EXPANDABLE) -->
@@ -3349,6 +3541,12 @@ var categoryCacheLoaded = false;
 var categoriesCache = [];
 var pendingCategories = [];
 
+// Unit Type Management
+var unitTypeAutocompleteCache = [];
+var unitTypeCacheLoaded = false;
+var unitTypesCache = [];
+var pendingUnitTypes = [];
+
     
  // ==========================================
 // FIREBASE CONFIGURATION
@@ -3952,47 +4150,59 @@ function categoryIconColor(cat){
   if(c.includes('access')) return '#fd7e14';
   return '#6c757d';
 }
-
 /**
- * Generate stock badge HTML - handles both TEXT status and exact quantities
+ * BALANCED GREEN VERSION (RECOMMENDED)
  */
-function stockBadgeHtml(stock, minStock){
-  console.log('📊 stockBadgeHtml called with stock:', stock, 'minStock:', minStock);
+ function stockBadgeHtml(stock, minStock){
+  const baseStyle = `
+    padding: 4px 12px;
+    border-radius: 3px;
+    font-weight: 500;
+    font-size: 0.8rem;
+    display: inline-block;
+    letter-spacing: 0.5px;
+    border-left: 3px solid;
+  `;
   
-  // Check if stock is TEXT status (GOOD/MEDIUM/LOW/URGENT)
   if (typeof stock === 'string') {
     const statusUpper = stock.toUpperCase();
     
-    if (statusUpper === 'GOOD') {
-      return `<span class="stock-badge" style="background: #28a745; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; display: inline-block;">🟢 Good</span>`;
-    }
+    // ✅ GOOD - Even more green
+if (statusUpper === 'GOOD') {
+  return `<span style="background: #a5d6a7; color: #1b5e20; border-color: #2e7d32; ${baseStyle}">GOOD</span>`;
+}
+    
     if (statusUpper === 'MEDIUM') {
-      return `<span class="stock-badge" style="background: #ffc107; color: black; padding: 6px 12px; border-radius: 20px; font-weight: bold; display: inline-block;">🟡 Medium</span>`;
+      return `<span style="background: #fff3cd; color: #856404; border-color: #f57c00; ${baseStyle}">MEDIUM</span>`;
     }
+    
     if (statusUpper === 'LOW') {
-      return `<span class="stock-badge" style="background: #dc3545; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; display: inline-block;">🔴 Low Stock</span>`;
+      return `<span style="background: #ffe5e5; color: #8b1a1a; border-color: #d32f2f; ${baseStyle}">LOW</span>`;
     }
+    
     if (statusUpper === 'URGENT') {
-      return `<span class="stock-badge" style="background: #6f42c1; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; display: inline-block;">🔵 Urgent</span>`;
+      return `<span style="background: #e3e8f0; color: #1a237e; border-color: #3949ab; ${baseStyle}">URGENT</span>`;
     }
   }
   
-  // ✅ Handle NUMERIC stock (exact quantities)
   minStock = (typeof minStock === 'number') ? minStock : Number(minStock) || 5;
   stock = Number(stock) || 0;
   
   if (stock === 0) {
-    return `<span class="stock-badge bg-danger text-white" style="padding: 6px 12px; border-radius: 20px; display: inline-block;">Out of Stock</span>`;
+    return `<span style="background: #e3e8f0; color: #1a237e; border-color: #3949ab; ${baseStyle}">OUT OF STOCK</span>`;
   }
+  
   if (stock <= minStock) {
-    return `<span class="stock-badge bg-warning text-dark" style="padding: 6px 12px; border-radius: 20px; display: inline-block;">Low (${stock})</span>`;
+    return `<span style="background: #ffe5e5; color: #8b1a1a; border-color: #d32f2f; ${baseStyle}">LOW (${stock})</span>`;
   }
-  return `<span class="stock-badge bg-success text-white" style="padding: 6px 12px; border-radius: 20px; display: inline-block;">In Stock (${stock})</span>`;
+  
+  // ✅ IN STOCK - Even more green
+return `<span style="background: #a5d6a7; color: #1b5e20; border-color: #2e7d32; ${baseStyle}">IN STOCK (${stock})</span>`;
 }
 
 /**
  * ==========================================
- * RENDER PRODUCTS - WITH CUSTOM ORDER SUPPORT
+ * RENDER PRODUCTS - WITH CLICKABLE ROWS
  * ==========================================
  */
  function renderProducts() {
@@ -4003,7 +4213,7 @@ function stockBadgeHtml(stock, minStock){
   } else if (!cachedProducts || cachedProducts.length === 0) {
     tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">No products yet</td></tr>`;
   } else {
-    // ✅ CRITICAL: Load custom order and get ordered products
+    // Load custom order and get ordered products
     loadProductOrder();
     const orderedProducts = getOrderedProducts();
     
@@ -4023,7 +4233,7 @@ function stockBadgeHtml(stock, minStock){
         `<img src="${p.imageUrl}" 
              class="photo-thumbnail-small" 
              alt="Photo" 
-             onclick="viewPhotoProduct('${p.id}')"
+             onclick="event.stopPropagation(); viewPhotoProduct('${p.id}')"
              style="cursor:pointer; width:60px; height:60px; object-fit:cover; border-radius:8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">` : 
         `<div style="width:60px; height:60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius:8px; display:flex; align-items:center; justify-content:center;">
           <i class="bi bi-image" style="font-size:1.8rem; color:white;"></i>
@@ -4032,7 +4242,14 @@ function stockBadgeHtml(stock, minStock){
       const isSelected = bulkEditMode.active && bulkEditMode.selectedProducts.includes(p.id);
       const rowClass = isSelected ? 'product-selected' : '';
       
-      html += `<tr class="${rowClass}" data-product-id="${p.id}" data-product-index="${index}">
+      // ✅ MAKE ROW CLICKABLE - Add onclick to tr
+      html += `<tr class="${rowClass}" 
+                   data-product-id="${p.id}" 
+                   data-product-index="${index}"
+                   onclick="showProductDetails('${p.id}')"
+                   style="cursor: pointer; transition: background-color 0.2s;"
+                   onmouseover="if(!this.classList.contains('product-selected')) this.style.backgroundColor='#f8f9fa'"
+                   onmouseout="if(!this.classList.contains('product-selected')) this.style.backgroundColor=''">
         <td style="text-align: center;">${photoHtml}</td>
         <td><strong>${escapeHtml(p.name)}</strong>${variantBadge}</td>
         <td>${escapeHtml(p.category || '')}</td>
@@ -4040,9 +4257,9 @@ function stockBadgeHtml(stock, minStock){
         <td><strong>${escapeHtml(p.size || '')}</strong></td>
         <td>${stockBadgeHtml(p.stock, p.minStock)}</td>
         <td><strong>${priceText}</strong></td>
-        <td>
-          <button class="btn btn-sm btn-primary btn-action-sm me-1" onclick="event.stopPropagation(); editProduct('${p.id}', ${p.isGroupVariant})"><i class="bi bi-pencil"></i> Edit</button>
-          <button class="btn btn-sm btn-danger btn-action-sm" onclick="event.stopPropagation(); deleteProduct('${p.id}', ${p.isGroupVariant})"><i class="bi bi-trash"></i> Delete</button>
+        <td onclick="event.stopPropagation()">
+          <button class="btn btn-sm btn-primary btn-action-sm me-1" onclick="editProduct('${p.id}', ${p.isGroupVariant})"><i class="bi bi-pencil"></i> Edit</button>
+          <button class="btn btn-sm btn-danger btn-action-sm" onclick="deleteProduct('${p.id}', ${p.isGroupVariant})"><i class="bi bi-trash"></i> Delete</button>
         </td>
       </tr>`;
     });
@@ -4053,20 +4270,18 @@ function stockBadgeHtml(stock, minStock){
     }
   }
   
-  // ✅ MOBILE LIST (with custom order)
+  // ✅ MOBILE LIST - Make cards clickable
   const container = document.getElementById('mobileProductsList');
   if (!hasInitialLoaded) { 
     container.innerHTML = `<div class="mobile-item text-center"><div class="spinner-border"></div><div class="mt-2 text-muted">Loading inventory…</div></div>`; 
   } else if (!cachedProducts || cachedProducts.length === 0) { 
     container.innerHTML = `<div class="mobile-item text-center text-muted">No products yet</div>`; 
   } else {
-    // ✅ Use ordered products for mobile too
     loadProductOrder();
     const orderedProducts = getOrderedProducts();
     
     let html = '';
     orderedProducts.forEach((p, index) => {
-      // Variant badge for mobile
       const variantBadge = p.isGroupVariant ? 
         `<span style="background: #667eea; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; display: inline-block; margin-top: 6px;">📦 Group Variant</span>` : 
         '';
@@ -4074,7 +4289,7 @@ function stockBadgeHtml(stock, minStock){
       const mobilePhoto = (p.imageUrl && p.imageUrl !== '' && p.imageUrl !== 'uploading...') ? 
         `<img src="${p.imageUrl}" 
              alt="Photo" 
-             onclick="viewPhotoProduct('${p.id}')"
+             onclick="event.stopPropagation(); viewPhotoProduct('${p.id}')"
              style="cursor:pointer; width:70px; height:70px; object-fit:cover; border-radius:12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">` : 
         `<div style="width:70px; height:70px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius:12px; display:flex; align-items:center; justify-content:center;">
           <i class="bi bi-image" style="font-size:2.2rem; color:white;"></i>
@@ -4083,10 +4298,12 @@ function stockBadgeHtml(stock, minStock){
       const isSelected = bulkEditMode.active && bulkEditMode.selectedProducts.includes(p.id);
       const cardClass = isSelected ? 'product-selected' : '';
       
+      // ✅ MAKE CARD CLICKABLE - Add onclick to mobile-item div
       html += `<div class="mobile-item ${cardClass} d-flex align-items-start justify-content-between" 
                     data-product-id="${p.id}" 
-                    data-product-index="${index}" 
-                    style="gap:1rem; position:relative;">
+                    data-product-index="${index}"
+                    onclick="showProductDetails('${p.id}')"
+                    style="gap:1rem; position:relative; cursor: pointer; transition: background-color 0.2s;">
         
         <div class="selection-indicator" style="display: ${isSelected ? 'flex' : 'none'};">
           <i class="bi bi-check-circle-fill"></i>
@@ -4103,10 +4320,10 @@ function stockBadgeHtml(stock, minStock){
             <div style="margin-top:8px;">${stockBadgeHtml(p.stock, p.minStock)}</div>
           </div>
         </div>
-        <div style="text-align:right;flex-shrink:0;">
+        <div style="text-align:right;flex-shrink:0;" onclick="event.stopPropagation()">
           <div style="display:flex;flex-direction:column;gap:8px;">
-            <button class="btn btn-sm btn-primary btn-action-sm" onclick="event.stopPropagation(); editProduct('${p.id}', ${p.isGroupVariant})"><i class="bi bi-pencil"></i> Edit</button>
-            <button class="btn btn-sm btn-danger btn-action-sm" onclick="event.stopPropagation(); deleteProduct('${p.id}', ${p.isGroupVariant})"><i class="bi bi-trash"></i> Delete</button>
+            <button class="btn btn-sm btn-primary btn-action-sm" onclick="editProduct('${p.id}', ${p.isGroupVariant})"><i class="bi bi-pencil"></i> Edit</button>
+            <button class="btn btn-sm btn-danger btn-action-sm" onclick="deleteProduct('${p.id}', ${p.isGroupVariant})"><i class="bi bi-trash"></i> Delete</button>
           </div>
         </div>
       </div>`;
@@ -4121,6 +4338,7 @@ function stockBadgeHtml(stock, minStock){
   updateSummaryFromCache();
   loadProductsForSaleFromCache();
 }
+
 
 
 
@@ -4142,13 +4360,12 @@ function stockBadgeHtml(stock, minStock){
     tbody.innerHTML = html;
     updateSummaryFromCache();
   }
-
 /**
  * ==========================================
- * UPDATE SUMMARY - WITH VARIANT COUNTS
+ * UPDATE SUMMARY - WITH IN STOCK & LOW STOCK COUNTS
  * ==========================================
  */
-function updateSummaryFromCache() {
+ function updateSummaryFromCache() {
   // ✅ Count ONLY regular products (not variants)
   const regularProducts = cachedProducts.filter(p => !p.isGroupVariant);
   const totalProductsEl = document.getElementById('totalProducts');
@@ -4156,12 +4373,89 @@ function updateSummaryFromCache() {
     totalProductsEl.textContent = regularProducts.length;
   }
   
-  // ✅ Low stock items (ALL products including variants)
-  const lowStockCount = cachedProducts.filter(p => {
-    const stock = Number(p.stock) || 0;
-    const minStock = Number(p.minStock) || 5;
-    return stock <= minStock && stock >= 0; // Exclude invalid values
+  // ✅ IN STOCK ITEMS - Items with Good/Medium status OR stock > minStock
+  const inStockCount = cachedProducts.filter(p => {
+    const stockValue = p.stock;
+    const stockType = typeof stockValue;
+    
+    // CHECK 1: If stock is TEXT status
+    if (stockType === 'string') {
+      const stockText = stockValue.toString().toUpperCase().trim();
+      
+      // ✅ COUNT Good and Medium
+      if (stockText === 'GOOD' || stockText === 'MEDIUM') {
+        return true;
+      }
+      
+      // Try parsing as number if it's a numeric string
+      const parsedStock = parseFloat(stockValue);
+      if (!isNaN(parsedStock)) {
+        const minStock = Number(p.minStock) || 5;
+        return parsedStock > minStock; // Count if above minimum
+      }
+      
+      return false;
+    }
+    
+    // CHECK 2: If stock is NUMBER, check if > minStock
+    if (stockType === 'number') {
+      const stock = Number(stockValue);
+      const minStock = Number(p.minStock) || 5;
+      
+      // Count if stock is above minimum stock level
+      return !isNaN(stock) && stock > minStock;
+    }
+    
+    return false;
   }).length;
+  
+  const inStockEl = document.getElementById('inStockItems');
+  if (inStockEl) {
+    inStockEl.textContent = inStockCount;
+  }
+  
+  // ✅ LOW STOCK ITEMS - Items with Low/Urgent status OR stock <= minStock
+  const lowStockCount = cachedProducts.filter(p => {
+    const stockValue = p.stock;
+    const stockType = typeof stockValue;
+    
+    // CHECK 1: If stock is TEXT status (Good/Medium/Low/Urgent)
+    if (stockType === 'string') {
+      const stockText = stockValue.toString().toUpperCase().trim();
+      
+      // ❌ EXCLUDE Good and Medium
+      if (stockText === 'GOOD' || stockText === 'MEDIUM') {
+        return false;
+      }
+      
+      // ✅ COUNT Low and Urgent
+      if (stockText === 'LOW' || stockText === 'URGENT') {
+        return true;
+      }
+      
+      // Try parsing as number if it's a numeric string
+      const parsedStock = parseFloat(stockValue);
+      if (!isNaN(parsedStock)) {
+        const minStock = Number(p.minStock) || 5;
+        return parsedStock <= minStock && parsedStock >= 0;
+      }
+      
+      return false;
+    }
+    
+    // CHECK 2: If stock is NUMBER, compare with minStock
+    if (stockType === 'number') {
+      const stock = Number(stockValue);
+      const minStock = Number(p.minStock) || 5;
+      
+      // Count if stock is 0 (out of stock) OR stock <= minStock
+      return !isNaN(stock) && stock >= 0 && stock <= minStock;
+    }
+    
+    // Unknown type - don't count
+    return false;
+  }).length;
+  
   const lowStockEl = document.getElementById('lowStock');
   if (lowStockEl) {
     lowStockEl.textContent = lowStockCount;
@@ -4178,8 +4472,25 @@ function updateSummaryFromCache() {
   const quantityInHandEl = document.getElementById('quantityInHand');
   if (quantityInHandEl) {
     const totalStock = cachedProducts.reduce((sum, p) => {
-      const stock = Number(p.stock) || 0;
-      return sum + (stock >= 0 ? stock : 0); // Only count valid positive numbers
+      const stockValue = p.stock;
+      const stockType = typeof stockValue;
+      
+      // If numeric, add to total
+      if (stockType === 'number') {
+        const stock = Number(stockValue);
+        return sum + (stock >= 0 ? stock : 0);
+      }
+      
+      // If string that's a number, parse and add
+      if (stockType === 'string') {
+        const parsedStock = parseFloat(stockValue);
+        if (!isNaN(parsedStock) && parsedStock >= 0) {
+          return sum + parsedStock;
+        }
+      }
+      
+      // Text status (Good/Medium/Low/Urgent) - don't add to numeric total
+      return sum;
     }, 0);
     quantityInHandEl.textContent = totalStock;
   }
@@ -4188,7 +4499,11 @@ function updateSummaryFromCache() {
   if (quantityToBeReceivedEl) {
     quantityToBeReceivedEl.textContent = '0'; // TODO: Calculate from purchase orders
   }
+  
+  console.log('✅ Summary updated - In Stock:', inStockCount, 'Low Stock:', lowStockCount);
 }
+
+
 
 
   /***********************
@@ -4712,11 +5027,7 @@ async function processBackgroundSaveQueue() {
  ***********************/
  let editingProductId = null;
 
-
-/**
- * Show Add Product Modal
- */
-async function showAddProduct() { 
+ async function showAddProduct() { 
   editingProductId = null; 
   document.getElementById('modalTitle').textContent = 'Add New Product'; 
   document.getElementById('productForm').reset(); 
@@ -4728,8 +5039,9 @@ async function showAddProduct() {
   form.dataset.groupId = '';
   form.dataset.variantId = '';
   
-  // ✅ Populate category dropdown from cache (await for loading)
+  // ✅ Populate dropdowns from cache
   await populateCategoryDropdown();
+  await populateUnitTypeDropdown(); // ✅ NEW
   
   // Reset photo preview
   if (document.getElementById('productPhotoPreviewContainer')) {
@@ -4744,7 +5056,7 @@ async function showAddProduct() {
   productPhotoBase64 = null;
   productPhotoFileName = null;
   
-  // Make name/brand/size editable (in case they were readonly from variant edit)
+  // Make fields editable
   document.getElementById('productName').readOnly = false;
   document.getElementById('brand').readOnly = false;
   document.getElementById('size').readOnly = false;
@@ -4754,13 +5066,10 @@ async function showAddProduct() {
   document.getElementById('size').style.background = '';
   
   new bootstrap.Modal(document.getElementById('productModal')).show();
-  console.log('✅ Add Product modal opened with categories populated');
+  console.log('✅ Add Product modal opened');
 }
 
 
-/**
- * Edit Product
- */
 async function editProduct(id, isVariant = false) {
   console.log('✏️ Editing product ID:', id, 'Is variant:', isVariant);
   
@@ -4778,15 +5087,16 @@ async function editProduct(id, isVariant = false) {
     return;
   }
   
-  // CRITICAL: Set editingProductId BEFORE opening modal
+  // Set editingProductId
   editingProductId = id;
   console.log('✅ Set editingProductId to:', editingProductId);
   
   document.getElementById('modalTitle').textContent = 'Edit Product';
   document.getElementById('productId').value = id;
   
-  // ✅ Populate category dropdown BEFORE setting value (await for loading)
+  // ✅ Populate dropdowns BEFORE setting values
   await populateCategoryDropdown();
+  await populateUnitTypeDropdown(); // ✅ NEW
   
   // Fill form fields
   document.getElementById('productName').value = p.name || '';
@@ -4801,7 +5111,7 @@ async function editProduct(id, isVariant = false) {
   
   window.editingProductImageUrl = p.imageUrl || '';
   
-  // Make fields editable (in case they were readonly from variant edit)
+  // Make fields editable
   document.getElementById('productName').readOnly = false;
   document.getElementById('brand').readOnly = false;
   document.getElementById('size').readOnly = false;
@@ -4850,6 +5160,7 @@ async function editProduct(id, isVariant = false) {
   new bootstrap.Modal(document.getElementById('productModal')).show();
   console.log('✅ Edit modal opened for product:', editingProductId);
 }
+
 
 
 /**
@@ -5732,15 +6043,9 @@ function closeRecordPurchaseModal() {
 }
 
 /**
- * Add product row
+ * Add product row (FIXED: Dynamic Unit Types)
  */
-/**
- * Add product row (MOBILE RESPONSIVE)
- */
-/**
- * Add product row (FIXED: Product name on Line 1, Qty/Rate/Unit on Line 2)
- */
-function addPurchaseProductRow(product = null) {
+ function addPurchaseProductRow(product = null) {
   purchaseProductRowCounter++;
   const rowId = `purchaseRow${purchaseProductRowCounter}`;
   const container = document.getElementById('purchaseProductRows');
@@ -5748,12 +6053,15 @@ function addPurchaseProductRow(product = null) {
   const productName = product ? (product.size ? `${product.name} (${product.size})` : product.name) : '';
   const qty = product ? product.qty : '';
   const rate = product ? product.price : '';
-  const unit = product ? product.unitType : 'Pieces';
+  const unit = product ? product.unitType : 'Box';
   const amount = product ? (product.qty * product.price).toFixed(2) : '0.00';
 
   const rowDiv = document.createElement('div');
   rowDiv.id = rowId;
   rowDiv.className = 'purchase-product-row';
+
+  // ✅ BUILD UNIT TYPE OPTIONS DYNAMICALLY
+  const unitOptions = generateUnitTypeOptions(unit);
 
   rowDiv.innerHTML = `
     <input type="text" class="form-control" placeholder="Product name"
@@ -5763,10 +6071,7 @@ function addPurchaseProductRow(product = null) {
     <input type="number" class="form-control" placeholder="Rate" min="0" step="0.01"
            value="${rate}" oninput="calculatePurchaseRowAmount('${rowId}')" data-field="rate">
     <select class="form-select" data-field="unit">
-      <option value="Pieces" ${unit === 'Pieces' ? 'selected' : ''}>Pcs</option>
-      <option value="Boxes" ${unit === 'Boxes' ? 'selected' : ''}>Box</option>
-      <option value="Kg" ${unit === 'Kg' ? 'selected' : ''}>Kg</option>
-      <option value="Liters" ${unit === 'Liters' ? 'selected' : ''}>L</option>
+      ${unitOptions}
     </select>
     <input type="number" class="form-control" placeholder="Amount" readonly
            value="${amount}" data-field="amount"
@@ -5780,7 +6085,6 @@ function addPurchaseProductRow(product = null) {
 
   container.appendChild(rowDiv);
 }
-
 
 
 /**
@@ -5884,13 +6188,12 @@ async function loadRecentPurchases() {
     `;
   }
 }
-
 /**
  * ==========================================
- * DISPLAY PURCHASES - FIXED VERSION
+ * DISPLAY PURCHASES - NO N/A
  * ==========================================
  */
-function displayPurchases(purchases) {
+ function displayPurchases(purchases) {
   const tbody = document.getElementById('purchasesList');
   
   if (!purchases || purchases.length === 0) {
@@ -5907,51 +6210,117 @@ function displayPurchases(purchases) {
   let html = '';
   
   purchases.forEach((purchase, index) => {
-    // ✅ Format products string - handle array properly
-    let productsStr = '-';
+    // ✅ Format products - REMOVE N/A
+    let productsStr = '';
+    let productsHtml = '';
+    
     if (Array.isArray(purchase.products)) {
-      productsStr = purchase.products
-        .map(p => `${p.name} (${p.qty})`)
-        .join(', ');
+      // Remove N/A from product names
+      const cleanProducts = purchase.products
+        .map(p => {
+          const name = (p.name || '').replace(/\(N\/A\)/gi, '').trim();
+          return name ? `${name} (${p.qty || 0})` : null;
+        })
+        .filter(p => p); // Remove empty entries
+      
+      productsStr = cleanProducts.join(', ') || 'Products';
+      
+      // HTML formatted for mobile view
+      productsHtml = purchase.products
+        .map(p => {
+          const name = (p.name || '').replace(/\(N\/A\)/gi, '').trim();
+          if (!name) return '';
+          return `<div style="padding: 4px 0; color: #333;">• ${escapeHtml(name)} <span style="color: #666; font-size: 0.85em;">(Qty: ${p.qty || 0})</span></div>`;
+        })
+        .filter(h => h)
+        .join('') || '<div style="color: #999;">No product details</div>';
+        
     } else if (typeof purchase.products === 'string') {
-      productsStr = purchase.products;
+      productsStr = purchase.products.replace(/\(N\/A\)/gi, '').trim() || 'Products';
+      productsHtml = `<div style="padding: 4px 0; color: #333;">${escapeHtml(productsStr)}</div>`;
     }
     
-    // ✅ Format date
-    const dateStr = purchase.date 
-      ? new Date(purchase.date).toLocaleString('en-IN', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        })
-      : '-';
+    // ✅ Date formatting
+    let dateOnly = '-';
+    let dateTimeFull = '-';
     
-    // ✅ Check if photo exists (photoBase64 field)
+    if (purchase.date) {
+      try {
+        const date = new Date(purchase.date);
+        if (!isNaN(date.getTime())) {
+          dateTimeFull = date.toLocaleString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          
+          const day = date.getDate();
+          const month = date.toLocaleString('en-IN', { month: 'short' });
+          dateOnly = `${day}-${month}`;
+        }
+      } catch (e) {
+        console.error('Invalid date:', purchase.date);
+      }
+    }
+    
     const hasPhoto = purchase.photoBase64 && purchase.photoBase64.length > 0;
+    const vendorName = escapeHtml(purchase.vendorName || 'Vendor');
     
+    // ✅ DESKTOP ROW
     html += `
-      <tr onclick="viewPurchaseDetail(${index})" style="cursor: pointer;">
-        <td style="text-align: center; font-weight: 600;">${index + 1}</td>
-        <td style="white-space: nowrap;">${dateStr}</td>
-        <td style="text-align: center;">
+      <tr class="d-none d-lg-table-row" onclick="viewPurchaseDetail(${index})" style="cursor: pointer; background: white !important;">
+        <td style="text-align: center; font-weight: 600; background: white !important;">${index + 1}</td>
+        <td style="white-space: nowrap; background: white !important;">${dateTimeFull}</td>
+        <td style="text-align: center; background: white !important;">
           ${hasPhoto ? `
             <img 
               src="${purchase.photoBase64}" 
               onclick="event.stopPropagation(); openPurchasePhotoLightbox(${index})" 
               style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; transition: transform 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" 
-              onmouseover="this.style.transform='scale(1.05)'" 
-              onmouseout="this.style.transform='scale(1)'"
-              alt="Purchase Photo"
-              title="Click to view full size">
-          ` : '<span style="color: #999;">-</span>'}
+              alt="Photo">
+          ` : '<span style="color: #999;">No photo</span>'}
         </td>
-        <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(productsStr)}">${escapeHtml(productsStr)}</td>
-        <td>${escapeHtml(purchase.vendorName || '-')}</td>
-        <td style="font-weight: 600; color: #28a745;">₹${Number(purchase.totalAmount || 0).toFixed(2)}</td>
-        <td style="font-size: 0.9rem;">${formatPaymentModes(purchase.paymentModes) || '-'}</td>
-        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(purchase.otherInfo || '')}">${escapeHtml(purchase.otherInfo || '-')}</td>
+        <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: white !important;" title="${escapeHtml(productsStr)}">${escapeHtml(productsStr)}</td>
+        <td style="background: white !important;">${vendorName}</td>
+        <td style="font-weight: 600; color: #28a745; background: white !important;">₹${Number(purchase.totalAmount || 0).toFixed(2)}</td>
+        <td style="font-size: 0.9rem; background: white !important;">${formatPaymentModes(purchase.paymentModes) || 'Not specified'}</td>
+        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: white !important;" title="${escapeHtml(purchase.otherInfo || '')}">${escapeHtml(purchase.otherInfo || '')}</td>
+      </tr>
+    `;
+    
+    // ✅ MOBILE ROWS
+    const topBorder = index === 0 ? 'none' : '12px solid #e5e5e5';
+    
+    html += `
+      <tr class="d-table-row d-lg-none purchase-tile-main-${index}" 
+          onclick="viewPurchaseDetail(${index})" 
+          style="cursor: pointer; background: white !important; border-top: ${topBorder}; border-bottom: none !important;">
+        <td style="font-size: 0.85rem; font-weight: 600; padding: 12px 8px 2px 8px; background: white !important; border: none !important;">${dateOnly}</td>
+        <td style="font-size: 0.85rem; max-width: 100px; overflow: hidden; text-overflow: ellipsis; padding: 12px 8px 2px 8px; background: white !important; border: none !important;" 
+            title="${vendorName}">${vendorName}</td>
+        <td style="font-size: 0.85rem; font-weight: 600; color: #28a745; padding: 12px 8px 2px 8px; background: white !important; border: none !important;">₹${Number(purchase.totalAmount || 0).toFixed(2)}</td>
+        <td style="text-align: center; padding: 12px 8px 2px 8px; background: white !important; border: none !important;">
+          ${hasPhoto ? `
+            <img 
+              src="${purchase.photoBase64}" 
+              onclick="event.stopPropagation(); openPurchasePhotoLightbox(${index})" 
+              style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" 
+              alt="Photo">
+          ` : ''}
+        </td>
+      </tr>
+      
+      <tr class="d-table-row d-lg-none purchase-tile-products-${index}" 
+          onclick="viewPurchaseDetail(${index})" 
+          style="cursor: pointer; background: white !important; border: none !important; border-top: none !important; border-bottom: none !important;">
+        <td colspan="4" style="padding: 2px 12px 16px 12px; font-size: 0.8rem; line-height: 1.5; background: white !important; border: none !important;">
+          <div style="color: #28a745; font-weight: 600; margin-bottom: 6px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">
+            <i class="bi bi-box-seam"></i> Products
+          </div>
+          ${productsHtml}
+        </td>
       </tr>
     `;
   });
@@ -5959,8 +6328,52 @@ function displayPurchases(purchases) {
   tbody.innerHTML = html;
   window.currentPurchases = purchases;
   
+  setTimeout(() => {
+    forceRemoveBorders();
+  }, 50);
+  
   console.log('✅ Displayed', purchases.length, 'purchases');
 }
+
+
+/**
+ * Force remove all borders between purchase rows
+ */
+function forceRemoveBorders() {
+  const tbody = document.getElementById('purchasesList');
+  if (!tbody) return;
+  
+  const allRows = tbody.querySelectorAll('tr');
+  const allCells = tbody.querySelectorAll('td');
+  
+  allRows.forEach(row => {
+    row.style.setProperty('background', 'white', 'important');
+    row.style.setProperty('background-color', 'white', 'important');
+    
+    if (row.className.includes('purchase-tile-products')) {
+      row.style.setProperty('border', 'none', 'important');
+      row.style.setProperty('border-top', 'none', 'important');
+      row.style.setProperty('border-bottom', 'none', 'important');
+    }
+    
+    if (row.className.includes('purchase-tile-main')) {
+      row.style.setProperty('border-bottom', 'none', 'important');
+    }
+  });
+  
+  allCells.forEach(cell => {
+    cell.style.setProperty('background', 'white', 'important');
+    cell.style.setProperty('background-color', 'white', 'important');
+    
+    const parentRow = cell.parentElement;
+    if (parentRow && parentRow.className.includes('purchase-tile')) {
+      cell.style.setProperty('border', 'none', 'important');
+      cell.style.setProperty('border-top', 'none', 'important');
+      cell.style.setProperty('border-bottom', 'none', 'important');
+    }
+  });
+}
+
 
 // Helper function
 function formatPaymentModes(modes) {
@@ -5969,8 +6382,9 @@ function formatPaymentModes(modes) {
   if (modes.cash && modes.cash > 0) parts.push(`Cash: ₹${modes.cash}`);
   if (modes.online && modes.online > 0) parts.push(`Online: ₹${modes.online}`);
   if (modes.credit && modes.credit > 0) parts.push(`Credit: ₹${modes.credit}`);
-  return parts.join(', ') || 'Not specified';
+  return parts.join(', ') || '';
 }
+
 
 
    /**
@@ -6050,174 +6464,186 @@ function openPurchasePhotoLightbox(purchaseIndex) {
   bsLightbox.show();
 }
 
-
-
 /**
- * ==========================================
- * VIEW PURCHASE DETAIL - FIXED VERSION
- * ==========================================
+ * View purchase detail - shows TIME and INDIVIDUAL ITEM TOTALS
  */
-function viewPurchaseDetail(index) {
+ function viewPurchaseDetail(index) {
   const purchase = window.currentPurchases[index];
-  if (!purchase) return;
   
-  // ✅ Format products properly
-  let productsHTML = '';
+  if (!purchase) {
+    alert('❌ Purchase not found');
+    return;
+  }
+  
+  // ✅ Format date WITH TIME for detail view
+  let dateTimeFull = '-';
+  if (purchase.date) {
+    try {
+      const date = new Date(purchase.date);
+      if (!isNaN(date.getTime())) {
+        const day = date.getDate();
+        const month = date.toLocaleString('en-IN', { month: 'short' });
+        const year = date.getFullYear();
+        const hours = date.getHours();
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const hour12 = hours % 12 || 12;
+        
+        dateTimeFull = `${day} ${month} ${year}, ${hour12}:${minutes} ${ampm}`;
+      }
+    } catch (e) {
+      console.error('Invalid date:', purchase.date);
+    }
+  }
+  
+  // ✅ Format products with INDIVIDUAL TOTALS and NO N/A
+  let productsHtml = '-';
   if (Array.isArray(purchase.products) && purchase.products.length > 0) {
-    productsHTML = `
-      <table class="table table-sm table-bordered">
-        <thead class="table-light">
-          <tr>
-            <th>Product</th>
-            <th>Qty</th>
-            <th>Unit</th>
-            <th>Rate</th>
-            <th>Amount</th>
+    const productRows = purchase.products
+      .map(p => {
+        // Remove (N/A) from product name
+        let productName = (p.name || p.product || 'Unknown Product').replace(/\(N\/A\)/gi, '').trim();
+        const qty = p.qty || p.quantity || 0;
+        const price = p.price || p.rate || 0;
+        const itemTotal = qty * price;
+        
+        return `
+          <tr style="border-bottom: 1px solid #f0f0f0;">
+            <td style="padding: 8px 10px;">${escapeHtml(productName)}</td>
+            <td style="padding: 8px 10px; text-align: center;">${qty}</td>
+            <td style="padding: 8px 10px; text-align: right;">₹${Number(price).toFixed(2)}</td>
+            <td style="padding: 8px 10px; text-align: right; font-weight: 600; color: #28a745;">₹${Number(itemTotal).toFixed(2)}</td>
+          </tr>
+        `;
+      })
+      .join('');
+    
+    productsHtml = `
+      <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+        <thead>
+          <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+            <th style="padding: 10px; text-align: left; font-weight: 600; color: #495057;">Product</th>
+            <th style="padding: 10px; text-align: center; font-weight: 600; color: #495057;">Qty</th>
+            <th style="padding: 10px; text-align: right; font-weight: 600; color: #495057;">Rate</th>
+            <th style="padding: 10px; text-align: right; font-weight: 600; color: #495057;">Amount</th>
           </tr>
         </thead>
         <tbody>
-    `;
-    
-    purchase.products.forEach(p => {
-      productsHTML += `
-        <tr>
-          <td>${escapeHtml(p.name || '-')}</td>
-          <td>${p.qty || 0}</td>
-          <td>${p.unit || 'pcs'}</td>
-          <td>₹${Number(p.rate || 0).toFixed(2)}</td>
-          <td style="font-weight: 600;">₹${Number(p.amount || 0).toFixed(2)}</td>
-        </tr>
-      `;
-    });
-    
-    productsHTML += `
+          ${productRows}
         </tbody>
       </table>
     `;
   } else if (typeof purchase.products === 'string') {
-    productsHTML = `<p style="white-space: pre-wrap; margin: 0;">${escapeHtml(purchase.products)}</p>`;
-  } else {
-    productsHTML = '<p class="text-muted">No products listed</p>';
+    // Remove N/A from string products
+    const cleanProducts = purchase.products.replace(/\(N\/A\)/gi, '').trim();
+    productsHtml = escapeHtml(cleanProducts);
   }
   
-  // ✅ Format date
-  const dateStr = purchase.date
-    ? new Date(purchase.date).toLocaleString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      })
-    : 'Not specified';
-  
-  let html = `
-    <div style="padding: 15px;">
-      
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <strong>Serial No.:</strong> ${index + 1}
-        </div>
-        <div class="col-md-6">
-          <strong>Date & Time:</strong> ${dateStr}
-        </div>
-      </div>
-      
+  const modalContent = `
+    <div style="padding: 20px;">
       ${purchase.photoBase64 ? `
-        <div class="text-center mb-3">
-          <img 
-            src="${purchase.photoBase64}" 
-            onclick="openPurchasePhotoLightbox(${index})" 
-            style="max-width: 100%; max-height: 300px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer;" 
-            alt="Purchase Photo"
-            title="Click to view full size">
-        </div>
+        <img src="${purchase.photoBase64}" 
+             style="width:100%; max-height:300px; object-fit:cover; border-radius:8px; margin-bottom:20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" 
+             alt="Purchase Photo" />
       ` : ''}
       
-      <div class="card mb-3">
-        <div class="card-header bg-success text-white">
-          <strong>Vendor Information</strong>
-        </div>
-        <div class="card-body">
-          <h5>${escapeHtml(purchase.vendorName || 'Not specified')}</h5>
-        </div>
-      </div>
+      <table style="width:100%; border-collapse: collapse;">
+        <tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 12px 10px; font-weight: 600; width: 40%;">Date & Time:</td>
+          <td style="padding: 12px 10px;">${dateTimeFull}</td>
+        </tr>
+        
+        <tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 12px 10px; font-weight: 600;">Vendor:</td>
+          <td style="padding: 12px 10px;">${escapeHtml(purchase.vendorName || 'Not specified')}</td>
+        </tr>
+        
+        <tr style="border-bottom: 1px solid #eee;">
+          <td colspan="2" style="padding: 12px 10px;">
+            <div style="font-weight: 600; margin-bottom: 8px;">Products:</div>
+            ${productsHtml}
+          </td>
+        </tr>
+        
+        <tr style="border-bottom: 1px solid #eee; background: #f8f9fa;">
+          <td style="padding: 12px 10px; font-weight: 600;">Total Amount:</td>
+          <td style="padding: 12px 10px; font-size: 20px; color: #28a745; font-weight: 700;">
+            ₹${Number(purchase.totalAmount || 0).toFixed(2)}
+          </td>
+        </tr>
+        
+        <tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 12px 10px; font-weight: 600;">Payment Mode:</td>
+          <td style="padding: 12px 10px;">${formatPaymentModes(purchase.paymentModes) || 'Not specified'}</td>
+        </tr>
+        
+        ${purchase.otherInfo ? `
+        <tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 12px 10px; font-weight: 600;">Other Info:</td>
+          <td style="padding: 12px 10px;">${escapeHtml(purchase.otherInfo)}</td>
+        </tr>
+        ` : ''}
+      </table>
       
-      <div class="card mb-3">
-        <div class="card-header bg-success text-white">
-          <strong>Products Purchased</strong>
-        </div>
-        <div class="card-body">
-          ${productsHTML}
-        </div>
-      </div>
-      
-      <div class="card mb-3">
-        <div class="card-header bg-success text-white">
-          <strong>Payment Details</strong>
-        </div>
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-6">
-              <strong>Total Amount:</strong>
-              <div style="font-size: 1.5rem; color: #28a745; font-weight: 700;">₹${Number(purchase.totalAmount || 0).toFixed(2)}</div>
-            </div>
-            <div class="col-md-6">
-              <strong>Payment Mode:</strong>
-              <div>${formatPaymentModes(purchase.paymentModes) || 'Not specified'}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      ${purchase.otherInfo ? `
-        <div class="card">
-          <div class="card-header bg-warning">
-            <strong>Additional Information</strong>
-          </div>
-          <div class="card-body">
-            <p style="white-space: pre-wrap; margin: 0;">${escapeHtml(purchase.otherInfo)}</p>
-          </div>
-        </div>
-      ` : ''}
-      
-      <div class="text-center mt-3">
-        <button class="btn btn-danger" onclick="confirmDeletePurchase('${purchase.purchaseId}')">
-          <i class="bi bi-trash"></i> Delete Purchase
+      <div style="margin-top: 20px; text-align: right;">
+        <button class="btn btn-secondary" onclick="closePurchaseDetailModal()">
+          <i class="bi bi-x-circle"></i> Close
         </button>
       </div>
-      
     </div>
   `;
   
-  // Create modal if not exists
-  let modal = document.getElementById('purchaseDetailModal');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.className = 'modal fade';
-    modal.id = 'purchaseDetailModal';
-    modal.innerHTML = `
-      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+  // Show in modal
+  const modalEl = document.getElementById('purchaseDetailModal');
+  if (modalEl) {
+    document.getElementById('purchaseDetailModalBody').innerHTML = modalContent;
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+  } else {
+    // Create temporary modal
+    createTempPurchaseDetailModal(modalContent);
+  }
+}
+
+
+function closePurchaseDetailModal() {
+  const modalEl = document.getElementById('purchaseDetailModal');
+  if (modalEl) {
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+  }
+}
+
+
+function createTempPurchaseDetailModal(content) {
+  let tempModal = document.getElementById('tempPurchaseDetailModal');
+  if (tempModal) tempModal.remove();
+  
+  const modalHTML = `
+    <div class="modal fade" id="tempPurchaseDetailModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
           <div class="modal-header bg-success text-white">
             <h5 class="modal-title">
-              <i class="bi bi-receipt"></i> Purchase Details
+              <i class="bi bi-bag-check"></i> Purchase Details
             </h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
           </div>
-          <div class="modal-body" id="purchaseDetailContent"></div>
+          <div class="modal-body">${content}</div>
         </div>
       </div>
-    `;
-    document.body.appendChild(modal);
-  }
+    </div>
+  `;
   
-  document.getElementById('purchaseDetailContent').innerHTML = html;
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  const modal = new bootstrap.Modal(document.getElementById('tempPurchaseDetailModal'));
+  modal.show();
   
-  const bsModal = new bootstrap.Modal(modal);
-  bsModal.show();
+  document.getElementById('tempPurchaseDetailModal').addEventListener('hidden.bs.modal', function() {
+    this.remove();
+  });
 }
+
 
 
 /**
@@ -6788,11 +7214,10 @@ function updateBulkCountersPurchase() {
   document.getElementById('bulkSelectedCountPurchase').textContent = selectedCount;
   document.getElementById('bulkTotalQtyPurchase').textContent = totalQty;
 }
-
 /**
- * ✅ ADD BULK PRODUCTS - MERGE DUPLICATES & AUTO-CLOSE
+ * ✅ ADD BULK PRODUCTS - MERGE DUPLICATES & AUTO-CLOSE (FIXED: Dynamic Unit Types)
  */
-function addBulkProductsToPurchase() {
+ function addBulkProductsToPurchase() {
   const selectedArray = Object.values(selectedBulkProductsPurchase);
   
   if (selectedArray.length === 0) {
@@ -6805,13 +7230,13 @@ function addBulkProductsToPurchase() {
   const container = document.getElementById('purchaseProductRows');
   if (!container) return;
   
-  // ✅ GET ALL EXISTING ROWS
+  // GET ALL EXISTING ROWS
   const existingRows = container.querySelectorAll('.purchase-product-row');
   
   selectedArray.forEach(product => {
     const productName = product.size ? `${product.name} (${product.size})` : product.name;
     
-    // ✅ CHECK IF PRODUCT ALREADY EXISTS
+    // CHECK IF PRODUCT ALREADY EXISTS
     let existingRow = null;
     existingRows.forEach(row => {
       const nameInput = row.querySelector('input[data-field="name"]');
@@ -6821,7 +7246,7 @@ function addBulkProductsToPurchase() {
     });
     
     if (existingRow) {
-      // ✅ PRODUCT EXISTS - MERGE QUANTITY
+      // PRODUCT EXISTS - MERGE QUANTITY
       const qtyInput = existingRow.querySelector('input[data-field="qty"]');
       if (qtyInput) {
         const currentQty = parseFloat(qtyInput.value) || 0;
@@ -6837,13 +7262,17 @@ function addBulkProductsToPurchase() {
         console.log(`✅ Merged: ${productName} - Updated qty to ${newQty}`);
       }
     } else {
-      // ✅ NEW PRODUCT - ADD TO TOP
+      // NEW PRODUCT - ADD TO TOP
       purchaseProductRowCounter++;
       const rowId = `purchaseRow${purchaseProductRowCounter}`;
       
       const rowDiv = document.createElement('div');
       rowDiv.id = rowId;
       rowDiv.className = 'purchase-product-row';
+
+      // ✅ BUILD UNIT TYPE OPTIONS DYNAMICALLY
+      const unitType = product.unitType || 'Box';
+      const unitOptions = generateUnitTypeOptions(unitType);
 
       rowDiv.innerHTML = `
         <input type="text" class="form-control" placeholder="Product name"
@@ -6853,10 +7282,7 @@ function addBulkProductsToPurchase() {
         <input type="number" class="form-control" placeholder="Rate" min="0" step="0.01"
                value="${product.price}" oninput="calculatePurchaseRowAmount('${rowId}')" data-field="rate">
         <select class="form-select" data-field="unit">
-          <option value="Pieces" ${product.unitType === 'Pieces' ? 'selected' : ''}>Pcs</option>
-          <option value="Boxes" ${product.unitType === 'Boxes' ? 'selected' : ''}>Box</option>
-          <option value="Kg" ${product.unitType === 'Kg' ? 'selected' : ''}>Kg</option>
-          <option value="Liters" ${product.unitType === 'Liters' ? 'selected' : ''}>L</option>
+          ${unitOptions}
         </select>
         <input type="number" class="form-control" placeholder="Amount" readonly
                value="${(product.qty * product.price).toFixed(2)}" data-field="amount"
@@ -6869,11 +7295,11 @@ function addBulkProductsToPurchase() {
       `;
 
       container.insertBefore(rowDiv, container.firstChild);
-      console.log(`✅ Added new: ${productName} - Qty ${product.qty}`);
+      console.log(`✅ Added new: ${productName} - Qty ${product.qty} - Unit: ${unitType}`);
     }
   });
   
-  // ✅ CLEAR SELECTIONS & CLOSE MODAL
+  // CLEAR SELECTIONS & CLOSE MODAL
   selectedBulkProductsPurchase = {};
   
   const modal = bootstrap.Modal.getInstance(document.getElementById('bulkAddModalForPurchase'));
@@ -6884,19 +7310,44 @@ function addBulkProductsToPurchase() {
   console.log('✅ Products added/merged successfully! Modal closed.');
 }
 
+
 /**
- * ✅ HANDLE MODAL CLOSE EVENTS - FORCE RESET
+ * ✅ HELPER: Generate Unit Type Options Dynamically
  */
-document.addEventListener('DOMContentLoaded', function() {
-  const bulkModal = document.getElementById('bulkAddModalForPurchase');
-  if (bulkModal) {
-    bulkModal.addEventListener('hidden.bs.modal', function () {
-      // ✅ Force clear when modal closes by ANY method
-      selectedBulkProductsPurchase = {};
-      console.log('✅ Bulk modal closed - selections cleared');
-    });
+function generateUnitTypeOptions(selectedUnit) {
+  // Default unit types
+  const defaultUnits = ['Box', 'Piece', 'SFT', 'Kg', 'Liters', 'Meter'];
+  
+  // Use unitTypesCache if available, otherwise use defaults
+  let availableUnits = [];
+  
+  if (window.unitTypesCache && Array.isArray(window.unitTypesCache) && window.unitTypesCache.length > 0) {
+    availableUnits = [...window.unitTypesCache];
+  } else {
+    availableUnits = [...defaultUnits];
   }
-});
+  
+  // Ensure selected unit is in the list
+  if (selectedUnit && !availableUnits.includes(selectedUnit)) {
+    availableUnits.push(selectedUnit);
+  }
+  
+  // Sort alphabetically
+  availableUnits.sort();
+  
+  // Build options HTML
+  let optionsHTML = '';
+  availableUnits.forEach(unit => {
+    const isSelected = unit === selectedUnit ? 'selected' : '';
+    optionsHTML += `<option value="${escapeHtml(unit)}" ${isSelected}>${escapeHtml(unit)}</option>`;
+  });
+  
+  return optionsHTML;
+}
+
+
+// ✅ Make helper function global
+window.generateUnitTypeOptions = generateUnitTypeOptions;
 
 
 /**
@@ -8916,8 +9367,7 @@ function clearSalesInDateRange() {
     alert(`ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Successfully cleared ${salesInRange.length} sales records!\n\nNote: They're hidden from display only. Google Sheets data is unchanged.\n\nTo restore: Clear browser data or use developer console to run:\nlocalStorage.removeItem('deletedSaleIds')`);
 }
 
-
-   function displaySalesFromCache() {
+function displaySalesFromCache() {
   const salesList = document.getElementById('salesList');
   
   if (cachedSales.length === 0) {
@@ -8933,28 +9383,34 @@ function clearSalesInDateRange() {
   
   salesList.innerHTML = '';
   
-  // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ FIX: Show only last 100 sales (most recent)
   const recentSales = cachedSales.slice(0, 100);
   
   recentSales.forEach(sale => {
     const date = new Date(sale.date);
-    const formattedDate = date.toLocaleDateString('en-IN') + ' ' + 
-                         date.toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'});
+    
+    // ✅ COMPACT FORMAT: "8-Dec 1:07PM" on two lines
+    const day = date.getDate();
+    const month = date.toLocaleString('en-IN', { month: 'short' });
+    const hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = hours % 12 || 12;
+    
+    const formattedDate = `${day}-${month}<br><small>${hour12}:${minutes}${ampm}</small>`;
     
     const row = `
       <tr>
-        <td>${formattedDate}</td>
-        <td>${sale.productName}</td>
-        <td>${sale.quantity}</td>
-        <td>${sale.unitType}</td>
-        <td class="text-success fw-bold">₹${parseFloat(sale.totalAmount).toFixed(2)}</td>
+        <td style="line-height: 1.3; font-size: 0.85rem;">${formattedDate}</td>
+        <td style="font-size: 0.85rem;">${sale.productName}</td>
+        <td style="font-size: 0.85rem;">${sale.quantity}</td>
+        <td style="font-size: 0.85rem;">${sale.unitType}</td>
+        <td class="text-success fw-bold" style="font-size: 0.85rem;">₹${parseFloat(sale.totalAmount).toFixed(2)}</td>
       </tr>
     `;
     
     salesList.innerHTML += row;
   });
   
-  // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ FIX: Show count if more than 100 sales exist
   if (cachedSales.length > 100) {
     salesList.innerHTML += `
       <tr>
@@ -8965,6 +9421,7 @@ function clearSalesInDateRange() {
     `;
   }
 }
+
 
 /**
  * ==========================================
@@ -9370,6 +9827,7 @@ function viewPhotoProduct(productId) {
   const brandsPage = document.getElementById('brandsPage');
   const sizesPage = document.getElementById('sizesPage');
   const categoriesPage = document.getElementById('categoriesPage');
+  const unitTypesPage = document.getElementById('unitTypesPage'); // ✅ NEW
   
   if (allProductsPage) allProductsPage.classList.remove('active');
   if (productGroupsPage) productGroupsPage.classList.remove('active');
@@ -9377,6 +9835,7 @@ function viewPhotoProduct(productId) {
   if (brandsPage) brandsPage.classList.remove('active');
   if (sizesPage) sizesPage.classList.remove('active');
   if (categoriesPage) categoriesPage.classList.remove('active');
+  if (unitTypesPage) unitTypesPage.classList.remove('active'); // ✅ NEW
   
   // Show main dashboard
   const mainApp = document.getElementById('mainApp');
@@ -9415,9 +9874,13 @@ function viewPhotoProduct(productId) {
       const sizeField = document.getElementById('size');
       if (sizeField) sizeField.value = '';
       
-      // ✅ Reset Category Dropdown (no button needed - it's a select)
+      // Reset Category Dropdown
       const categoryField = document.getElementById('category');
       if (categoryField) categoryField.value = '';
+      
+      // ✅ Reset Unit Type Dropdown
+      const unitTypeField = document.getElementById('unitType');
+      if (unitTypeField) unitTypeField.value = '';
       
       // Clear photo selection
       if (typeof clearProductPhotoSelection === 'function') {
@@ -9436,7 +9899,7 @@ function viewPhotoProduct(productId) {
     });
   }
   
-  // ✅ Load Brand Cache
+  // Load Brand Cache
   if (typeof loadBrandAutocompleteCache === 'function') {
     console.log('🏷️ Loading brand cache...');
     loadBrandAutocompleteCache();
@@ -9444,7 +9907,7 @@ function viewPhotoProduct(productId) {
     console.warn('⚠️ loadBrandAutocompleteCache function not found');
   }
   
-  // ✅ Load Size Cache
+  // Load Size Cache
   if (typeof loadSizeAutocompleteCache === 'function') {
     console.log('📏 Loading size cache...');
     loadSizeAutocompleteCache();
@@ -9452,7 +9915,7 @@ function viewPhotoProduct(productId) {
     console.warn('⚠️ loadSizeAutocompleteCache function not found');
   }
   
-  // ✅ Load Category Cache
+  // Load Category Cache
   if (typeof loadCategoryAutocompleteCache === 'function') {
     console.log('📦 Loading category cache...');
     await loadCategoryAutocompleteCache();
@@ -9460,7 +9923,15 @@ function viewPhotoProduct(productId) {
     console.warn('⚠️ loadCategoryAutocompleteCache function not found');
   }
   
-  // ✅ FIREBASE INITIALIZATION
+  // ✅ NEW: Load Unit Type Cache
+  if (typeof loadUnitTypeAutocompleteCache === 'function') {
+    console.log('📋 Loading unit type cache...');
+    await loadUnitTypeAutocompleteCache();
+  } else {
+    console.warn('⚠️ loadUnitTypeAutocompleteCache function not found');
+  }
+  
+  // FIREBASE INITIALIZATION
   console.log('📱 Waiting for Firebase authentication...');
   
   // Load from localStorage cache first
@@ -9488,6 +9959,7 @@ function viewPhotoProduct(productId) {
   
   console.log('✅ App initialization complete');
 });
+
 
 
 /**
@@ -12994,7 +13466,7 @@ function sidebarAction(action) {
 }
 
 
-// Navigate to All Products page - UPDATED FIX
+
 // Navigate to All Products page - UPDATED FIX
 function navigateToAllProducts() {
   console.log('📦 Navigating to All Products');
@@ -14608,83 +15080,205 @@ function renderAllProductsList() {
   container.innerHTML = html;
 }
 
-// Show Product Details (when card is clicked) - NEW FUNCTION
-function showProductDetails(productId) {
+/**
+ * Show Product Details Modal (GLOBAL - works on any page)
+ */
+ function showProductDetails(productId) {
   console.log('👁️ Showing details for product:', productId);
   
-  // Find the product
+  // Find the product from cachedProducts
   const product = cachedProducts.find(p => p.id === productId);
   
   if (!product) {
     console.error('Product not found:', productId);
+    alert('❌ Product not found');
     return;
   }
   
-  // Create modal content
+  // Create modal content with all specifications
   const modalContent = `
     <div style="padding: 20px;">
-      ${product.imageUrl ? `<img src="${product.imageUrl}" style="width:100%; max-height:300px; object-fit:cover; border-radius:8px; margin-bottom:20px;" />` : ''}
-      <h3 style="margin-bottom: 20px;">${product.name}</h3>
+      ${product.imageUrl ? `
+        <img src="${product.imageUrl}" 
+             style="width:100%; max-height:300px; object-fit:cover; border-radius:8px; margin-bottom:20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" 
+             alt="${escapeHtml(product.name)}" />
+      ` : ''}
+      
+      <h3 style="margin-bottom: 20px; color: #333;">${escapeHtml(product.name)}</h3>
+      
       <table style="width:100%; border-collapse: collapse;">
         <tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 10px; font-weight: 600;">Category:</td>
-          <td style="padding: 10px;">${product.category}</td>
+          <td style="padding: 12px 10px; font-weight: 600; width: 40%;">Category:</td>
+          <td style="padding: 12px 10px;">${escapeHtml(product.category || '-')}</td>
         </tr>
+        
         ${product.brand ? `
         <tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 10px; font-weight: 600;">Brand:</td>
-          <td style="padding: 10px;">${product.brand}</td>
+          <td style="padding: 12px 10px; font-weight: 600;">Brand:</td>
+          <td style="padding: 12px 10px;">${escapeHtml(product.brand)}</td>
         </tr>` : ''}
+        
         ${product.size ? `
         <tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 10px; font-weight: 600;">Size:</td>
-          <td style="padding: 10px;">${product.size}</td>
+          <td style="padding: 12px 10px; font-weight: 600;">Size:</td>
+          <td style="padding: 12px 10px;"><strong>${escapeHtml(product.size)}</strong></td>
         </tr>` : ''}
+        
         <tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 10px; font-weight: 600;">Unit Type:</td>
-          <td style="padding: 10px;">${product.unitType || 'Piece'}</td>
+          <td style="padding: 12px 10px; font-weight: 600;">Unit Type:</td>
+          <td style="padding: 12px 10px;">${escapeHtml(product.unitType || 'Piece')}</td>
         </tr>
+        
         ${product.piecesPerBox ? `
         <tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 10px; font-weight: 600;">Pieces/Box:</td>
-          <td style="padding: 10px;">${product.piecesPerBox}</td>
+          <td style="padding: 12px 10px; font-weight: 600;">Pieces/Box:</td>
+          <td style="padding: 12px 10px;">${product.piecesPerBox}</td>
         </tr>` : ''}
+        
         ${product.sftPerBox ? `
         <tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 10px; font-weight: 600;">SFT/Box:</td>
-          <td style="padding: 10px;">${product.sftPerBox}</td>
+          <td style="padding: 12px 10px; font-weight: 600;">SFT/Box:</td>
+          <td style="padding: 12px 10px;">${product.sftPerBox}</td>
         </tr>` : ''}
-        <tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 10px; font-weight: 600;">Price:</td>
-          <td style="padding: 10px; font-size: 18px; color: #007bff; font-weight: 600;">₹${product.price.toFixed(2)}</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 10px; font-weight: 600;">Stock:</td>
-          <td style="padding: 10px;">
-            <span style="color: ${product.stock <= product.minStock ? '#dc3545' : '#28a745'}; font-weight: 600;">
-              ${product.stock} ${product.unitType || 'pieces'}
-            </span>
+        
+        <tr style="border-bottom: 1px solid #eee; background: #f8f9fa;">
+          <td style="padding: 12px 10px; font-weight: 600;">Selling Price:</td>
+          <td style="padding: 12px 10px; font-size: 20px; color: #007bff; font-weight: 700;">
+            ₹${parseFloat(product.price || 0).toFixed(2)}
           </td>
         </tr>
+        
         <tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 10px; font-weight: 600;">Min Stock Alert:</td>
-          <td style="padding: 10px;">${product.minStock}</td>
+          <td style="padding: 12px 10px; font-weight: 600;">Current Stock:</td>
+          <td style="padding: 12px 10px;">
+            ${stockBadgeHtml(product.stock, product.minStock)}
+          </td>
         </tr>
+        
+        <tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 12px 10px; font-weight: 600;">Min Stock Alert:</td>
+          <td style="padding: 12px 10px;">${product.minStock || 5}</td>
+        </tr>
+        
+        ${product.isGroupVariant ? `
+        <tr style="background: #e3f2fd;">
+          <td colspan="2" style="padding: 12px 10px; text-align: center;">
+            <span style="background: #667eea; color: white; padding: 6px 16px; border-radius: 20px; font-weight: 600;">
+              📦 Product Group Variant
+            </span>
+          </td>
+        </tr>` : ''}
       </table>
+      
+      <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+        <button class="btn btn-primary" onclick="editProductFromDetail('${product.id}', ${product.isGroupVariant})">
+          <i class="bi bi-pencil"></i> Edit Product
+        </button>
+        <button class="btn btn-secondary" onclick="closeProductDetailModal()">
+          <i class="bi bi-x-circle"></i> Close
+        </button>
+      </div>
     </div>
   `;
   
-  // Show in a Bootstrap modal (reuse existing modal or create new one)
+  // Show in Bootstrap modal
   const modalEl = document.getElementById('productDetailModal');
   if (modalEl) {
     document.getElementById('productDetailModalBody').innerHTML = modalContent;
     const modal = new bootstrap.Modal(modalEl);
     modal.show();
   } else {
-    // Fallback: show as alert if modal doesn't exist
-    alert(`Product: ${product.name}\nPrice: ₹${product.price}\nStock: ${product.stock}\nCategory: ${product.category}`);
+    console.error('❌ productDetailModal not found in DOM');
+    // Fallback: create temporary modal
+    createTempProductDetailModal(modalContent, product.id, product.isGroupVariant);
   }
 }
+
+/**
+ * ✅ NEW: Edit product from detail modal - closes detail modal first
+ */
+function editProductFromDetail(productId, isVariant = false) {
+  console.log('✏️ Edit from detail modal:', productId);
+  
+  // Close the product detail modal first
+  closeProductDetailModal();
+  
+  // Wait for modal to close, then open edit modal
+  setTimeout(() => {
+    editProduct(productId, isVariant);
+  }, 300); // 300ms delay for smooth transition
+}
+
+/**
+ * Close Product Detail Modal
+ */
+function closeProductDetailModal() {
+  const modalEl = document.getElementById('productDetailModal');
+  if (modalEl) {
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) {
+      modal.hide();
+    }
+  }
+  
+  // Also close temp modal if exists
+  const tempModal = document.getElementById('tempProductDetailModal');
+  if (tempModal) {
+    const modal = bootstrap.Modal.getInstance(tempModal);
+    if (modal) modal.hide();
+  }
+}
+
+/**
+ * Create temporary modal if main modal doesn't exist
+ */
+function createTempProductDetailModal(content, productId, isVariant) {
+  // Remove existing temp modal if any
+  let tempModal = document.getElementById('tempProductDetailModal');
+  if (tempModal) tempModal.remove();
+  
+  // Replace the edit button onclick in content
+  content = content.replace(
+    `onclick="editProductFromDetail('${productId}', ${isVariant})"`,
+    `onclick="editProductFromDetail('${productId}', ${isVariant})"`
+  );
+  
+  // Create new modal
+  const modalHTML = `
+    <div class="modal fade" id="tempProductDetailModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title">
+              <i class="bi bi-info-circle"></i> Product Details
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">${content}</div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  
+  const modal = new bootstrap.Modal(document.getElementById('tempProductDetailModal'));
+  modal.show();
+  
+  // Remove on hide
+  document.getElementById('tempProductDetailModal').addEventListener('hidden.bs.modal', function() {
+    this.remove();
+  });
+}
+
+// ✅ Make functions global
+window.showProductDetails = showProductDetails;
+window.editProductFromDetail = editProductFromDetail;
+window.closeProductDetailModal = closeProductDetailModal;
+
+console.log('✅ Product detail view functions loaded (global)');
+
+
 
 // Confirm delete with better UX
 function confirmDeleteProduct(productId) {
@@ -16478,6 +17072,9 @@ async function createProductGroup(groupData) {
  * NAVIGATE TO HOME - UPDATED WITH CATEGORIES
  * ==========================================
  */
+/**
+ * Navigate to Home
+ */
  function navigateToHome() {
   console.log('🏠 Navigating to Home');
   
@@ -16490,7 +17087,8 @@ async function createProductGroup(groupData) {
   const groupDetailPage = document.getElementById('groupDetailPage');
   const brandsPage = document.getElementById('brandsPage');
   const sizesPage = document.getElementById('sizesPage');
-  const categoriesPage = document.getElementById('categoriesPage'); // ✅ NEW
+  const categoriesPage = document.getElementById('categoriesPage');
+  const unitTypesPage = document.getElementById('unitTypesPage');
   
   // Show main app
   if (mainApp) mainApp.style.display = 'block';
@@ -16516,9 +17114,13 @@ async function createProductGroup(groupData) {
     sizesPage.classList.remove('active');
     sizesPage.style.display = 'none';
   }
-  if (categoriesPage) { // ✅ NEW
+  if (categoriesPage) {
     categoriesPage.classList.remove('active');
     categoriesPage.style.display = 'none';
+  }
+  if (unitTypesPage) {
+    unitTypesPage.classList.remove('active');
+    unitTypesPage.style.display = 'none';
   }
   if (groupDetailPage) {
     groupDetailPage.classList.remove('active');
@@ -16548,12 +17150,20 @@ async function createProductGroup(groupData) {
   
   console.log('✅ Home displayed');
 }
+
+// ✅ Make it global
+window.navigateToHome = navigateToHome;
+
+ 
 /**
  * ==========================================
  * CENTRALIZED NAVIGATION FUNCTION - UPDATED
  * ==========================================
  */
- function navigateTo(page) {
+ /**
+ * Centralized navigation function
+ */
+function navigateTo(page) {
   console.log('🔷 navigateTo called with:', page);
   
   if (page === 'dashboard') {
@@ -16569,8 +17179,10 @@ async function createProductGroup(groupData) {
   } else if (page === 'sizes') {
     navigateToSizes();
   } else if (page === 'categories') {
-    // ✅ NEW: Navigate to categories page
     navigateToCategories();
+  } else if (page === 'unitTypes') {
+    // ✅ NEW: Navigate to unit types page
+    navigateToUnitTypes();
   } else if (page === 'sales') {
     navigateToSales();
   } else if (page === 'purchases') {
@@ -17007,11 +17619,10 @@ async function loadRecentSales() {
     `;
   }
 }
-
 /**
- * Display sales in Recent Sales table - FIXED
+ * Display sales in Recent Sales table - COMPACT DATE FORMAT
  */
-function displayRecentSales(sales) {
+ function displayRecentSales(sales) {
   const tbody = document.getElementById('salesList');
   
   if (!tbody) {
@@ -17033,19 +17644,21 @@ function displayRecentSales(sales) {
   let html = '';
   
   sales.forEach((sale) => {
-    // ✅ FIXED: Handle date properly
+    // ✅ COMPACT DATE FORMAT
     let dateStr = '-';
     if (sale.date) {
       try {
         const date = new Date(sale.date);
         if (!isNaN(date.getTime())) {
-          dateStr = date.toLocaleString('en-IN', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          });
+          // Format: "8-Dec 1:07PM" - Compact, no year, no padding
+          const day = date.getDate();
+          const month = date.toLocaleString('en-IN', { month: 'short' });
+          const hours = date.getHours();
+          const minutes = date.getMinutes().toString().padStart(2, '0');
+          const ampm = hours >= 12 ? 'PM' : 'AM';
+          const hour12 = hours % 12 || 12;
+          
+          dateStr = `${day}-${month}<br><small>${hour12}:${minutes}${ampm}</small>`;
         }
       } catch (e) {
         console.error('Invalid date:', sale.date);
@@ -17054,35 +17667,32 @@ function displayRecentSales(sales) {
       try {
         const date = new Date(sale.createdAt);
         if (!isNaN(date.getTime())) {
-          dateStr = date.toLocaleString('en-IN', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          });
+          const day = date.getDate();
+          const month = date.toLocaleString('en-IN', { month: 'short' });
+          const hours = date.getHours();
+          const minutes = date.getMinutes().toString().padStart(2, '0');
+          const ampm = hours >= 12 ? 'PM' : 'AM';
+          const hour12 = hours % 12 || 12;
+          
+          dateStr = `${day}-${month}<br><small>${hour12}:${minutes}${ampm}</small>`;
         }
       } catch (e) {
         console.error('Invalid createdAt:', sale.createdAt);
       }
     }
     
-    // ✅ FIXED: Extract product info from multiple possible structures
+    // ✅ Extract product info from multiple possible structures
     let productsStr = '-';
     let totalQty = 0;
     let unit = 'pcs';
     
-    // Check different possible product data structures
     if (sale.products && Array.isArray(sale.products) && sale.products.length > 0) {
-      // Structure 1: Array of product objects
       const productNames = sale.products
         .map(p => {
-          // Get product name from various possible fields
           const name = p.name || p.product || p.productName || 'Unknown';
           const qty = p.quantity || p.qty || 0;
           totalQty += Number(qty);
           
-          // Get unit type
           if (p.unitType || p.unit) {
             unit = p.unitType || p.unit;
           }
@@ -17097,29 +17707,26 @@ function displayRecentSales(sales) {
         productsStr = productNames.join(', ');
       }
     } else if (sale.productName) {
-      // Structure 2: Single product in productName field
       productsStr = sale.productName;
       totalQty = sale.quantity || 0;
       unit = sale.unitType || 'pcs';
     } else if (typeof sale.products === 'string') {
-      // Structure 3: Products as string
       productsStr = sale.products;
       totalQty = sale.quantity || 0;
     }
     
-    // ✅ FIXED: Get amount from multiple possible fields
     const amount = sale.totalAmount || sale.grandTotal || sale.amount || 0;
     
     html += `
       <tr onclick="viewSaleDetail('${sale.id}')" style="cursor: pointer; transition: background 0.2s;">
-        <td style="white-space: nowrap;">${dateStr}</td>
-        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" 
+        <td style="white-space: nowrap; font-size: 0.85rem; line-height: 1.3;">${dateStr}</td>
+        <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem;" 
             title="${escapeHtml(productsStr)}">
           ${escapeHtml(productsStr)}
         </td>
-        <td style="text-align: center;">${totalQty}</td>
-        <td>${unit}</td>
-        <td style="font-weight: 600; color: #28a745;">₹${Number(amount).toFixed(2)}</td>
+        <td style="text-align: center; font-size: 0.85rem;">${totalQty}</td>
+        <td style="font-size: 0.85rem;">${unit}</td>
+        <td style="font-weight: 600; color: #28a745; font-size: 0.85rem;">₹${Number(amount).toFixed(2)}</td>
       </tr>
     `;
   });
@@ -17128,6 +17735,7 @@ function displayRecentSales(sales) {
   
   console.log('✅ Displayed', sales.length, 'sales in Recent Sales table');
 }
+
 /**
  * ==========================================
  * VIEW SALE DETAIL - FIXED FOR BOTH STRUCTURES
@@ -17433,22 +18041,25 @@ console.log('✅ Options Dropdown Module Loaded (Desktop + Mobile)');
 
 /**
  * ==========================================
- * INSTANT PRODUCTS MODULE (FIXED - Uses 'db')
+ * INSTANT PRODUCTS MODULE - WITH STOCK ENTRY MODE
  * ==========================================
  */
 
 // Temporary array to hold products before saving
 let pendingInstantProducts = [];
 
+// Stock entry mode tracking
+let instantProductMode = 'product'; // 'product' or 'stock'
+let selectedProductIndex = -1; // Currently selected product for stock entry
+
 /**
- * Open Instant Products Modal
+ * Open Instant Products Modal - WITH RESET
  */
-function openInstantProductsModal() {
+ function openInstantProductsModal() {
   console.log('⚡ Opening Instant Products modal');
   
-  pendingInstantProducts = [];
-  document.getElementById('instantProductInput').value = '';
-  updateInstantProductPreview();
+  // ✅ Use reset function for consistency
+  resetInstantProductsModal();
   
   const modal = new bootstrap.Modal(document.getElementById('instantProductsModal'));
   modal.show();
@@ -17459,35 +18070,334 @@ function openInstantProductsModal() {
 }
 
 /**
- * Handle product input (Enter or Comma)
+ * Switch between Product and Stock modes - WITH AUTOSCROLL
  */
-function handleInstantProductInputKeydown(event) {
+ function switchInstantProductMode(mode) {
+  console.log('🔄 Switching to mode:', mode);
+  
+  if (mode === 'stock' && pendingInstantProducts.length === 0) {
+    alert('⚠️ Please add products first before entering stock');
+    return;
+  }
+  
+  instantProductMode = mode;
+  
+  const input = document.getElementById('instantProductInput');
+  const productBtn = document.getElementById('productNameModeBtn');
+  const stockBtn = document.getElementById('stockModeBtn');
+  const skipBtn = document.getElementById('skipStockBtn');
+  const addBtn = document.getElementById('addToListBtn');
+  const instructions = document.getElementById('instantProductInstructions');
+  
+  if (mode === 'product') {
+    // Product name mode
+    productBtn.classList.add('active');
+    stockBtn.classList.remove('active');
+    skipBtn.style.display = 'none';
+    addBtn.innerHTML = '<i class="bi bi-plus-lg"></i> Add to List';
+    input.placeholder = 'e.g., Tilecleaner, Grout, Adhesive...';
+    input.type = 'text';
+    instructions.innerHTML = 'Enter product names below. Press <strong>Enter</strong> or <strong>Comma (,)</strong> after each product, or click <strong>Add to List</strong>.';
+    selectedProductIndex = -1;
+    
+  } else if (mode === 'stock') {
+    // Stock entry mode
+    productBtn.classList.remove('active');
+    stockBtn.classList.add('active');
+    skipBtn.style.display = 'block';
+    addBtn.innerHTML = '<i class="bi bi-check-lg"></i> Set Stock';
+    input.placeholder = 'Enter stock quantity...';
+    input.type = 'number';
+    instructions.innerHTML = 'Enter stock quantity for each product. Press <strong>Enter</strong>, <strong>Comma (,)</strong>, or click <strong>Set Stock</strong>. Click <strong>Skip</strong> to skip a product.';
+    
+    // Select first product without stock
+    selectNextProductWithoutStock();
+  }
+  
+  input.value = '';
+  input.focus();
+  updateInstantProductPreview();
+}
+
+
+/**
+ * Select next product without stock - WITH SKIP PRIORITY
+ */
+ function selectNextProductWithoutStock() {
+  // ✅ PHASE 1: Find non-skipped products without stock
+  for (let i = 0; i < pendingInstantProducts.length; i++) {
+    const product = pendingInstantProducts[i];
+    const hasStock = product.stock !== undefined && product.stock !== null;
+    const isSkipped = product.skipped === true;
+    
+    if (!hasStock && !isSkipped) {
+      selectedProductIndex = i;
+      console.log('✅ Selected non-skipped product:', i);
+      updateInstantProductPreview();
+      
+      setTimeout(() => {
+        scrollToSelectedProduct();
+        focusInput();
+      }, 100);
+      
+      return;
+    }
+  }
+  
+  // ✅ PHASE 2: All non-skipped products have stock, now go to skipped ones
+  console.log('📋 All non-skipped products done, checking skipped products...');
+  
+  for (let i = 0; i < pendingInstantProducts.length; i++) {
+    const product = pendingInstantProducts[i];
+    const hasStock = product.stock !== undefined && product.stock !== null;
+    const isSkipped = product.skipped === true;
+    
+    if (!hasStock && isSkipped) {
+      selectedProductIndex = i;
+      console.log('✅ Selected skipped product:', i);
+      updateInstantProductPreview();
+      
+      setTimeout(() => {
+        scrollToSelectedProduct();
+        focusInput();
+      }, 100);
+      
+      return;
+    }
+  }
+  
+  // ✅ All products have stock
+  selectedProductIndex = -1;
+  console.log('✅ All products have stock assigned');
+}
+
+
+
+/**
+ * Select specific product - WITH VALIDATION
+ */
+ function selectProduct(index) {
+  if (instantProductMode !== 'stock') return;
+  
+  selectedProductIndex = index;
+  console.log('🎯 Manually selected product:', index);
+  
+  // ✅ If user clicks on a skipped product, they can enter stock
+  // The skipped flag will be cleared when stock is entered
+  
+  updateInstantProductPreview();
+  
+  setTimeout(() => {
+    scrollToSelectedProduct();
+    focusInput();
+  }, 100);
+}
+
+
+/**
+ * Skip current product - MARK AS SKIPPED
+ */
+ function skipCurrentProduct() {
+  if (selectedProductIndex === -1) return;
+  
+  console.log('⏭️ Skipping product:', selectedProductIndex);
+  
+  // ✅ Mark product as skipped (not permanently, just for this session)
+  pendingInstantProducts[selectedProductIndex].skipped = true;
+  
+  // ✅ Find next product to select (prioritize non-skipped)
+  selectNextProductWithoutStock();
+  
+  updateInstantProductPreview();
+  
+  // Auto-scroll to selected product
+  setTimeout(() => {
+    scrollToSelectedProduct();
+    focusInput();
+  }, 100);
+}
+
+/**
+ * Handle "Add to List" button click - CLEAR SKIPPED FLAG
+ */
+ function handleAddToListClick() {
+  const input = document.getElementById('instantProductInput');
+  const value = input.value.trim();
+  
+  if (instantProductMode === 'product') {
+    // Add product name
+    if (!value || value.length === 0) {
+      alert('⚠️ Please enter a product name');
+      return;
+    }
+    
+    const productName = value.replace(/,\s*$/, '').trim();
+    
+    if (pendingInstantProducts.find(p => p.name === productName)) {
+      alert('⚠️ Product already in list!');
+      return;
+    }
+    
+    pendingInstantProducts.push({ name: productName, stock: null, skipped: false });
+    console.log('✅ Added product:', productName);
+    
+  } else if (instantProductMode === 'stock') {
+    // Add stock to selected product
+    if (selectedProductIndex === -1) {
+      alert('⚠️ No product selected');
+      return;
+    }
+    
+    if (!value || value.length === 0) {
+      alert('⚠️ Please enter stock quantity');
+      return;
+    }
+    
+    const stockValue = parseInt(value);
+    if (isNaN(stockValue) || stockValue < 0) {
+      alert('⚠️ Please enter a valid stock number');
+      return;
+    }
+    
+    // ✅ Set stock and clear skipped flag
+    pendingInstantProducts[selectedProductIndex].stock = stockValue;
+    pendingInstantProducts[selectedProductIndex].skipped = false;
+    
+    console.log('✅ Set stock:', stockValue, 'for product:', pendingInstantProducts[selectedProductIndex].name);
+    
+    // Select next product without stock
+    selectNextProductWithoutStock();
+  }
+  
+  input.value = '';
+  window.lastInstantProductInput = '';
+  updateInstantProductPreview();
+  
+  setTimeout(() => {
+    scrollToSelectedProduct();
+    focusInput();
+  }, 100);
+}
+
+
+/**
+ * Handle product input (Enter or Comma) - CLEAR SKIPPED FLAG
+ */
+ function handleInstantProductInputKeydown(event) {
   const input = document.getElementById('instantProductInput');
   const value = input.value.trim();
   
   if (event.key === 'Enter' || event.key === ',') {
     event.preventDefault();
     
-    if (value && value.length > 0) {
-      const productName = value.replace(/,\s*$/, '').trim();
-      
-      if (productName && !pendingInstantProducts.includes(productName)) {
-        pendingInstantProducts.push(productName);
-        console.log('✅ Product added to preview:', productName);
-      } else if (pendingInstantProducts.includes(productName)) {
-        alert('⚠️ This product is already in the list!');
+    if (instantProductMode === 'product') {
+      // Product name mode
+      if (value && value.length > 0) {
+        const productName = value.replace(/,\s*$/, '').trim();
+        
+        if (productName && !pendingInstantProducts.find(p => p.name === productName)) {
+          pendingInstantProducts.push({ name: productName, stock: null, skipped: false });
+          console.log('✅ Product added:', productName);
+          
+          input.value = '';
+          window.lastInstantProductInput = '';
+          updateInstantProductPreview();
+          
+          setTimeout(() => {
+            const previewList = document.getElementById('instantProductPreviewList');
+            if (previewList) {
+              previewList.scrollTop = previewList.scrollHeight;
+            }
+            focusInput();
+          }, 50);
+          
+        } else if (pendingInstantProducts.find(p => p.name === productName)) {
+          alert('⚠️ This product is already in the list!');
+        }
       }
       
-      input.value = '';
-      updateInstantProductPreview();
+    } else if (instantProductMode === 'stock') {
+      // Stock entry mode
+      if (selectedProductIndex === -1) {
+        alert('⚠️ No product selected');
+        return;
+      }
+      
+      if (value && value.length > 0) {
+        const stockValue = parseInt(value);
+        
+        if (isNaN(stockValue) || stockValue < 0) {
+          alert('⚠️ Please enter a valid stock number');
+          return;
+        }
+        
+        // ✅ Set stock and clear skipped flag
+        pendingInstantProducts[selectedProductIndex].stock = stockValue;
+        pendingInstantProducts[selectedProductIndex].skipped = false;
+        
+        console.log('✅ Set stock:', stockValue, 'for:', pendingInstantProducts[selectedProductIndex].name);
+        
+        input.value = '';
+        window.lastInstantProductInput = '';
+        
+        // Select next product
+        selectNextProductWithoutStock();
+        updateInstantProductPreview();
+        
+        setTimeout(() => {
+          scrollToSelectedProduct();
+          focusInput();
+        }, 100);
+      }
     }
   }
 }
 
 /**
- * Update product preview list
+ * ✅ SCROLL TO SELECTED PRODUCT (SMOOTH ANIMATION)
  */
-function updateInstantProductPreview() {
+function scrollToSelectedProduct() {
+  if (selectedProductIndex === -1) return;
+  
+  const selectedElement = document.getElementById(`instant-product-${selectedProductIndex}`);
+  const previewList = document.getElementById('instantProductPreviewList');
+  
+  if (selectedElement && previewList) {
+    console.log('📜 Scrolling to product:', selectedProductIndex);
+    
+    // ✅ Calculate position to center the selected product
+    const containerRect = previewList.getBoundingClientRect();
+    const elementRect = selectedElement.getBoundingClientRect();
+    const relativeTop = elementRect.top - containerRect.top;
+    const scrollOffset = relativeTop - (containerRect.height / 2) + (elementRect.height / 2);
+    
+    // ✅ Smooth scroll
+    previewList.scrollTo({
+      top: previewList.scrollTop + scrollOffset,
+      behavior: 'smooth'
+    });
+    
+    console.log('✅ Scrolled to product');
+  }
+}
+
+
+/**
+ * ✅ FOCUS INPUT FIELD
+ */
+function focusInput() {
+  const input = document.getElementById('instantProductInput');
+  if (input) {
+    input.focus();
+    console.log('✅ Input focused');
+  }
+}
+
+
+/**
+ * Update product preview list - WITH SKIPPED STATUS
+ */
+ function updateInstantProductPreview() {
   const previewList = document.getElementById('instantProductPreviewList');
   const previewCount = document.getElementById('instantProductPreviewCount');
   
@@ -17508,19 +18418,41 @@ function updateInstantProductPreview() {
   
   let html = '';
   pendingInstantProducts.forEach((product, index) => {
+    const isSelected = index === selectedProductIndex && instantProductMode === 'stock';
+    const hasStock = product.stock !== null && product.stock !== undefined;
+    const isSkipped = product.skipped === true && !hasStock;
+    
+    const bgColor = isSelected ? '#e7f5e7' : (isSkipped ? '#fff3cd' : 'white');
+    const borderColor = isSelected ? '#28a745' : (isSkipped ? '#ffc107' : '#e0e0e0');
+    const borderWidth = isSelected ? '3px' : '1px';
+    
     html += `
-      <div style="
-        display: flex; justify-content: space-between; align-items: center;
-        padding: 10px 12px; border-bottom: 1px solid #e0e0e0;
-        background: white; transition: background 0.2s;
-      " onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='white'">
+      <div 
+        id="instant-product-${index}"
+        onclick="${instantProductMode === 'stock' ? `selectProduct(${index})` : ''}"
+        style="
+          display: flex; justify-content: space-between; align-items: center;
+          padding: 12px 12px; border-bottom: 1px solid #e0e0e0;
+          background: ${bgColor}; 
+          border-left: ${borderWidth} solid ${borderColor};
+          transition: all 0.3s ease;
+          cursor: ${instantProductMode === 'stock' ? 'pointer' : 'default'};
+          ${isSelected ? 'box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);' : ''}
+        " 
+        ${instantProductMode === 'stock' ? `onmouseover="if(${index} !== ${selectedProductIndex}) this.style.background='${isSkipped ? '#fff9e6' : '#f0f0f0'}'" onmouseout="if(${index} !== ${selectedProductIndex}) this.style.background='${bgColor}'"` : ''}>
         
         <span style="font-size: 14px; color: #333; flex: 1;">
-          <strong style="color: #25D366;">${index + 1}.</strong> 
-          <span style="margin-left: 8px;">${escapeHtml(product)}</span>
+          <strong style="color: ${isSelected ? '#28a745' : (isSkipped ? '#ffc107' : '#666')}; font-size: ${isSelected ? '16px' : '14px'};">${index + 1}.</strong> 
+          <span style="margin-left: 8px; font-weight: ${isSelected ? '600' : 'normal'}; font-size: ${isSelected ? '15px' : '14px'};">${escapeHtml(product.name)}</span>
+          
+          ${hasStock ? `<span style="margin-left: 10px; color: #28a745; font-weight: 600; font-size: 13px; background: #e7f5e7; padding: 2px 8px; border-radius: 4px;">📦 ${product.stock}</span>` : ''}
+          
+          ${isSkipped ? '<span style="margin-left: 10px; color: #ffc107; font-weight: 600; font-size: 12px; background: #fff3cd; padding: 2px 8px; border-radius: 4px;">⏭️ Skipped</span>' : ''}
+          
+          ${isSelected ? '<span style="margin-left: 10px; color: #28a745; font-size: 12px; font-weight: 700;">← ENTERING</span>' : ''}
         </span>
         
-        <button onclick="removePendingInstantProduct('${escapeHtml(product)}')" style="
+        <button onclick="removePendingInstantProduct(${index}); event.stopPropagation();" style="
           background: #dc3545; color: white; border: none; 
           padding: 5px 10px; border-radius: 5px; cursor: pointer;
           font-size: 12px; font-weight: 600; transition: background 0.2s;
@@ -17534,19 +18466,29 @@ function updateInstantProductPreview() {
   previewList.innerHTML = html;
 }
 
+
 /**
  * Remove product from pending list
  */
-function removePendingInstantProduct(product) {
-  pendingInstantProducts = pendingInstantProducts.filter(p => p !== product);
+function removePendingInstantProduct(index) {
+  pendingInstantProducts.splice(index, 1);
+  
+  // Adjust selected index
+  if (selectedProductIndex === index) {
+    selectedProductIndex = -1;
+    selectNextProductWithoutStock();
+  } else if (selectedProductIndex > index) {
+    selectedProductIndex--;
+  }
+  
   updateInstantProductPreview();
-  console.log('🗑️ Removed from preview:', product);
+  console.log('🗑️ Removed product at index:', index);
 }
 
 /**
- * Save all instant products to Firebase (FIXED - Matches Your Setup)
+ * Save all instant products to Firebase - WITH COMPLETE RESET
  */
-async function saveAllInstantProducts() {
+ async function saveAllInstantProducts() {
   if (pendingInstantProducts.length === 0) {
     alert('⚠️ Please add at least one product');
     return;
@@ -17563,7 +18505,7 @@ async function saveAllInstantProducts() {
   // Show loading indicator
   showLoading('Saving products...');
   
-  // ✅ Check authentication (same as your saveProductToSheet)
+  // ✅ Check authentication
   const user = window.auth?.currentUser;
   if (!user) {
     hideLoading();
@@ -17572,7 +18514,7 @@ async function saveAllInstantProducts() {
     return;
   }
   
-  // ✅ Get Firebase imports (same as your saveProductToSheet)
+  // ✅ Get Firebase imports
   const { doc, setDoc, collection } = window.firebaseImports;
   const userId = user.uid;
   
@@ -17582,15 +18524,17 @@ async function saveAllInstantProducts() {
   
   // Save each product to Firebase
   for (let i = 0; i < productsToSave.length; i++) {
-    const productName = productsToSave[i];
+    const productItem = productsToSave[i];
+    const productName = productItem.name;
+    const stockValue = productItem.stock !== null && productItem.stock !== undefined ? productItem.stock : 0;
     
     try {
-      // ✅ Generate unique ID (same pattern as your code)
+      // Generate unique ID
       const productsCollectionRef = collection(window.db, 'tenants', userId, 'products');
       const newProductRef = doc(productsCollectionRef);
       const productId = newProductRef.id;
       
-      // ✅ Create product data (matching your structure)
+      // Create product data with stock
       const productData = {
         id: productId,
         name: productName,
@@ -17601,23 +18545,23 @@ async function saveAllInstantProducts() {
         piecesPerBox: 1,
         sftPerBox: 0,
         price: 0,
-        stock: 0,
+        stock: stockValue,
         minStock: 5,
         imageUrl: '',
         stockStatus: 'exact',
-        stockValue: null,
+        stockValue: stockValue,
         updatedAt: new Date().toISOString(),
         isGroupVariant: false,
         groupId: '',
         variantId: ''
       };
       
-      // ✅ Save to Firestore (same as your saveProductToSheet)
+      // Save to Firestore
       const productRef = doc(window.db, 'tenants', userId, 'products', productId);
       await setDoc(productRef, productData);
       
       savedProducts.push(productName);
-      console.log(`✅ Saved (${i + 1}/${productsToSave.length}):`, productName);
+      console.log(`✅ Saved (${i + 1}/${productsToSave.length}):`, productName, 'with stock:', stockValue);
       
     } catch (error) {
       console.error(`❌ Failed to save (${i + 1}/${productsToSave.length}):`, productName, error);
@@ -17628,12 +18572,12 @@ async function saveAllInstantProducts() {
   // Hide loading
   hideLoading();
   
-  // Clear pending products
-  pendingInstantProducts = [];
+  // ✅ COMPLETE MODAL RESET
+  resetInstantProductsModal();
   
   // Show results
   if (failedProducts.length === 0) {
-    alert(`✅ Success!\n\n${savedProducts.length} product(s) added!`);
+    alert(`✅ Success!\n\n${savedProducts.length} product(s) added with stock!`);
   } else {
     alert(`⚠️ Partial Success\n\n✅ Saved: ${savedProducts.length}\n❌ Failed: ${failedProducts.length}\n\nFailed products:\n${failedProducts.join(', ')}`);
   }
@@ -17642,6 +18586,56 @@ async function saveAllInstantProducts() {
   if (typeof loadProducts === 'function') {
     loadProducts();
   }
+}
+
+/**
+ * ✅ RESET INSTANT PRODUCTS MODAL - CLEAR SKIPPED FLAGS
+ */
+ function resetInstantProductsModal() {
+  console.log('🔄 Resetting Instant Products modal...');
+  
+  // Clear data
+  pendingInstantProducts = [];
+  instantProductMode = 'product';
+  selectedProductIndex = -1;
+  window.lastInstantProductInput = '';
+  
+  // Reset input field
+  const input = document.getElementById('instantProductInput');
+  if (input) {
+    input.value = '';
+    input.placeholder = 'e.g., Tilecleaner, Grout, Adhesive...';
+    input.type = 'text';
+  }
+  
+  // Reset tabs
+  const productBtn = document.getElementById('productNameModeBtn');
+  const stockBtn = document.getElementById('stockModeBtn');
+  if (productBtn) productBtn.classList.add('active');
+  if (stockBtn) stockBtn.classList.remove('active');
+  
+  // Hide skip button
+  const skipBtn = document.getElementById('skipStockBtn');
+  if (skipBtn) {
+    skipBtn.style.display = 'none';
+  }
+  
+  // Reset button text
+  const addBtn = document.getElementById('addToListBtn');
+  if (addBtn) {
+    addBtn.innerHTML = '<i class="bi bi-plus-lg"></i> Add to List';
+  }
+  
+  // Reset instructions
+  const instructions = document.getElementById('instantProductInstructions');
+  if (instructions) {
+    instructions.innerHTML = 'Enter product names below. Press <strong>Enter</strong> or <strong>Comma (,)</strong> after each product, or click <strong>Add to List</strong>.';
+  }
+  
+  // Update preview to show empty state
+  updateInstantProductPreview();
+  
+  console.log('✅ Instant Products modal reset complete');
 }
 
 /**
@@ -17658,7 +18652,8 @@ function escapeHtml(text) {
   return String(text).replace(/[&<>"']/g, m => map[m]);
 }
 
-console.log('✅ Instant Products Module Loaded');
+
+console.log('✅ Instant Products Module Loaded (with Stock Mode)');
 
     /**
  * Show loading indicator
@@ -20331,18 +21326,572 @@ window.removePendingCategory = removePendingCategory;
 window.saveAllCategories = saveAllCategories;
 window.deleteCategory = deleteCategory;
 window.syncCategoryCaches = syncCategoryCaches;
-window.showCategorySuggestions = showCategorySuggestions;
-window.filterCategorySuggestions = filterCategorySuggestions;
-window.renderCategorySuggestions = renderCategorySuggestions;
-window.selectCategorySuggestion = selectCategorySuggestion;
-window.hideCategorySuggestions = hideCategorySuggestions;
-window.checkAndShowSaveCategoryButton = checkAndShowSaveCategoryButton;
-window.saveNewCategoryFromProductField = saveNewCategoryFromProductField;
+
 
 console.log('✅ Category management system loaded');
 
 
 
+
+/**
+ * ==========================================
+ * UNIT TYPE MANAGEMENT SYSTEM - FIREBASE VERSION
+ * ==========================================
+ */
+
+/**
+ * Load unit types from Firestore and cache them
+ */
+ async function loadUnitTypeAutocompleteCache() {
+  if (unitTypeCacheLoaded) {
+    console.log('✅ Unit type cache already loaded');
+    return;
+  }
+  
+  const user = window.auth?.currentUser;
+  
+  if (!user) {
+    console.log('⚠️ No user authenticated, skipping unit type cache load');
+    return;
+  }
+  
+  console.log('📥 Loading unit type autocomplete cache from Firestore...');
+  
+  try {
+    const { collection, getDocs } = window.firebaseImports;
+    
+    const unitTypesRef = collection(window.db, 'tenants', user.uid, 'unitTypes');
+    const snapshot = await getDocs(unitTypesRef);
+    
+    const unitTypes = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      const unitTypeName = data.name || data.unitTypeName;
+      if (unitTypeName) {
+        unitTypes.push(unitTypeName);
+      }
+    });
+    
+    unitTypesCache = unitTypes;
+    unitTypeAutocompleteCache = unitTypes;
+    unitTypeCacheLoaded = true;
+    
+    console.log('✅ Loaded', unitTypes.length, 'unit types into cache from Firestore');
+    
+  } catch (error) {
+    console.error('❌ Error loading unit type cache from Firestore:', error);
+    
+    // Fallback: Extract from products
+    try {
+      const uniqueUnitTypes = [...new Set(
+        cachedProducts
+          .map(p => p.unitType)
+          .filter(u => u && u.trim() !== '')
+      )];
+      
+      unitTypesCache = uniqueUnitTypes;
+      unitTypeAutocompleteCache = uniqueUnitTypes;
+      unitTypeCacheLoaded = true;
+      
+      console.log('✅ Extracted', uniqueUnitTypes.length, 'unit types from products as fallback');
+    } catch (fallbackError) {
+      console.error('❌ Fallback unit type extraction failed:', fallbackError);
+    }
+  }
+}
+
+/**
+ * Navigate to Unit Types Page
+ */
+function navigateToUnitTypes() {
+  console.log('📋 Navigating to Unit Types page');
+  
+  // Hide all pages manually
+  const mainApp = document.getElementById('mainApp');
+  const allProductsPage = document.getElementById('allProductsPage');
+  const productGroupsPage = document.getElementById('productGroupsPage');
+  const customersPage = document.getElementById('customersPage');
+  const groupDetailPage = document.getElementById('groupDetailPage');
+  const brandsPage = document.getElementById('brandsPage');
+  const sizesPage = document.getElementById('sizesPage');
+  const categoriesPage = document.getElementById('categoriesPage');
+  const unitTypesPage = document.getElementById('unitTypesPage');
+  
+  if (mainApp) mainApp.style.display = 'none';
+  if (allProductsPage) {
+    allProductsPage.classList.remove('active');
+    allProductsPage.style.display = 'none';
+  }
+  if (productGroupsPage) {
+    productGroupsPage.classList.remove('active');
+    productGroupsPage.style.display = 'none';
+  }
+  if (customersPage) {
+    customersPage.classList.remove('active');
+    customersPage.style.display = 'none';
+  }
+  if (brandsPage) {
+    brandsPage.classList.remove('active');
+    brandsPage.style.display = 'none';
+  }
+  if (sizesPage) {
+    sizesPage.classList.remove('active');
+    sizesPage.style.display = 'none';
+  }
+  if (categoriesPage) {
+    categoriesPage.classList.remove('active');
+    categoriesPage.style.display = 'none';
+  }
+  if (groupDetailPage) {
+    groupDetailPage.classList.remove('active');
+    groupDetailPage.style.display = 'none';
+  }
+  
+  // Show unit types page
+  if (unitTypesPage) {
+    unitTypesPage.style.display = 'block';
+    unitTypesPage.classList.add('active');
+  }
+  
+  // Hide navbar
+  const navbar = document.querySelector('.navbar');
+  if (navbar) navbar.style.display = 'none';
+  
+  if (typeof closeSidebar === 'function') {
+    closeSidebar();
+  }
+  
+  loadUnitTypes();
+}
+
+/**
+ * Load unit types from Firebase
+ */
+async function loadUnitTypes() {
+  try {
+    console.log('📡 Fetching unit types from Firebase...');
+    
+    const user = window.auth.currentUser;
+    
+    if (!user) {
+      console.error('❌ No user authenticated');
+      throw new Error('Please sign in first');
+    }
+    
+    const { collection, getDocs } = window.firebaseImports;
+    const userId = user.uid;
+    
+    const unitTypesRef = collection(window.db, 'tenants', userId, 'unitTypes');
+    const unitTypesSnap = await getDocs(unitTypesRef);
+    
+    unitTypesCache = [];
+    unitTypesSnap.forEach((doc) => {
+      const data = doc.data();
+      const unitTypeName = data.name || data.unitTypeName;
+      if (unitTypeName) {
+        unitTypesCache.push(unitTypeName);
+      }
+    });
+    
+    console.log('✅ Loaded', unitTypesCache.length, 'unit types from Firebase');
+    
+    // Sync caches
+    syncUnitTypeCaches();
+    
+    renderUnitTypesList();
+    
+    // Update dropdown in Add Product modal (if open)
+    if (typeof populateUnitTypeDropdown === 'function') {
+      populateUnitTypeDropdown();
+    }
+    
+  } catch (error) {
+    console.error('❌ Error loading unit types:', error);
+    
+    const container = document.getElementById('unitTypesListContainer');
+    if (container) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:40px; color:#dc3545;">
+          <i class="bi bi-exclamation-circle" style="font-size:48px;"></i>
+          <h4 style="margin-top:20px;">Error Loading Unit Types</h4>
+          <p>${error.message}</p>
+          <button class="btn btn-primary mt-3" onclick="loadUnitTypes()">
+            <i class="bi bi-arrow-clockwise"></i> Retry
+          </button>
+        </div>
+      `;
+    }
+  }
+}
+
+/**
+ * Render unit types list
+ */
+function renderUnitTypesList() {
+  const container = document.getElementById('unitTypesListContainer');
+  const emptyState = document.getElementById('unitTypesEmptyState');
+  
+  if (!container) return;
+  
+  if (unitTypesCache.length === 0) {
+    container.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'block';
+    return;
+  }
+  
+  container.style.display = 'grid';
+  if (emptyState) emptyState.style.display = 'none';
+  
+  // Sort alphabetically
+  const sortedUnitTypes = [...unitTypesCache].sort((a, b) => a.localeCompare(b));
+  
+  let html = '<div class="row g-3">';
+  
+  sortedUnitTypes.forEach(unitType => {
+    html += `
+      <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+        <div class="card h-100" style="border-radius: 8px; transition: all 0.2s;">
+          <div class="card-body d-flex align-items-center justify-content-between">
+            <div>
+              <h6 class="mb-0" style="font-weight: 600;">
+                <i class="bi bi-card-text text-warning"></i> ${unitType}
+              </h6>
+            </div>
+            <button 
+              class="btn btn-sm btn-outline-danger" 
+              onclick="deleteUnitType('${escapeHtml(unitType)}')"
+              title="Delete">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  
+  container.innerHTML = html;
+}
+
+/**
+ * Filter unit types (search)
+ */
+function filterUnitTypes(query) {
+  const cards = document.querySelectorAll('#unitTypesListContainer .card');
+  const lowerQuery = query.toLowerCase().trim();
+  
+  cards.forEach(card => {
+    const text = card.textContent.toLowerCase();
+    if (text.includes(lowerQuery)) {
+      card.parentElement.style.display = 'block';
+    } else {
+      card.parentElement.style.display = 'none';
+    }
+  });
+}
+
+/**
+ * Open Add Unit Type Modal
+ */
+function openAddUnitTypeModal() {
+  const modal = new bootstrap.Modal(document.getElementById('addUnitTypesModal'));
+  modal.show();
+  
+  // Clear previous data
+  pendingUnitTypes = [];
+  updateUnitTypePreviewList();
+  
+  // Focus on input
+  setTimeout(() => {
+    document.getElementById('unitTypeInput').focus();
+  }, 300);
+}
+
+/**
+ * Handle unit type input keydown (Enter or Comma)
+ */
+function handleUnitTypeInputKeydown(event) {
+  const input = event.target;
+  const value = input.value.trim();
+  
+  if (event.key === 'Enter' || event.key === ',') {
+    event.preventDefault();
+    
+    if (!value || value.length === 0) {
+      return;
+    }
+    
+    if (pendingUnitTypes.includes(value)) {
+      alert('⚠️ Unit type already in list!');
+      return;
+    }
+    
+    pendingUnitTypes.push(value);
+    updateUnitTypePreviewList();
+    
+    // Clear input
+    input.value = '';
+    window.lastUnitTypeInput = '';
+    
+    console.log('✅ Added unit type:', value);
+  }
+}
+
+/**
+ * Update unit type preview list
+ */
+function updateUnitTypePreviewList() {
+  const previewList = document.getElementById('unitTypePreviewList');
+  const previewCount = document.getElementById('unitTypePreviewCount');
+  
+  if (pendingUnitTypes.length === 0) {
+    previewList.innerHTML = '<div style="padding: 15px; color: #999; text-align: center; font-size: 14px;">No unit types added yet</div>';
+    previewCount.textContent = '📝 Unit Types to Save (0):';
+    return;
+  }
+  
+  previewCount.textContent = `📝 Unit Types to Save (${pendingUnitTypes.length}):`;
+  
+  let html = '';
+  pendingUnitTypes.forEach((unitType, index) => {
+    html += `
+      <div style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px;
+        background: white;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        border: 1px solid #e0e0e0;
+      ">
+        <span style="font-weight: 500;"><i class="bi bi-card-text text-warning"></i> ${unitType}</span>
+        <button 
+          onclick="removePendingUnitType(${index})" 
+          style="
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 18px;
+          "
+          title="Remove">
+          <i class="bi bi-x-circle"></i>
+        </button>
+      </div>
+    `;
+  });
+  
+  previewList.innerHTML = html;
+}
+
+/**
+ * Remove pending unit type
+ */
+function removePendingUnitType(index) {
+  const removed = pendingUnitTypes.splice(index, 1);
+  console.log('🗑️ Removed:', removed[0]);
+  updateUnitTypePreviewList();
+}
+
+/**
+ * Save all unit types to Firebase
+ */
+async function saveAllUnitTypes() {
+  if (pendingUnitTypes.length === 0) {
+    alert('⚠️ Please add at least one unit type');
+    return;
+  }
+  
+  console.log('💾 Saving', pendingUnitTypes.length, 'unit types...');
+  
+  const user = window.auth.currentUser;
+  
+  if (!user) {
+    alert('❌ Please sign in first');
+    return;
+  }
+  
+  try {
+    const { collection, addDoc } = window.firebaseImports;
+    const userId = user.uid;
+    
+    let successCount = 0;
+    let skipCount = 0;
+    
+    for (const unitType of pendingUnitTypes) {
+      // Check if already exists
+      if (unitTypesCache.includes(unitType)) {
+        skipCount++;
+        console.log('⚠️ Skipped (already exists):', unitType);
+        continue;
+      }
+      
+      // Save to Firestore
+      const unitTypesRef = collection(window.db, 'tenants', userId, 'unitTypes');
+      await addDoc(unitTypesRef, {
+        name: unitType,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId: userId
+      });
+      
+      successCount++;
+      console.log('✅ Saved:', unitType);
+    }
+    
+    console.log(`✅ Complete: ${successCount} saved, ${skipCount} skipped`);
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('addUnitTypesModal'));
+    if (modal) modal.hide();
+    
+    // Reload unit types
+    await loadUnitTypes();
+    
+    // Update dropdown in Add Product modal
+    if (typeof populateUnitTypeDropdown === 'function') {
+      populateUnitTypeDropdown();
+    }
+    
+    // Show result
+    if (skipCount > 0) {
+      alert(`✅ Saved ${successCount} unit type(s)\nℹ️ ${skipCount} already existed`);
+    } else {
+      alert(`✅ Successfully saved ${successCount} unit type(s)!`);
+    }
+    
+  } catch (error) {
+    console.error('❌ Error saving unit types:', error);
+    alert('❌ Error saving unit types: ' + error.message);
+  }
+}
+
+/**
+ * Delete unit type
+ */
+async function deleteUnitType(unitTypeName) {
+  if (!confirm(`Delete unit type "${unitTypeName}"?`)) {
+    return;
+  }
+  
+  try {
+    const user = window.auth.currentUser;
+    if (!user) throw new Error('Not authenticated');
+    
+    const { collection, getDocs, deleteDoc, doc } = window.firebaseImports;
+    const userId = user.uid;
+    
+    // Find and delete
+    const unitTypesRef = collection(window.db, 'tenants', userId, 'unitTypes');
+    const snapshot = await getDocs(unitTypesRef);
+    
+    let deleted = false;
+    for (const docSnapshot of snapshot.docs) {
+      const data = docSnapshot.data();
+      if ((data.name || data.unitTypeName) === unitTypeName) {
+        await deleteDoc(doc(window.db, 'tenants', userId, 'unitTypes', docSnapshot.id));
+        deleted = true;
+        break;
+      }
+    }
+    
+    if (deleted) {
+      console.log('✅ Deleted unit type:', unitTypeName);
+      await loadUnitTypes();
+    } else {
+      console.warn('⚠️ Unit type not found:', unitTypeName);
+    }
+    
+  } catch (error) {
+    console.error('❌ Error deleting unit type:', error);
+    alert('❌ Error deleting unit type: ' + error.message);
+  }
+}
+
+/**
+ * Sync unit type caches
+ */
+function syncUnitTypeCaches() {
+  console.log('🔄 Syncing unit type caches...');
+  unitTypeAutocompleteCache = [...unitTypesCache];
+  unitTypeAutocompleteCache = [...new Set(unitTypeAutocompleteCache)];
+  console.log('✅ Sync complete -', unitTypeAutocompleteCache.length, 'unit types');
+}
+
+/**
+ * ==========================================
+ * ADD PRODUCT MODAL - UNIT TYPE DROPDOWN
+ * ==========================================
+ */
+
+/**
+ * Populate unit type dropdown with unit types from cache
+ */
+async function populateUnitTypeDropdown() {
+  const unitTypeSelect = document.getElementById('unitType');
+  
+  if (!unitTypeSelect) {
+    console.warn('⚠️ Unit type dropdown not found');
+    return;
+  }
+  
+  // Load unit types if cache is empty
+  if ((!unitTypesCache || unitTypesCache.length === 0) && !unitTypeCacheLoaded) {
+    console.log('📥 Unit types not loaded, loading now...');
+    
+    const user = window.auth?.currentUser;
+    if (user) {
+      try {
+        const { collection, getDocs } = window.firebaseImports;
+        const unitTypesRef = collection(window.db, 'tenants', user.uid, 'unitTypes');
+        const snapshot = await getDocs(unitTypesRef);
+        
+        const unitTypes = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const unitTypeName = data.name || data.unitTypeName;
+          if (unitTypeName) unitTypes.push(unitTypeName);
+        });
+        
+        unitTypesCache = unitTypes;
+        unitTypeAutocompleteCache = unitTypes;
+        unitTypeCacheLoaded = true;
+        
+        console.log('✅ Loaded', unitTypes.length, 'unit types');
+      } catch (error) {
+        console.error('❌ Error loading unit types:', error);
+      }
+    }
+  }
+  
+  // Clear existing options except the first (placeholder)
+  unitTypeSelect.innerHTML = '<option value="">Select Unit Type</option>';
+  
+  // Check if unit types are loaded
+  if (!unitTypesCache || unitTypesCache.length === 0) {
+    console.log('⚠️ No unit types found in cache');
+    unitTypeSelect.innerHTML = `
+      <option value="">No unit types available</option>
+      <option value="" disabled>➜ Add unit types from sidebar menu</option>
+    `;
+    return;
+  }
+  
+  // Sort unit types alphabetically
+  const sortedUnitTypes = [...unitTypesCache].sort((a, b) => a.localeCompare(b));
+  
+  // Add each unit type as an option
+  sortedUnitTypes.forEach(unitType => {
+    const option = document.createElement('option');
+    option.value = unitType;
+    option.textContent = unitType;
+    unitTypeSelect.appendChild(option);
+  });
+  
+  console.log('✅ Populated unit type dropdown with', sortedUnitTypes.length, 'unit types');
+}
 
 
 /**
@@ -21472,45 +23021,140 @@ window.applyBulkCategoryUpdate = applyBulkCategoryUpdate;
 
 console.log('✅ Bulk category edit functions loaded (dynamic)');
 
-
 /**
  * ==========================================
- * 🎯 BULK EDIT - UNIT TYPE
+ * 🎯 BULK EDIT - UNIT TYPE (DYNAMIC)
  * ==========================================
  */
 
 /**
- * Show Unit Type Bulk Edit - FIXED: Shows cancel button immediately
+ * Populate bulk unit type dropdown from cache
  */
-function showUnitTypeBulkEdit() {
+ async function populateBulkUnitTypeDropdown() {
+  const dropdownMenu = document.getElementById('bulkUnitTypeDropdownMenu');
+  
+  if (!dropdownMenu) {
+    console.warn('⚠️ Bulk unit type dropdown menu not found');
+    return;
+  }
+  
+  // Load unit types if cache is empty
+  if ((!unitTypesCache || unitTypesCache.length === 0) && !unitTypeCacheLoaded) {
+    console.log('📥 Unit types not loaded, loading now...');
+    
+    const user = window.auth?.currentUser;
+    if (user) {
+      try {
+        const { collection, getDocs } = window.firebaseImports;
+        const unitTypesRef = collection(window.db, 'tenants', user.uid, 'unitTypes');
+        const snapshot = await getDocs(unitTypesRef);
+        
+        const unitTypes = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const unitTypeName = data.name || data.unitTypeName;
+          if (unitTypeName) unitTypes.push(unitTypeName);
+        });
+        
+        unitTypesCache = unitTypes;
+        unitTypeAutocompleteCache = unitTypes;
+        unitTypeCacheLoaded = true;
+        
+        console.log('✅ Loaded', unitTypes.length, 'unit types for bulk edit');
+      } catch (error) {
+        console.error('❌ Error loading unit types:', error);
+      }
+    }
+  }
+  
+  // Clear existing items
+  dropdownMenu.innerHTML = '';
+  
+  // Check if unit types exist
+  if (!unitTypesCache || unitTypesCache.length === 0) {
+    dropdownMenu.innerHTML = `
+      <li><a class="dropdown-item text-muted" href="javascript:void(0);">No unit types available</a></li>
+      <li><hr class="dropdown-divider"></li>
+      <li><a class="dropdown-item text-warning" href="javascript:void(0);" onclick="navigateTo('unitTypes')">
+        <i class="bi bi-plus-circle"></i> Add unit types from sidebar
+      </a></li>
+    `;
+    console.log('⚠️ No unit types found');
+    return;
+  }
+  
+  // Sort unit types alphabetically
+  const sortedUnitTypes = [...unitTypesCache].sort((a, b) => a.localeCompare(b));
+  
+  // Add each unit type as a dropdown item
+  sortedUnitTypes.forEach(unitType => {
+    const li = document.createElement('li');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'dropdown-item';
+    button.onclick = function() { selectBulkUnitType(unitType); };
+    button.innerHTML = `<i class="bi bi-card-text"></i> ${unitType}`;
+    li.appendChild(button);
+    dropdownMenu.appendChild(li);
+  });
+  
+  console.log('✅ Populated bulk unit type dropdown with', sortedUnitTypes.length, 'unit types');
+}
+
+/**
+ * Show Unit Type Bulk Edit
+ */
+async function showUnitTypeBulkEdit() {
   console.log('📝 Opening unit type bulk edit mode...');
   
-  // ✅ HIDE THE MAIN DROPDOWN BUTTON
+  // Reset state
+  bulkEditMode = {
+    active: false,
+    field: null,
+    value: null,
+    selectedProducts: []
+  };
+  
+  // Load unit types into dropdown
+  await populateBulkUnitTypeDropdown();
+  
+  // Hide main dropdown button
   const mainDropdownContainer = document.querySelector('#bulkEditDropdown').closest('.dropdown');
   if (mainDropdownContainer) {
     mainDropdownContainer.style.display = 'none';
   }
   
-  // ✅ Show unit type selection UI AND cancel button
+  // Show unit type selection UI and cancel button
   document.getElementById('unitTypeSelectionDropdown').style.display = 'inline-block';
-  document.getElementById('cancelBulkEditBtn').style.display = 'inline-block'; // ← FIXED: Show immediately
+  document.getElementById('cancelBulkEditBtn').style.display = 'inline-block';
   document.getElementById('bulkEditInfoText').style.display = 'block';
   document.getElementById('bulkEditToolbar').classList.add('active');
   
-  console.log('✅ Unit type selection UI shown');
+  // Reset button text
+  document.getElementById('selectedUnitTypeText').textContent = 'Select Unit Type';
+  document.getElementById('updateUnitTypeBtn').style.display = 'none';
+  
+  const countEl = document.getElementById('selectedCountUnitType');
+  if (countEl) countEl.textContent = '0';
+  
+  console.log('✅ Unit type selection UI shown with dynamic unit types');
 }
 
 /**
- * Select Bulk Unit Type - FIXED: No toast message
+ * Select Bulk Unit Type
  */
 function selectBulkUnitType(unitType) {
   console.log('📦 Selected unit type:', unitType);
   
-  // ✅ Close unit type dropdown
-  document.getElementById('unitTypeDropdownBtn').click();
+  // Close unit type dropdown
+  const dropdownBtn = document.getElementById('unitTypeDropdownBtn');
+  if (dropdownBtn) {
+    const dropdown = bootstrap.Dropdown.getInstance(dropdownBtn);
+    if (dropdown) dropdown.hide();
+  }
   
   setTimeout(() => {
-    // ✅ Set bulk edit mode
+    // Set bulk edit mode
     bulkEditMode = {
       active: true,
       field: 'unitType',
@@ -21518,16 +23162,17 @@ function selectBulkUnitType(unitType) {
       selectedProducts: []
     };
     
-    // ✅ Update UI
+    // Update UI
     document.getElementById('selectedUnitTypeText').textContent = unitType;
     document.getElementById('updateUnitTypeBtn').style.display = 'inline-block';
-    // Cancel button already shown by showUnitTypeBulkEdit()
     document.getElementById('selectedCountUnitType').textContent = '0';
     
-    // ✅ Enable product selection
-    enableProductSelection();
+    // Enable product selection
+    if (typeof enableProductSelection === 'function') {
+      enableProductSelection();
+    }
     
-    // ❌ REMOVED: showToast() - No longer showing toast message
+    console.log('✅ Unit type set:', unitType);
   }, 100);
 }
 
@@ -21535,13 +23180,18 @@ function selectBulkUnitType(unitType) {
  * Apply Bulk Unit Type Update - FIRESTORE VERSION
  */
 async function applyBulkUnitTypeUpdate() {
-  if (bulkEditMode.selectedProducts.length === 0) {
+  if (!bulkEditMode.selectedProducts || bulkEditMode.selectedProducts.length === 0) {
     alert('⚠️ Please select at least one product');
     return;
   }
   
   const unitType = bulkEditMode.value;
   const count = bulkEditMode.selectedProducts.length;
+  
+  if (!unitType || unitType === '') {
+    alert('⚠️ Please select a unit type');
+    return;
+  }
   
   if (!confirm(`Update unit type to "${unitType}" for ${count} product(s)?`)) {
     return;
@@ -21554,26 +23204,39 @@ async function applyBulkUnitTypeUpdate() {
   
   try {
     const user = window.auth?.currentUser;
-    if (!user) throw new Error('Not authenticated');
+    if (!user) {
+      throw new Error('Not authenticated');
+    }
     
     const { doc, setDoc } = window.firebaseImports;
     const userId = user.uid;
     
+    console.log(`📝 Updating ${count} products to unit type: "${unitType}"`);
+    
+    // Update each product in Firestore
     let successCount = 0;
+    let errorCount = 0;
+    
     for (const productId of bulkEditMode.selectedProducts) {
       try {
         const product = cachedProducts.find(p => p.id === productId);
-        if (!product) continue;
+        if (!product) {
+          errorCount++;
+          continue;
+        }
         
+        // Update product data
         const updatedProduct = {
           ...product,
           unitType: unitType,
           updatedAt: new Date().toISOString()
         };
         
+        // Save to Firestore
         const productRef = doc(window.db, 'tenants', userId, 'products', productId);
         await setDoc(productRef, updatedProduct);
         
+        // Update local cache
         const cacheIdx = cachedProducts.findIndex(p => p.id === productId);
         if (cacheIdx !== -1) {
           cachedProducts[cacheIdx].unitType = unitType;
@@ -21581,19 +23244,34 @@ async function applyBulkUnitTypeUpdate() {
         
         successCount++;
       } catch (error) {
-        console.error('Error updating product:', productId, error);
+        console.error('❌ Error updating product:', productId, error);
+        errorCount++;
       }
     }
     
-    localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+    // Update localStorage cache
+    try {
+      localStorage.setItem('inventory_products_cache', JSON.stringify(cachedProducts));
+    } catch (e) {
+      console.warn('⚠️ Failed to update cache:', e);
+    }
     
+    console.log(`✅ Complete: ${successCount} success, ${errorCount} errors`);
+    
+    // Cancel bulk edit mode
     cancelBulkEdit();
     
+    // Re-render products
     if (typeof renderProducts === 'function') {
       renderProducts();
     }
     
-    alert(`✅ Updated ${successCount} products successfully!`);
+    // Show result
+    if (errorCount > 0) {
+      alert(`✅ Updated ${successCount} product(s)\n⚠️ ${errorCount} error(s)`);
+    } else {
+      alert(`✅ Successfully updated ${successCount} product(s)!`);
+    }
     
   } catch (error) {
     console.error('❌ Error:', error);
@@ -21604,6 +23282,26 @@ async function applyBulkUnitTypeUpdate() {
   }
 }
 
+// ✅ Make all functions global
+window.loadUnitTypeAutocompleteCache = loadUnitTypeAutocompleteCache;
+window.navigateToUnitTypes = navigateToUnitTypes;
+window.loadUnitTypes = loadUnitTypes;
+window.renderUnitTypesList = renderUnitTypesList;
+window.filterUnitTypes = filterUnitTypes;
+window.openAddUnitTypeModal = openAddUnitTypeModal;
+window.handleUnitTypeInputKeydown = handleUnitTypeInputKeydown;
+window.updateUnitTypePreviewList = updateUnitTypePreviewList;
+window.removePendingUnitType = removePendingUnitType;
+window.saveAllUnitTypes = saveAllUnitTypes;
+window.deleteUnitType = deleteUnitType;
+window.syncUnitTypeCaches = syncUnitTypeCaches;
+window.populateUnitTypeDropdown = populateUnitTypeDropdown;
+window.populateBulkUnitTypeDropdown = populateBulkUnitTypeDropdown;
+window.showUnitTypeBulkEdit = showUnitTypeBulkEdit;
+window.selectBulkUnitType = selectBulkUnitType;
+window.applyBulkUnitTypeUpdate = applyBulkUnitTypeUpdate;
+
+console.log('✅ Unit type management system loaded');
 
 /**
  * ==========================================
@@ -23868,23 +25566,27 @@ window.populateCategoryDropdown = populateCategoryDropdown;
     </div>
   </div>
 </div>
-<!-- Product Detail Modal -->
+<!-- ✅ Product Detail Modal -->
 <div class="modal fade" id="productDetailModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Product Details</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-info-circle"></i> Product Details
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body" id="productDetailModalBody">
-        <!-- Content will be inserted here -->
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <!-- Content will be injected dynamically -->
+        <div style="text-align: center; padding: 40px;">
+          <div class="spinner-border text-primary"></div>
+          <p class="mt-3">Loading...</p>
+        </div>
       </div>
     </div>
   </div>
 </div>
+
 
 <!-- ✅✅✅ CUSTOMER MODAL (Add/Edit) ✅✅✅ -->
 <div class="modal fade" id="customerModal" tabindex="-1">
@@ -24088,13 +25790,11 @@ window.populateCategoryDropdown = populateCategoryDropdown;
   </div>
 </div>
 
-
-
-<!-- ✅ INSTANT PRODUCTS MODAL -->
+<!-- ✅ INSTANT PRODUCTS MODAL - WITH STOCK TAB -->
 <div class="modal fade" id="instantProductsModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header">
+      <div class="modal-header bg-success text-white">
         <h5 class="modal-title">
           <i class="bi bi-lightning-charge"></i> Instant Products
         </h5>
@@ -24103,18 +25803,65 @@ window.populateCategoryDropdown = populateCategoryDropdown;
       
       <div class="modal-body">
         <!-- Instructions -->
-        <p style="color: #666; margin-bottom: 15px; font-size: 14px;">
-          Enter product names below. Press <strong>Enter</strong> or <strong>Comma (,)</strong> after each product:
-        </p>
+        <div class="alert alert-success" style="font-size: 14px;">
+          <i class="bi bi-info-circle"></i>
+          <span id="instantProductInstructions">
+            Enter product names below. Press <strong>Enter</strong> or <strong>Comma (,)</strong> after each product, or click <strong>Add to List</strong>.
+          </span>
+        </div>
         
-        <!-- Input Field -->
-        <input 
-          id="instantProductInput" 
-          type="text" 
-          class="form-control" 
-          placeholder="e.g., Tilecleaner"
-          onkeydown="handleInstantProductInputKeydown(event)"
-          style="padding: 12px; font-size: 15px;">
+        <!-- ✅ MODE TABS -->
+        <div class="btn-group w-100 mb-3" role="group">
+          <button 
+            type="button" 
+            id="productNameModeBtn"
+            class="btn btn-outline-success active"
+            onclick="switchInstantProductMode('product')"
+            style="font-weight: 600;">
+            <i class="bi bi-box"></i> Product Names
+          </button>
+          <button 
+            type="button" 
+            id="stockModeBtn"
+            class="btn btn-outline-success"
+            onclick="switchInstantProductMode('stock')"
+            style="font-weight: 600;">
+            <i class="bi bi-calculator"></i> Stock
+          </button>
+        </div>
+        
+        <!-- Input Field Container -->
+        <div style="position: relative;">
+          <input 
+            id="instantProductInput" 
+            type="text" 
+            class="form-control form-control-lg mb-2" 
+            placeholder="e.g., Tilecleaner, Grout, Adhesive..."
+            onkeydown="handleInstantProductInputKeydown(event)"
+            oninput="window.lastInstantProductInput = this.value"
+            autocomplete="off"
+            style="padding: 12px; font-size: 15px; color: #212529; background-color: #fff;">
+          
+          <!-- ✅ Skip Button (Hidden by default) -->
+          <button 
+            id="skipStockBtn"
+            type="button"
+            class="btn btn-sm btn-warning"
+            onclick="skipCurrentProduct()"
+            style="position: absolute; right: 10px; top: 8px; display: none; z-index: 10; font-weight: 600;">
+            <i class="bi bi-skip-forward"></i> Skip
+          </button>
+        </div>
+        
+        <!-- ✅ Add to List Button -->
+        <button 
+          type="button"
+          id="addToListBtn"
+          class="btn btn-success w-100"
+          onclick="handleAddToListClick()"
+          style="padding: 10px; font-size: 16px; font-weight: 600;">
+          <i class="bi bi-plus-lg"></i> Add to List
+        </button>
         
         <!-- Preview Section -->
         <div style="margin-top: 20px;">
