@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Tile & Sanitaryware Inventory</title>
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- ✅ NEW: Dynamic title will be set by JavaScript -->
+    <title id="pageTitle">Inventory System</title>
+  
 
 <!-- PWA Manifest -->
 <link rel="manifest" href="manifest.json">
@@ -92,8 +94,7 @@
   };
   
   console.log("✅ Firebase SDK loaded successfully!");
-  
- // Auth state handler
+  // Auth state handler
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     console.log('✅ User signed in:', user.email);
@@ -104,7 +105,10 @@ onAuthStateChanged(auth, async (user) => {
     
     showApp();
     
-    // ✅ Load settings first
+    // ✅ NEW: Check and load business name FIRST
+    await checkAndPromptBusinessName();
+    
+    // ✅ Load settings
     if (typeof loadAddProductModalSettings === 'function') {
       await loadAddProductModalSettings();
     }
@@ -119,6 +123,7 @@ onAuthStateChanged(auth, async (user) => {
     showAuthScreen();
   }
 });
+
 
   
   function showApp() {
@@ -329,7 +334,7 @@ onclick="return runIfNotExclusionMode(event, viewSavedInvoices)">
     <div class="d-flex align-items-center w-100">
         <input type="checkbox" class="translation-exclusion-checkbox me-2" data-i18n-key="vendor" onclick="handleTranslationCheckboxClick(event)">
         <i class="bi bi-building"></i>
-        <span data-i18n="vendor" class="translation-exclusion-label">Vendor</span>
+        <span data-i18n="vendor" class="translation-exclusion-label">Supplier</span>
     </div>
   </div>
   
@@ -504,8 +509,7 @@ onclick="return runIfNotExclusionMode(event, viewSavedInvoices)">
   <i class="bi bi-arrow-repeat"></i> 
   <span id="syncText" data-i18n="syncing">Syncing...</span>
 </div>
-
-<!-- ✅ RESPONSIVE NAVBAR - With Feature Flags -->
+<!-- ✅ RESPONSIVE NAVBAR - Dynamic Business Name -->
 <nav id="mainNavbar" class="navbar navbar-dark sticky-top" 
      style="background: linear-gradient(135deg, #198754 0%, #157347 100%); padding-left: 10px !important;">
   <div class="container-fluid">
@@ -515,8 +519,10 @@ onclick="return runIfNotExclusionMode(event, viewSavedInvoices)">
       <div class="d-flex align-items-center justify-content-between gap-2">
         <span class="navbar-brand mb-0 h1">
           <i class="bi bi-boxes"></i> 
-          <span data-i18n="appTitle" data-custom-rename-key="appTitle">Tile & Sanitaryware Inventory</span>
+          <!-- ✅ NEW: Dynamic business name -->
+          <span id="navbarBusinessName">Loading...</span>
         </span>
+
         
         <div class="d-flex align-items-center gap-2">
           <!-- Language Switcher Button -->
@@ -1534,7 +1540,7 @@ onclick="handleViewSwitchClick(event, 'sales')">
 
 <!-- ✅ CLOSE WRAPPER -->
 </div>
-
+</div>
 
 
     <!-- Controls Row -->
@@ -1551,6 +1557,19 @@ onclick="handleViewSwitchClick(event, 'sales')">
           <span data-i18n="sort" class="ms-1 translation-exclusion-label">Sort</span>
       </div>
   </button>
+  <button type="button" 
+  class="btn btn-sm" 
+  id="refreshProductsBtn"
+  onclick="return runIfNotExclusionMode(event, refreshProducts)"
+  data-i18n-title="refreshProducts"
+  title="Refresh Products">
+<div class="d-flex align-items-center">
+  <input type="checkbox" class="translation-exclusion-checkbox me-2" data-i18n-key="refresh" onclick="handleTranslationCheckboxClick(event)">
+  <i class="bi bi-arrow-clockwise" id="refreshIcon"></i> 
+  <span data-i18n="refresh" class="ms-1 translation-exclusion-label">Refresh</span>
+</div>
+</button>
+
 </div>
 
 <!-- Search Bar -->
@@ -2420,6 +2439,30 @@ onclick="handleViewSwitchClick(event, 'sales')">
         <!-- Settings Categories -->
         <div class="row g-3">
           
+          <!-- ✅ NEW: Business Name Setting -->
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100" style="border: none; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.3s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.15)'" onmouseout="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onclick="openBusinessNameEditor()">
+              <div class="card-body" style="padding: 25px;">
+                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                  <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                    <i class="bi bi-shop" style="font-size: 1.5rem; color: white;"></i>
+                  </div>
+                  <div style="flex: 1;">
+                    <h5 class="card-title mb-1" style="font-weight: 700;">Business Name</h5>
+                    <p class="card-text text-muted mb-0" style="font-size: 0.9rem;">Change your business display name</p>
+                    <!-- Current business name preview -->
+                    <p class="mb-0 mt-1" style="font-size: 0.85rem; color: #667eea; font-weight: 600;">
+                     
+                    </p>
+                  </div>
+                </div>
+                <div class="text-end">
+                  <i class="bi bi-chevron-right" style="font-size: 1.5rem; color: #f093fb;"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+    
           <!-- Add Product Modal Settings -->
           <div class="col-md-6 col-lg-4">
             <div class="card h-100" style="border: none; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.3s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.15)'" onmouseout="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onclick="openAddProductModalSettings()">
@@ -2440,12 +2483,32 @@ onclick="handleViewSwitchClick(event, 'sales')">
             </div>
           </div>
     
+          <!-- Change Password -->
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100" style="border: none; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.3s; cursor: pointer;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.15)'" onmouseout="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onclick="openChangePasswordModal()">
+              <div class="card-body" style="padding: 25px;">
+                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                  <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                    <i class="bi bi-shield-lock" style="font-size: 1.5rem; color: white;"></i>
+                  </div>
+                  <div>
+                    <h5 class="card-title mb-1" style="font-weight: 700;">Change Password</h5>
+                    <p class="card-text text-muted mb-0" style="font-size: 0.9rem;">Update your account password</p>
+                  </div>
+                </div>
+                <div class="text-end">
+                  <i class="bi bi-chevron-right" style="font-size: 1.5rem; color: #30cfd0;"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+    
           <!-- Invoice Settings (Placeholder for future) -->
           <div class="col-md-6 col-lg-4">
             <div class="card h-100" style="border: none; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.3s; opacity: 0.6;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.15)'" onmouseout="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'">
               <div class="card-body" style="padding: 25px;">
                 <div style="display: flex; align-items: center; margin-bottom: 15px;">
-                  <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                  <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
                     <i class="bi bi-receipt" style="font-size: 1.5rem; color: white;"></i>
                   </div>
                   <div>
@@ -2504,6 +2567,59 @@ onclick="handleViewSwitchClick(event, 'sales')">
     
       </div>
     </div>
+
+    
+    <!-- ==========================================
+     🏪 BUSINESS NAME SETUP MODAL
+     ========================================== -->
+<div class="modal fade" id="businessNameModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+        <h5 class="modal-title">
+          <i class="bi bi-shop"></i> Welcome! Set Up Your Business
+        </h5>
+      </div>
+      <div class="modal-body" style="padding: 30px;">
+        <p style="color: #6c757d; margin-bottom: 20px; font-size: 15px;">
+          <i class="bi bi-info-circle"></i> Please enter your business name to personalize your inventory system.
+        </p>
+        
+        <div class="mb-3">
+          <label for="businessNameInput" class="form-label" style="font-weight: 600; color: #333;">
+            Business Name <span style="color: #dc3545;">*</span>
+          </label>
+          <input 
+            type="text" 
+            class="form-control form-control-lg" 
+            id="businessNameInput" 
+            placeholder="e.g., Rajesh Tiles & Sanitaryware"
+            style="border: 2px solid #667eea; border-radius: 8px;"
+            maxlength="50"
+            required
+          >
+          <small class="text-muted">
+            <i class="bi bi-lightbulb"></i> This will appear on your invoices and app header
+          </small>
+        </div>
+        
+        <div class="alert alert-info" style="border-left: 4px solid #17a2b8; background: #d1ecf1; border-radius: 8px;">
+          <i class="bi bi-shield-check"></i> <strong>You can change this later</strong> from Settings
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button 
+          type="button" 
+          class="btn btn-primary btn-lg w-100" 
+          onclick="saveBusinessName()"
+          style="font-weight: 600; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+          <i class="bi bi-check-circle"></i> Save & Continue
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ==========================================
      📦 ADD PRODUCT MODAL SETTINGS - FRESH
      ========================================== -->
@@ -4269,6 +4385,198 @@ let userEmail = null;
     }
 })();
 
+/**
+ * ==========================================
+ * 🏪 BUSINESS NAME MANAGEMENT SYSTEM
+ * ==========================================
+ */
+
+// Global variable to store business name
+window.businessName = 'My Business';
+
+/**
+ * Load business name from Firestore
+ */
+async function loadBusinessName() {
+  const user = window.auth?.currentUser;
+  if (!user) {
+    console.warn('⚠️ No user authenticated');
+    return null;
+  }
+  
+  try {
+    const { doc, getDoc } = window.firebaseImports;
+    const tenantDocRef = doc(window.db, 'tenants', user.uid);
+    const tenantDoc = await getDoc(tenantDocRef);
+    
+    if (tenantDoc.exists()) {
+      const data = tenantDoc.data();
+      if (data.businessName && data.businessName.trim() !== '') {
+        window.businessName = data.businessName;
+        console.log('✅ Loaded business name:', window.businessName);
+        return window.businessName;
+      }
+    }
+    
+    console.log('⚠️ No business name found in Firestore');
+    return null;
+  } catch (error) {
+    console.error('❌ Error loading business name:', error);
+    return null;
+  }
+}
+
+/**
+ * Save business name to Firestore
+ */
+async function saveBusinessName() {
+  const input = document.getElementById('businessNameInput');
+  const name = input?.value.trim();
+  
+  if (!name || name.length === 0) {
+    alert('⚠️ Please enter your business name');
+    input?.focus();
+    return;
+  }
+  
+  if (name.length > 50) {
+    alert('⚠️ Business name is too long (max 50 characters)');
+    return;
+  }
+  
+  const user = window.auth?.currentUser;
+  if (!user) {
+    alert('❌ Not authenticated. Please sign in again.');
+    return;
+  }
+  
+  try {
+    console.log('💾 Saving business name:', name);
+    
+    const { doc, setDoc } = window.firebaseImports;
+    const tenantDocRef = doc(window.db, 'tenants', user.uid);
+    
+    await setDoc(tenantDocRef, {
+      businessName: name,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    
+    // Update global variable
+    window.businessName = name;
+    
+    console.log('✅ Business name saved successfully');
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('businessNameModal'));
+    if (modal) modal.hide();
+    
+    // Update UI immediately
+    updateBusinessNameInUI();
+    
+    // Show success message
+    alert('✅ Business name saved successfully!');
+    
+  } catch (error) {
+    console.error('❌ Error saving business name:', error);
+    alert('❌ Failed to save business name. Please try again.');
+  }
+}
+
+/**
+ * Check if user has business name, show modal if not
+ */
+async function checkAndPromptBusinessName() {
+  console.log('🔍 Checking for business name...');
+  
+  const name = await loadBusinessName();
+  
+  if (!name) {
+    console.log('📝 No business name found, showing setup modal...');
+    
+    // Show modal after a short delay
+    setTimeout(() => {
+      const modal = new bootstrap.Modal(document.getElementById('businessNameModal'));
+      modal.show();
+      
+      // Focus input
+      setTimeout(() => {
+        document.getElementById('businessNameInput')?.focus();
+      }, 500);
+    }, 500);
+  } else {
+    console.log('✅ Business name exists:', name);
+    updateBusinessNameInUI();
+  }
+}
+
+/**
+ * Update business name throughout the UI
+ */
+function updateBusinessNameInUI() {
+  const name = window.businessName || 'My Business';
+  
+  console.log('🎨 Updating UI with business name:', name);
+  
+  // 1. Update navbar
+  const navbarName = document.getElementById('navbarBusinessName');
+  if (navbarName) {
+    navbarName.textContent = name;
+  }
+  
+  // 2. Update page title
+  const pageTitle = document.getElementById('pageTitle');
+  if (pageTitle) {
+    pageTitle.textContent = name;
+  } else {
+    document.title = name;
+  }
+  
+  // 3. Update auth screen
+  const authTitles = document.querySelectorAll('#authScreen h2');
+  authTitles.forEach(title => {
+    if (title.textContent.includes('Tile & Sanitaryware Inventory')) {
+      title.textContent = name;
+    }
+  });
+  
+  // 4. Update translations dynamically
+  if (window.translations) {
+    Object.keys(window.translations).forEach(lang => {
+      if (window.translations[lang]) {
+        window.translations[lang].appTitle = name;
+      }
+    });
+  }
+  
+  console.log('✅ UI updated with business name');
+}
+
+/**
+ * Open business name editor (for settings)
+ */
+function openBusinessNameEditor() {
+  const input = document.getElementById('businessNameInput');
+  if (input) {
+    input.value = window.businessName || '';
+  }
+  
+  const modal = new bootstrap.Modal(document.getElementById('businessNameModal'));
+  modal.show();
+  
+  setTimeout(() => {
+    input?.focus();
+  }, 500);
+}
+
+// Make functions globally available
+window.loadBusinessName = loadBusinessName;
+window.saveBusinessName = saveBusinessName;
+window.checkAndPromptBusinessName = checkAndPromptBusinessName;
+window.updateBusinessNameInUI = updateBusinessNameInUI;
+window.openBusinessNameEditor = openBusinessNameEditor;
+
+console.log('✅ Business name management system loaded');
+
 
 // Default settings
 let addProductModalSettings = {
@@ -4489,7 +4797,7 @@ console.log('✅ Translation exclusion variables initialized');
 var translations = {
   en: {
     // Navbar
-    appTitle: "Tile & Sanitaryware Inventory",
+    appTitle: "My Business",
     generateInvoice: "Generate Invoice",
     viewInvoices: "View Invoices",
     signOut: "Sign Out",
@@ -4780,205 +5088,205 @@ var translations = {
   
   hi: {
     // Navbar
-    appTitle: "टाइल और सेनेटरीवेयर इन्वेंटरी",
+    appTitle: "मेरा बिज़नेस",
     generateInvoice: "बिल बनाएं",
     viewInvoices: "बिल देखें",
-    signOut: "साइन आउट",
-    backupData: "डेटा बैकअप",
-    restoreData: "डेटा पुनर्स्थापित करें",
+    signOut: "साइन आउट करें",
+    backupData: "डेटा का बैकअप लें",
+    restoreData: "डेटा वापस लाएं",
     changePassword: "पासवर्ड बदलें",
-    resetData: "डेटा रीसेट करें",
-    signedIn: "साइन इन किया गया",
+    resetData: "सब डेटा मिटाएं",
+    signedIn: "लॉगिन हो गए",
 
     // Instant Products Preview
   skipped: "छोड़ा गया",
   entering: "दर्ज कर रहे हैं",
   
 
-  // saveProductToSheet
-  notAuthenticated: 'प्रमाणित नहीं',
-  duplicateProductFound: 'डुप्लिकेट उत्पाद मिला',
+   // saveProductToSheet
+   notAuthenticated: 'लॉगिन नहीं हैं',
+    duplicateProductFound: 'यह प्रोडक्ट पहले से है',
   
-  // saveProduct
-  fillRequiredFields: 'आवश्यक फ़ील्ड भरें',
-  savingProduct: 'उत्पाद सहेजा जा रहा है...',
-  saved: 'सहेजा गया',
-  saveFailedReverted: 'सहेजना विफल - स्थानीय रूप से वापस किया गया।',
-  saveFailed: 'सहेजना विफल',
-  saveFailedCheckConsole: 'सहेजना विफल - स्थानीय रूप से वापस किया गया। विवरण के लिए कंसोल देखें।',
+ // saveProduct
+ fillRequiredFields: 'ज़रूरी जानकारी भरें',
+    savingProduct: 'सेव हो रहा है...',
+    saved: 'सेव हो गया',
+    saveFailedReverted: 'सेव नहीं हुआ - वापस कर दिया',
+    saveFailed: 'सेव नहीं हुआ',
+    saveFailedCheckConsole: 'सेव नहीं हुआ। डिटेल के लिए Console देखें।',
   
   // saveVariantData
-  saving: 'सहेज रहे हैं...',
-  userNotAuthenticated: 'उपयोगकर्ता प्रमाणित नहीं',
-  variantIdMissing: 'वेरिएंट आईडी गायब है। कृपया संपादन फ़ॉर्म बंद करें और फिर से खोलें।',
-  groupIdMissing: 'समूह आईडी गायब है। कृपया संपादन फ़ॉर्म बंद करें और फिर से खोलें।',
-  invalidSellingPrice: 'अमान्य बिक्री मूल्य',
-  invalidStockValue: 'अमान्य स्टॉक मान',
-  variantUpdatedSuccess: '✅ वेरिएंट सफलतापूर्वक अपडेट किया गया!',
-  errorPrefix: 'त्रुटि',
-  checkConsole: 'कृपया विवरण के लिए कंसोल देखें।',
+  saving: 'सेव हो रहा है...',
+    userNotAuthenticated: 'लॉगिन नहीं हैं',
+    variantIdMissing: 'Variant ID नहीं मिली। कृपया फिर से खोलें।',
+    groupIdMissing: 'Group ID नहीं मिली। कृपया फिर से खोलें।',
+    invalidSellingPrice: 'गलत कीमत',
+    invalidStockValue: 'गलत स्टॉक नंबर',
+    variantUpdatedSuccess: '✅ Variant अपडेट हो गया!',
+    errorPrefix: 'गड़बड़ी',
+    checkConsole: 'डिटेल के लिए Console देखें।',
   
-  // deleteProduct
-  confirmDeleteProduct: 'क्या आप वाकई इस उत्पाद को हटाना चाहते हैं?',
-  deleting: 'हटाया जा रहा है...',
-  deleted: 'हटाया गया',
-  deleteFailedReverted: 'हटाना विफल - स्थानीय रूप से वापस किया गया।',
-  deleteFailed: 'हटाना विफल',
-
+   // deleteProduct
+   confirmDeleteProduct: 'क्या आप यह प्रोडक्ट डिलीट करना चाहते हैं?',
+    deleting: 'डिलीट हो रहा है...',
+    deleted: 'डिलीट हो गया',
+    deleteFailedReverted: 'डिलीट नहीं हुआ - वापस कर दिया',
+    deleteFailed: 'डिलीट नहीं हुआ',
   // Save Instant Products
-  pleaseAddAtLeastOneProduct: '⚠️ कृपया कम से कम एक उत्पाद जोड़ें',
-  savingProducts: 'उत्पाद सहेजे जा रहे हैं...',
-  errorNotAuthenticated: '❌ त्रुटि: प्रमाणित नहीं। कृपया फिर से साइन इन करें।',
+  pleaseAddAtLeastOneProduct: '⚠️ कम से कम एक प्रोडक्ट तो डालें',
+    savingProducts: 'प्रोडक्ट सेव हो रहे हैं...',
+    errorNotAuthenticated: '❌ गड़बड़ी: लॉगिन नहीं हैं। फिर से लॉगिन करें।',
   uncategorized: '',
   notApplicable: '',
   piece: 'पीस',
-  productsAddedSuccess: '✅ सफल!\n\n{count} उत्पाद स्टॉक के साथ जोड़े गए!',
-  partialSuccess: '⚠️ आंशिक सफलता\n\n✅ सहेजे गए: {saved}\n❌ विफल: {failed}\n\nविफल उत्पाद:\n{list}',
+  productsAddedSuccess: '✅ बढ़िया!\n\n{count} प्रोडक्ट स्टॉक के साथ Add हो गए!',
+  partialSuccess: '⚠️ कुछ ही हुआ\n\n✅ सेव हुए: {saved}\n❌ नहीं हुए: {failed}\n\nजो नहीं हुए:\n{list}',
   
-  // Stock Badge
-  outOfStock: 'स्टॉक में नहीं',
-  inStock: 'स्टॉक में',
+// Stock Badge
+outOfStock: 'स्टॉक खत्म',
+    inStock: 'स्टॉक में है',
   
   // Edit Product
-  productNotFound: '❌ उत्पाद नहीं मिला',
+  productNotFound: '❌ प्रोडक्ट नहीं मिला',
   
-  // Sales Modal
-  recordNewSale: "नई बिक्री रिकॉर्ड करें",
-  quickAddProducts: "त्वरित उत्पाद जोड़ें (बहु-चयन)",
-  clickToSelectMultiple: "एकाधिक उत्पाद चुनने के लिए क्लिक करें...",
-  searchProducts: "🔍 उत्पाद खोजें...",
-  selectMultipleToAutoFill: "नीचे पंक्तियाँ स्वतः भरने के लिए एकाधिक उत्पाद चुनें",
-  addMoreRows: "अधिक पंक्तियाँ जोड़ें",
-  addProductsInBulk: "थोक में उत्पाद जोड़ें",
-  addCustomProduct: "कस्टम उत्पाद जोड़ें",
+ // Sales Modal
+ recordNewSale: "नई सेल दर्ज करें",
+    quickAddProducts: "जल्दी से प्रोडक्ट Add करें (Multi-Select)",
+    clickToSelectMultiple: "कई प्रोडक्ट चुनने के लिए क्लिक करें...",
+    searchProducts: "🔍 प्रोडक्ट Search करें...",
+    selectMultipleToAutoFill: "नीचे की लाइनें Auto भरने के लिए कई प्रोडक्ट चुनें",
+    addMoreRows: "और लाइनें Add करें",
+    addProductsInBulk: "Bulk में प्रोडक्ट Add करें",
+    addCustomProduct: "Custom प्रोडक्ट Add करें",
   hashSymbol: "#",
-  qty: "मात्रा",
-  total: "कुल",
-  subtotal: "उप-योग:",
-  grandTotal: "कुल योग:",
-  completeSale: "बिक्री पूर्ण करें",
+  qty: "Quantity",
+    total: "Total",
+    subtotal: "Subtotal:",
+    grandTotal: "Grand Total:",
+    completeSale: "Sale Complete करें",
     
-    // Dashboard
-    totalProducts: "कुल उत्पाद",
-    qtyInHand: "उपलब्ध मात्रा",
-    inStockItems: "स्टॉक में वस्तुएं",
-    lowStockItems: "कम स्टॉक वाली वस्तुएं",
-    inventory: "इन्वेंटरी",
-    recentPurchases: "हालिया खरीद",
-    recentSales: "हाल की बिक्री",
-    recordSale: "बिक्री रिकॉर्ड करें",
-    quickCreate: "त्वरित बनाएं",
-    clickToFlip: "पलटने के लिए क्लिक करें",
-    instantProducts: "त्वरित उत्पाद",
-    addProduct: "उत्पाद जोड़ें",
-    recordPurchase: "खरीद रिकॉर्ड करें",
+    // Dashboard - More Hindi
+totalProducts: "कुल सामान",
+qtyInHand: "उपलब्ध माल",
+inStockItems: "Stock में माल",
+lowStockItems: "कम Stock प्रोडक्ट्स",
+inventory: "Inventory",
+recentPurchases: "हाल की खरीदारी",
+recentSales: "हाल की बिक्री",
+recordSale: "बिक्री दर्ज करें",
+quickCreate: "झटपट बनाएं",
+clickToFlip: "पलटें",
+instantProducts: "तुरंत Add करें",
+addProduct: "सामान Add करें",
+recordPurchase: "माल खरीदारी Add करें",
+
     
-    // Product Management
-    editProduct: "उत्पाद संपादित करें",
-    productName: "उत्पाद का नाम",
-    brand: "ब्रांड",
-    size: "साइज़",
-    category: "श्रेणी",
-    unitType: "इकाई प्रकार",
-    quantity: "मात्रा",
-    price: "कीमत",
+     // Product Management
+     editProduct: "प्रोडक्ट Edit करें",
+    productName: "प्रोडक्ट का नाम",
+    brand: "Brand",
+    size: "Size",
+    category: "Category",
+    unitType: "Unit Type",
+    quantity: "Quantity",
+    price: "Price",
     
-    // Bulk Edit - NEW
-    editProductsInBulk: "थोक में उत्पाद संपादित करें",
-    updateCategory: "श्रेणी अपडेट करें",
-    updateUnitType: "इकाई प्रकार अपडेट करें",
-    updateStock: "स्टॉक अपडेट करें",
-    updateSellingPrice: "बिक्री मूल्य अपडेट करें",
-    updateStockStatus: "स्टॉक स्थिति अपडेट करें",
-    updateBrand: "ब्रांड अपडेट करें",
-    updateSize: "साइज़ अपडेट करें",
-    enterSellingPriceToUpdate: "अपडेट करने के लिए बिक्री मूल्य दर्ज करें",
-    enterBrandToUpdate: "अपडेट करने के लिए ब्रांड दर्ज करें",
-    selectStockStatus: "स्टॉक स्थिति चुनें",
+   // Bulk Edit - NEW
+   editProductsInBulk: "एक साथ कई प्रोडक्ट्स Edit करें",
+    updateCategory: "Category Update करें",
+    updateUnitType: "Unit Type Update करें",
+    updateStock: "Stock Update करें",
+    updateSellingPrice: "Selling Price Update करें",
+    updateStockStatus: "Stock Status Update करें",
+    updateBrand: "Brand Update करें",
+    updateSize: "Size Update करें",
+    enterSellingPriceToUpdate: "Update करने के लिए Price डालें",
+    enterBrandToUpdate: "Update करने के लिए Brand डालें",
+    selectStockStatus: "Stock Status चुनें",
     good: "अच्छा",
-    medium: "मध्यम",
+    medium: "ठीक-ठाक",
     low: "कम",
-    urgent: "तत्काल",
-    selectCategory: "श्रेणी चुनें",
-    selectUnitType: "इकाई प्रकार चुनें",
-    clickToSelect: "चयन करने के लिए उत्पादों पर क्लिक करें",
-    selected: "चयनित",
-    addBy: "जोड़ें",
+    urgent: "बहुत कम",
+    selectCategory: "Category चुनें",
+    selectUnitType: "Unit Type चुनें",
+    clickToSelect: "Select करने के लिए Click करें",
+    selected: "चुने गए",
+    addBy: "बढ़ाएं",
     reduceBy: "घटाएं",
-    update: "अपडेट करें",
-    sort: "क्रमबद्ध करें",
-    sortProducts: "उत्पाद क्रमबद्ध करें",
-    searchPlaceholder: "🔍 खोजें...",
+    update: "Update करें",
+    sort: "Sort करें",
+    sortProducts: "प्रोडक्ट्स Sort करें",
+    searchPlaceholder: "🔍 Search करें...",
     
     // Common
-    save: "सहेजें",
-    cancel: "रद्द करें",
-    delete: "हटाएं",
-    edit: "संपादित करें",
-    close: "बंद करें",
-    search: "खोजें",
-    loading: "लोड हो रहा है...",
-    success: "सफल!",
+    save: "Save करें",
+    cancel: "Cancel करें",
+    delete: "Delete करें",
+    edit: "Edit करें",
+    close: "Close करें",
+    search: "Search करें",
+    loading: "Load हो रहा है...",
+    success: "हो गया!",
 
      // Products Table
   photo: "फ़ोटो",
-  product: "उत्पाद",
+  product: "प्रोडक्ट्स",
   stock: "स्टॉक",
   actions: "कार्य",
   
   // Sales
-  clearSales: "बिक्री साफ़ करें",
-  dateAndTime: "तिथि और समय",
-  unit: "इकाई",
-  amount: "राशि",
+  clearSales: "Sales Clear करें",
+    dateAndTime: "Date & Time",
+  unit: "Unit",
+    amount: "Amount",
   
   // Purchases
   refresh: "रिफ्रेश करें",
   serialNo: "क्रम संख्या",
-  products: "उत्पाद",
+  products: "प्रोडक्ट्स",
   vendor: "विक्रेता",
   totalAmount: "कुल राशि",
   paymentMode: "भुगतान विधि",
   otherInfo: "अन्य जानकारी",
-  date: "तिथि",
+  date: "Date",
   loadingPurchases: "खरीद लोड हो रही है...",
   
-  // Product Modal
-  addNewProduct: "नया उत्पाद जोड़ें",
-  productPhoto: "उत्पाद फ़ोटो",
-  clickToUpload: "अपलोड या फ़ोटो लेने के लिए क्लिक करें",
-  imageFormat: "JPG, PNG (अधिकतम 5MB)",
-  changePhoto: "फ़ोटो बदलें",
-  remove: "हटाएं",
-  sellingPrice: "बिक्री मूल्य",
-  currentStock: "वर्तमान स्टॉक (वैकल्पिक)",
+ // Product Modal
+ addNewProduct: "नया Product Add करें",
+    productPhoto: "Product Photo",
+    clickToUpload: "Upload या Photo लेने के लिए Click करें",
+    imageFormat: "JPG, PNG (Max 5MB)",
+    changePhoto: "Photo बदलें",
+    remove: "हटाएं",
+    sellingPrice: "Selling Price",
+  currentStock: "वर्तमान Stock (Optional)",
   leaveEmpty: "खाली छोड़ें",
   forExactQuantity: "सटीक मात्रा के लिए",
-  stockStatus: "स्टॉक स्थिति",
-  minimumStock: "न्यूनतम स्टॉक",
-  advancedOptions: "+ उन्नत विकल्प",
-  typeToSearchBrands: "ब्रांड खोजने के लिए टाइप करें...",
-  saveThisBrand: "इस ब्रांड को सहेजें",
-  typeToSearchSizes: "साइज़ खोजने के लिए टाइप करें...",
-  saveThisSize: "इस साइज़ को सहेजें",
-  piecesPerBox: "प्रति बॉक्स टुकड़े",
+  stockStatus: "Stock Status",
+  minimumStock: "न्यूनतम Stock",
+  advancedOptions: "+ Advanced Options",
+  typeToSearchBrands: "Brand Search करने के लिए Type करें...",
+    saveThisBrand: "यह Brand Save करें",
+    typeToSearchSizes: "Size Search करने के लिए Type करें...",
+    saveThisSize: "यह Size Save करें",
+  piecesPerBox: "प्रति बॉक्स pieces",
   sftPerBox: "प्रति बॉक्स SFT",
-  saveProduct: "उत्पाद सहेजें",
+  saveProduct: "Product Save करें",
 
   // Sidebar Menu
   menu: "मेनू",
   home: "होम",
   general: "सामान्य",
   addUsers: "उपयोगकर्ता जोड़ें",
-  allProducts: "सभी उत्पाद",
-  productsInGroup: "समूह में उत्पाद",
+  allProducts: "सभी Products",
+    productsInGroup: "Group में Products",
   inventoryAdjustments: "इन्वेंटरी समायोजन",
   sales: "बिक्री",
   customer: "ग्राहक",
   invoices: "बिल",
-  management: "प्रबंधन",
-  categories: "श्रेणियाँ",
-  unitTypes: "इकाई प्रकार",
+  management: "Management",
+    categories: "Categories",
+    unitTypes: "Unit Types",
   brands: "ब्रांड",
   sizes: "साइज़",
   salesReceipts: "बिक्री रसीद",
@@ -4988,7 +5296,7 @@ var translations = {
   customerPayment: "ग्राहक भुगतान",
   creditNotes: "क्रेडिट नोट",
   purchases: "खरीद",
-  vendor: "विक्रेता",
+  vendor: "Supplier",
   expenses: "खर्चे",
   bills: "बिल",
   purchaseOrders: "खरीद आदेश",
@@ -4998,73 +5306,74 @@ var translations = {
   system: "सिस्टम",
   settings: "सेटिंग्स",
   
-  // Backup Reminder Modal
-  monthlyBackupReminder: "मासिक बैकअप अनुस्मारक",
-  timeToBackup: "अपने इन्वेंटरी डेटा का बैकअप लेने का समय है",
-  protectYourData: "अपने डेटा की सुरक्षा करें",
-  downloadBackupMessage: "अपनी इन्वेंटरी को सुरक्षित रखने के लिए बैकअप डाउनलोड करें",
-  quickAndEasy: "त्वरित और आसान",
-  backupTimeMessage: "पूरा होने में 30 सेकंड से कम समय लगता है",
-  noBackupFound: "इस महीने कोई बैकअप नहीं मिला",
-  dontShowAgainThisMonth: "यह सूचना इस महीने फिर से न दिखाएं",
-  backupNow: "अभी बैकअप लें",
-  syncing: "Syncing...",
+// Backup Reminder Modal
+monthlyBackupReminder: "Monthly Backup Reminder",
+    timeToBackup: "अपने Inventory का Backup लेने का Time है",
+    protectYourData: "अपना Data सुरक्षित रखें",
+    downloadBackupMessage: "अपनी Inventory को Safe रखने के लिए Backup Download करें",
+    quickAndEasy: "बिल्कुल आसान",
+    backupTimeMessage: "30 Second से भी कम Time लगेगा",
+    noBackupFound: "इस महीने कोई Backup नहीं मिला",
+    dontShowAgainThisMonth: "यह Message इस महीने फिर से मत दिखाओ",
+    backupNow: "अभी Backup लें",
+    syncing: "Sync हो रहा है...",
 
-  // Instant Products Modal
-  productNames: "उत्पाद नाम",
-  stockEntry: "स्टॉक प्रविष्टि",
-  instantProductPlaceholder: "उदा., टाइलक्लीनर, ग्राउट, एडहेसिव...",
-  skip: "छोड़ें",
-  addToList: "सूची में जोड़ें",
-  productsToSave: "📝 सहेजने के लिए उत्पाद",
-  noProductsAddedYet: "अभी तक कोई उत्पाद नहीं जोड़ा गया",
-  saveAll: "सभी सहेजें",
+ // Instant Products Modal
+ productNames: "Product के नाम",
+    stockEntry: "Stock Entry",
+    instantProductPlaceholder: "जैसे: Tile Cleaner, Grout, Adhesive...",
+    skip: "छोड़ें",
+    addToList: "List में Add करें",
+    productsToSave: "📝 Save करने के लिए Products",
+    noProductsAddedYet: "अभी तक कोई Product नहीं डाला",
+    saveAll: "सब Save करें",
   
   // Record Purchase Modal
   photoOptional: "📷 फ़ोटो (वैकल्पिक)",
   tapOrPastePhoto: "फ़ोटो टैप या पेस्ट करें",
-  vendorName: "🏢 विक्रेता का नाम",
-  vendorNamePlaceholder: "विक्रेता का नाम",
-  productsPurchased: "📦 खरीदे गए उत्पाद",
-  row: "पंक्ति",
-  bulk: "थोक",
+  vendorName: "🏢 Supplier का नाम",
+vendorNamePlaceholder: "Supplier का नाम",
+
+  productsPurchased: "📦 खरीदे गए Products",
+  row: "Row Add करें",
+  bulk: "Inventory Add करें",
   addPaymentDetails: "+ भुगतान विवरण जोड़ें",
   paymentModeOptional: "💳 भुगतान विधि (वैकल्पिक)",
   cash: "नकद",
   online: "ऑनलाइन",
   credit: "क्रेडिट",
-  notes: "📝 नोट्स",
-  optional: "वैकल्पिक",
-  submit: "जमा करें",
+  notes: "📝 Notes",
+  optional: "Optional",
+  submit: "Submit करें",
 
   // Instant Products Mode Switching
-  pleaseAddProductsFirst: '⚠️ कृपया पहले स्टॉक दर्ज करने से पहले उत्पाद जोड़ें',
-  setStock: 'स्टॉक सेट करें',
-  enterStockQuantity: 'स्टॉक मात्रा दर्ज करें...',
+  pleaseAddProductsFirst: '⚠️ पहले Products Add करें, फिर Stock डालें',
+  setStock: 'Stock डालें',
+  enterStockQuantity: 'Stock मात्रा डालें...',
   
   // Change Password Modal
   currentPassword: 'वर्तमान पासवर्ड',
   enterCurrentPasswordToContinue: 'जारी रखने के लिए अपना वर्तमान पासवर्ड दर्ज करें',
   enterCurrentPassword: 'वर्तमान पासवर्ड दर्ज करें',
   continue: 'जारी रखें',
-  chooseNewPassword: 'नया पासवर्ड चुनें (न्यूनतम 6 वर्ण)',
-  newPassword: 'नया पासवर्ड',
-  confirmNewPassword: 'नए पासवर्ड की पुष्टि करें',
-  enterNewPassword: 'नया पासवर्ड दर्ज करें',
-  reEnterNewPassword: 'नया पासवर्ड फिर से दर्ज करें',
+  chooseNewPassword: 'नया पासवर्ड चुनें (कम से कम 6 Letters)',
+  newPassword: 'नया Password',
+    confirmNewPassword: 'नए Password की Confirm करें',
+    enterNewPassword: 'नया Password डालें',
+    reEnterNewPassword: 'नया Password फिर से डालें',
 
     
-    // Reset Data Modal
-    resetAllData: "सभी डेटा रीसेट करें",
-    resetWarning: "चेतावनी: यह कार्रवाई पूर्ववत नहीं की जा सकती!",
-    resetMessage: "आपका सभी इन्वेंटरी डेटा स्थायी रूप से हटा दिया जाएगा:",
-    productsAndStock: "उत्पाद और स्टॉक",
-    groupsAndBrands: "समूह और ब्रांड",
-    customersAndSales: "ग्राहक और बिक्री",
-    invoicesAndRecords: "बिल और रिकॉर्ड",
-    enterPasswordToConfirm: "पुष्टि करने के लिए अपना पासवर्ड दर्ज करें:",
-    yourCurrentPassword: "आपका वर्तमान पासवर्ड",
-    allDataCleared: "आपका सभी डेटा साफ़ कर दिया गया है। अब आप नए सिरे से शुरू कर सकते हैं।",
+     // Reset Data Modal
+     resetAllData: "सभी Data Reset करें",
+    resetWarning: "चेतावनी: यह वापस नहीं होगा!",
+    resetMessage: "आपका सारा Inventory Data हमेशा के लिए Delete हो जाएगा:",
+    productsAndStock: "Products और Stock",
+    groupsAndBrands: "Groups और Brands",
+    customersAndSales: "Customers और Sales",
+    invoicesAndRecords: "Bills और Records",
+    enterPasswordToConfirm: "Confirm करने के लिए Password डालें:",
+    yourCurrentPassword: "आपका Current Password",
+    allDataCleared: "आपका सारा Data Clear हो गया है। अब आप नए सिरे से शुरू कर सकते हैं।",
     gotIt: "समझ गया",
   }
 };
@@ -8267,28 +8576,67 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 
-
-
 /**
- * Load recent purchases from Firestore
+ * Load recent purchases from Firestore (WITH AUTH FALLBACK)
  */
-async function loadRecentPurchases() {
+ async function loadRecentPurchases() {
   console.log('📦 Loading recent purchases from Firestore...');
   
-  const user = window.auth.currentUser;
-  if (!user) {
-    console.error('User not authenticated');
+  const tbody = document.getElementById('purchasesList');
+  
+  // Show loading state
+  if (tbody) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="text-align: center; padding: 20px; color: #999;">
+          <span class="spinner-border spinner-border-sm"></span> Loading purchases...
+        </td>
+      </tr>
+    `;
+  }
+  
+  // ✅ FIX: Check multiple auth sources with fallback
+  let user = window.auth?.currentUser;
+  
+  if (!user && window.currentUser) {
+    user = window.currentUser;
+    console.log('✅ Using window.currentUser fallback');
+  }
+  
+  // ✅ If still no user, wait a bit for auth to initialize
+  if (!user || !user.uid) {
+    console.log('⏳ No user found, waiting for auth...');
+    
+    // Wait up to 2 seconds for auth
+    let attempts = 0;
+    while (attempts < 4 && (!user || !user.uid)) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      user = window.auth?.currentUser || window.currentUser;
+      attempts++;
+      console.log(`⏳ Auth check attempt ${attempts}/4`);
+    }
+  }
+  
+  // ✅ Final auth check
+  if (!user || !user.uid) {
+    console.error('❌ User not authenticated after waiting');
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8" style="text-align: center; padding: 30px;">
+            <i class="bi bi-exclamation-triangle" style="font-size: 2rem; color: #ffc107;"></i>
+            <p style="margin-top: 10px; color: #666;">Please sign in to view purchases</p>
+            <button class="btn btn-primary btn-sm" onclick="location.reload()">
+              <i class="bi bi-arrow-clockwise"></i> Refresh Page
+            </button>
+          </td>
+        </tr>
+      `;
+    }
     return;
   }
   
-  const tbody = document.getElementById('purchasesList');
-  tbody.innerHTML = `
-    <tr>
-      <td colspan="8" style="text-align: center; padding: 20px; color: #999;">
-        <span class="spinner-border spinner-border-sm"></span> Loading purchases...
-      </td>
-    </tr>
-  `;
+  console.log('✅ User authenticated:', user.email || user.uid);
   
   try {
     const { collection, getDocs, query, orderBy } = window.firebaseImports;
@@ -8305,22 +8653,61 @@ async function loadRecentPurchases() {
       });
     });
     
-    console.log(`✅ Loaded ${purchases.length} purchases`);
+    console.log(`✅ Loaded ${purchases.length} purchases from Firestore`);
     
-    displayPurchases(purchases);
+    if (purchases.length === 0) {
+      if (tbody) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" style="text-align: center; padding: 40px; color: #999;">
+              <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+              <p style="margin-top: 15px; font-size: 16px;">No purchases recorded yet</p>
+              <button class="btn btn-primary btn-sm mt-2" onclick="openAddPurchaseModal()">
+                <i class="bi bi-plus-circle"></i> Add First Purchase
+              </button>
+            </td>
+          </tr>
+        `;
+      }
+    } else {
+      displayPurchases(purchases);
+    }
     
   } catch (error) {
-    console.error('❌ Error loading purchases:', error.message);
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="8" style="text-align: center; padding: 20px; color: #dc3545;">
-          <i class="bi bi-exclamation-triangle"></i> Failed to load purchases<br>
-          <small style="color: #666;">${error.message}</small>
-        </td>
-      </tr>
-    `;
+    console.error('❌ Error loading purchases:', error);
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8" style="text-align: center; padding: 30px;">
+            <i class="bi bi-exclamation-triangle" style="font-size: 2rem; color: #dc3545;"></i>
+            <p style="margin-top: 10px; color: #dc3545; font-weight: 600;">Failed to load purchases</p>
+            <small style="color: #666; display: block; margin-top: 5px;">${error.message}</small>
+            <button class="btn btn-outline-primary btn-sm mt-3" onclick="loadRecentPurchases()">
+              <i class="bi bi-arrow-clockwise"></i> Try Again
+            </button>
+          </td>
+        </tr>
+      `;
+    }
   }
 }
+
+/**
+ * Check if user is authenticated (with multiple sources)
+ */
+ function isUserAuthenticated() {
+  const user = window.auth?.currentUser || window.currentUser;
+  const authenticated = !!(user && user.uid);
+  
+  console.log('🔐 Auth check:', authenticated, user);
+  
+  return authenticated;
+}
+
+// Make it global
+window.isUserAuthenticated = isUserAuthenticated;
+
+
 
 /**
  * ==========================================
@@ -14303,7 +14690,8 @@ function previewInvoice() {
       <div class="invoice-container">
         <div class="invoice-header">
           <h1>INVOICE</h1>
-          <h3>Tile & Sanitaryware Inventory</h3>
+          <h3>${escapeHtml(window.businessName || 'My Business')}</h3>
+
         </div>
         
         <div class="invoice-details">
@@ -15025,7 +15413,8 @@ function generateInvoiceHTML(inv) {
     <div class="invoice-container">
       <div class="invoice-header">
         <h1>INVOICE</h1>
-        <h3>Tile & Sanitaryware Inventory</h3>
+        <h3>${escapeHtml(window.businessName || 'My Business')}</h3>
+
       </div>
       
       <div class="invoice-details">
@@ -15614,7 +16003,8 @@ function generateInvoiceHTMLForImage(data) {
     <div style="font-family:Arial,sans-serif;padding:20px;max-width:800px;margin:0 auto;">
       <div style="text-align:center;margin-bottom:30px;border-bottom:3px solid #0d6efd;padding-bottom:20px;">
         <h1 style="margin:0;font-size:36px;color:#0d6efd;">INVOICE</h1>
-        <h2 style="margin:10px 0;font-size:20px;color:#333;">Tile & Sanitaryware Inventory</h2>
+        <h2 style="margin:10px 0;font-size:20px;color:#333;">${escapeHtml(window.businessName || 'My Business')}</h2>
+
       </div>
       
       <div style="display:flex;justify-content:space-between;margin-bottom:30px;">
@@ -15714,7 +16104,8 @@ function shareViaEmail() {
     return;
   }
   
-  const subject = `Invoice ${invoiceData.invoiceNumber} from Tile & Sanitaryware Inventory`;
+  const subject = `Invoice ${invoiceData.invoiceNumber} from ${window.businessName || 'My Business'}`;
+
   const body = generateShareText(invoiceData);
   const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   window.location.href = mailtoUrl;
@@ -22058,7 +22449,7 @@ function shouldShowBackupReminder() {
   const dayOfMonth = today.getDate();
   
   // Only show during first 5 days of month
-  if (dayOfMonth > 5) {
+  if (dayOfMonth > 18) {
     console.log(`ℹ️ Day ${dayOfMonth} - Outside reminder window (1-5)`);
     return false;
   }
@@ -22480,7 +22871,7 @@ window.getBackupStats = function() {
     lastBackup: lastBackupDate || 'Never',
     dismissedMonth: dismissedMonth || 'None',
     shouldShowReminder: shouldShowBackupReminder(),
-    isBackupWindow: today.getDate() <= 5,
+    isBackupWindow: today.getDate() <= 18,
     backupDoneThisMonth: wasBackupDoneThisMonth()
   };
   
@@ -28632,68 +29023,99 @@ function enableStockAdjustmentMode() {
     alert('❌ Error: ' + error.message);
   }
 }
-
 /**
  * ==========================================
- * UPDATE STOCK DISPLAY ONLY
+ * UPDATE STOCK DISPLAY ONLY (FIXED VERSION)
  * ==========================================
- * Updates the stock badge HTML without re-rendering entire product list
- * ✅ Works with stockBadgeHtml() function
+ * Updates the stock badge HTML without re-rendering entire product
+ * ✅ Safely handles both desktop and mobile views
+ * ✅ Preserves card structure
  */
  function updateStockDisplayOnly(productId, newStock, element, minStock) {
   console.log('🔄 Updating stock display for product:', productId, 'New stock:', newStock);
   
-  // ✅ Find the stock cell/div using data-field attribute
+  // ✅ 1. Try finding by data-field attribute first
   const stockElement = element.querySelector('[data-field="stock"]');
   
   if (stockElement) {
-    console.log('✅ Found stock element, updating with badge HTML...');
+    console.log('✅ Found stock element via data-field, updating...');
     
-    // ✅ Generate new stock badge HTML
     const newStockBadgeHtml = stockBadgeHtml(newStock, minStock);
-    
-    // ✅ Update the innerHTML
     stockElement.innerHTML = newStockBadgeHtml;
     
     console.log('✅ Stock badge updated successfully');
-  } else {
-    console.warn('⚠️ Stock element not found, trying fallback selectors...');
+    return; // Exit early
+  }
+  
+  // ✅ 2. Try desktop table row (6th td)
+  if (element.tagName === 'TR') {
+    console.log('📊 Detected desktop table row, using column selector...');
+    const cells = element.querySelectorAll('td');
     
-    // ✅ FALLBACK: Try finding by position (6th td in desktop, or any element with stock text)
-    if (element.tagName === 'TR') {
-      // Desktop table row
-      const cells = element.querySelectorAll('td');
-      if (cells.length >= 6) {
-        const stockCell = cells[5]; // 6th column (0-indexed)
-        const newStockBadgeHtml = stockBadgeHtml(newStock, minStock);
-        stockCell.innerHTML = newStockBadgeHtml;
-        console.log('✅ Stock updated via fallback (desktop)');
-      }
-    } else {
-      // Mobile card
-      const stockDivs = element.querySelectorAll('div');
-      stockDivs.forEach(div => {
-        // Look for div that contains stock badge classes or numeric stock
-        if (div.innerHTML.includes('IN STOCK') || 
-            div.innerHTML.includes('OUT OF STOCK') || 
-            div.innerHTML.includes('GOOD') ||
-            div.innerHTML.includes('MEDIUM') ||
-            div.innerHTML.includes('LOW') ||
-            div.innerHTML.includes('URGENT')) {
-          const newStockBadgeHtml = stockBadgeHtml(newStock, minStock);
-          div.innerHTML = newStockBadgeHtml;
-          console.log('✅ Stock updated via fallback (mobile)');
-        }
-      });
+    if (cells.length >= 6) {
+      const stockCell = cells[5]; // 6th column (0-indexed)
+      const newStockBadgeHtml = stockBadgeHtml(newStock, minStock);
+      stockCell.innerHTML = newStockBadgeHtml;
+      console.log('✅ Stock updated (desktop)');
+      return;
     }
   }
   
-  // ✅ Keep highlighting intact
-  element.classList.add('product-stock-adjustable-eligible');
-  element.style.opacity = '';
-  element.style.filter = '';
-  element.style.pointerEvents = '';
+  // ✅ 3. MOBILE: Find the specific stock badge span (not the wrapper div)
+  console.log('📱 Detected mobile card, searching for stock badge...');
+  
+  // Look for the actual badge element (span or div with badge classes)
+  const stockBadge = element.querySelector('.badge.bg-success, .badge.bg-warning, .badge.bg-danger, .badge.bg-secondary, .badge.text-bg-success, .badge.text-bg-warning, .badge.text-bg-danger, .badge.text-bg-secondary');
+  
+  if (stockBadge) {
+    console.log('✅ Found stock badge element:', stockBadge);
+    
+    // Get the parent container (usually a div with d-flex or similar)
+    const stockContainer = stockBadge.closest('.d-flex, div[style*="display: flex"]') || stockBadge.parentElement;
+    
+    if (stockContainer) {
+      // Replace just the stock container's content
+      const newStockBadgeHtml = stockBadgeHtml(newStock, minStock);
+      stockContainer.innerHTML = newStockBadgeHtml;
+      console.log('✅ Stock badge updated (mobile via badge class)');
+      return;
+    }
+  }
+  
+  // ✅ 4. LAST RESORT: Find by text content (most cautious approach)
+  console.log('⚠️ Using last resort selector...');
+  
+  const allDivs = element.querySelectorAll('div');
+  for (const div of allDivs) {
+    const text = div.textContent || '';
+    
+    // Check if this div contains stock info text
+    if (text.includes('IN STOCK') || 
+        text.includes('OUT OF STOCK') || 
+        text.includes('GOOD') ||
+        text.includes('MEDIUM') ||
+        text.includes('LOW') ||
+        text.includes('URGENT')) {
+      
+      // ✅ CRITICAL: Only update if this div has a badge child
+      const hasBadge = div.querySelector('.badge');
+      
+      if (hasBadge) {
+        const newStockBadgeHtml = stockBadgeHtml(newStock, minStock);
+        div.innerHTML = newStockBadgeHtml;
+        console.log('✅ Stock updated via text fallback');
+        return;
+      }
+    }
+  }
+  
+  console.error('❌ Could not find stock element for product:', productId);
+  console.log('Element structure:', element.innerHTML.substring(0, 200));
 }
+
+// Make function global
+window.updateStockDisplayOnly = updateStockDisplayOnly;
+
 
 
 
@@ -29610,7 +30032,7 @@ document.addEventListener('DOMContentLoaded', function() {
 window.translations = {
   en: {
     // Navbar
-    appTitle: "Tile & Sanitaryware Inventory",
+    appTitle: "My Business",
     generateInvoice: "Generate Invoice",
     viewInvoices: "View Invoices",
     signOut: "Sign Out",
@@ -29700,7 +30122,7 @@ window.translations = {
   
   hi: {
     // Navbar
-    appTitle: "टाइल और सेनेटरीवेयर इन्वेंटरी",
+    appTitle: "मेरा व्यवसाय",
     generateInvoice: "बिल बनाएं",
     viewInvoices: "बिल देखें",
     signOut: "साइन आउट",
@@ -33860,6 +34282,162 @@ window.applyAddProductModalSettings = applyAddProductModalSettings;
 console.log('✅ Add Product Modal Settings functions loaded');
 
 
+/**
+ * ==========================================
+ * REFRESH PRODUCTS (FIXED - Compatible with existing Firebase)
+ * ==========================================
+ * Reloads products from Firestore and re-renders the display
+ */
+ /**
+ * ==========================================
+ * REFRESH PRODUCTS (FIXED - Uses your Firebase pattern)
+ * ==========================================
+ */
+async function refreshProducts() {
+  console.log('🔄 Refreshing products...');
+  
+  // Get refresh button and icon
+  const refreshBtn = document.getElementById('refreshProductsBtn');
+  const refreshIcon = document.getElementById('refreshIcon');
+  
+  // Disable button and start spinning
+  if (refreshBtn) {
+    refreshBtn.disabled = true;
+    refreshBtn.style.opacity = '0.6';
+  }
+  if (refreshIcon) {
+    refreshIcon.style.animation = 'spin 1s linear infinite';
+  }
+  
+  try {
+    // Show loading state
+    const productsTableBody = document.getElementById('productsTableBody');
+    const mobileProductsList = document.getElementById('mobileProductsList');
+    
+    if (productsTableBody) {
+      productsTableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;"><i class="bi bi-hourglass-split"></i> Loading products...</td></tr>';
+    }
+    
+    if (mobileProductsList) {
+      mobileProductsList.innerHTML = '<div style="text-align: center; padding: 20px;"><i class="bi bi-hourglass-split"></i> Loading products...</div>';
+    }
+    
+    // Get current user
+    const user = window.auth.currentUser || window.currentUser;
+    
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
+    console.log('📦 Loading products from Firestore...');
+    
+    // ✅ Use your existing Firebase pattern
+    const { collection, getDocs } = window.firebaseImports;
+    const userId = user.uid;
+    
+    // Fetch products from Firestore
+    const productsRef = collection(window.db, 'tenants', userId, 'products');
+    const productsSnap = await getDocs(productsRef);
+    
+    // Clear and rebuild products array
+    const allProducts = [];
+    productsSnap.forEach((doc) => {
+      allProducts.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    console.log(`📦 Fetched ${allProducts.length} products from Firestore`);
+    
+    // ✅ Remove duplicates - keep latest by updatedAt
+    const uniqueProductsMap = new Map();
+    
+    allProducts.forEach(product => {
+      const existingProduct = uniqueProductsMap.get(product.id);
+      
+      if (!existingProduct) {
+        uniqueProductsMap.set(product.id, product);
+      } else {
+        const existingTime = existingProduct.updatedAt ? new Date(existingProduct.updatedAt).getTime() : 0;
+        const newTime = product.updatedAt ? new Date(product.updatedAt).getTime() : 0;
+        
+        if (newTime > existingTime) {
+          uniqueProductsMap.set(product.id, product);
+        }
+      }
+    });
+    
+    // Convert map back to array
+    window.cachedProducts = Array.from(uniqueProductsMap.values());
+    
+    // Also update allProducts if you use that variable
+    if (window.allProducts !== undefined) {
+      window.allProducts = window.cachedProducts;
+    }
+    
+    console.log(`✅ Loaded ${window.cachedProducts.length} unique products`);
+    
+    // Sort products by name
+    window.cachedProducts.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    
+    // Save to cache
+    try {
+      localStorage.setItem('inventory_products_cache', JSON.stringify(window.cachedProducts));
+      console.log('💾 Products saved to cache');
+    } catch (cacheError) {
+      console.warn('⚠️ Failed to save products cache:', cacheError);
+    }
+    
+    // Re-render products
+    if (typeof renderProducts === 'function') {
+      renderProducts();
+    } else if (typeof displayAllProducts === 'function') {
+      displayAllProducts();
+    } else {
+      console.error('❌ No render function found');
+    }
+    
+    // Re-attach click handlers
+    setTimeout(() => {
+      if (typeof reattachProductClickHandlers === 'function') {
+        reattachProductClickHandlers();
+      }
+      
+      // Add data-field attributes to fix stock updates
+      if (typeof addStockDataFields === 'function') {
+        addStockDataFields();
+      }
+    }, 150);
+    
+    console.log('✅ Products refreshed successfully');
+    
+    // Show success notification
+    if (typeof showToast === 'function') {
+      showToast('Products refreshed successfully', 'success');
+    }
+    
+  } catch (error) {
+    console.error('❌ Error refreshing products:', error);
+    alert('Failed to refresh products: ' + error.message);
+    
+  } finally {
+    // Re-enable button and stop spinning
+    if (refreshBtn) {
+      refreshBtn.disabled = false;
+      refreshBtn.style.opacity = '1';
+    }
+    if (refreshIcon) {
+      refreshIcon.style.animation = '';
+    }
+  }
+}
+
+// Make function global
+window.refreshProducts = refreshProducts;
+
+
+
   </script>
 <!-- ✅ RESET DATA MODAL - Password Verification ONLY -->
 <div class="modal fade" id="resetDataModal" tabindex="-1" aria-labelledby="resetDataModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -35020,12 +35598,6 @@ onmouseout="this.style.background='#dc3545'; this.style.transform='scale(1)'; th
       </div>
     </div>
     
-
-
-
-
-
-
 
   
 </body>
