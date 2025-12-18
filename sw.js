@@ -1,8 +1,8 @@
 // Service Worker - Enables offline functionality
 const CACHE_NAME = 'inventory-v1';
 const urlsToCache = [
-  '/PurchaseOrderFixing/',
-  '/PurchaseOrderFixing/index.html'
+  '/Final/',
+  '/Final/index.html'
 ];
 
 // Install service worker
@@ -20,3 +20,4 @@ self.addEventListener('fetch', (event) => {
       .then((response) => response || fetch(event.request))
   );
 });
+
