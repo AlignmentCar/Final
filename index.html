@@ -54,7 +54,7 @@
   
   // Your Firebase configuration
   const firebaseConfig = {
-     apiKey: "AIzaSyAZ5gxZQIMVthFPlPh7pumEVZujBCqnWcY",
+    apiKey: "AIzaSyAZ5gxZQIMVthFPlPh7pumEVZujBCqnWcY",
   authDomain: "tileinventoryapp.firebaseapp.com",
   projectId: "tileinventoryapp",
   storageBucket: "tileinventoryapp.firebasestorage.app",
@@ -5989,11 +5989,9 @@ function isFeatureEnabled(featureName) {
 
 
 
-
-  
 /**
  * ==========================================
- * SYNC FROM FIRESTORE - KEEP LATEST VERSION
+ * SYNC FROM FIRESTORE - SUPPORT VARIANTS
  * ==========================================
  */
  async function syncFromFirestore() {
@@ -6028,7 +6026,7 @@ function isFeatureEnabled(featureName) {
     
     console.log(`📦 Fetched ${allProducts.length} products from Firestore`);
     
-    // ✅ STEP 2: Remove duplicates - KEEP LATEST BY updatedAt
+    // ✅ STEP 2: Remove duplicates BY ID ONLY (not by name!)
     const uniqueProductsMap = new Map();
     
     allProducts.forEach(product => {
@@ -6037,6 +6035,7 @@ function isFeatureEnabled(featureName) {
       if (!existingProduct) {
         uniqueProductsMap.set(product.id, product);
       } else {
+        // Same ID? Keep the one with latest updatedAt
         const existingTime = existingProduct.updatedAt ? new Date(existingProduct.updatedAt).getTime() : 0;
         const newTime = product.updatedAt ? new Date(product.updatedAt).getTime() : 0;
         
@@ -6050,58 +6049,38 @@ function isFeatureEnabled(featureName) {
     // ✅ STEP 3: Convert map back to array
     cachedProducts = Array.from(uniqueProductsMap.values());
     
-    console.log(`✅ Loaded ${cachedProducts.length} unique products (kept latest versions)`);
+    console.log(`✅ Loaded ${cachedProducts.length} unique products (variants supported)`);
     
-    // ✅ STEP 4: Check for duplicate names with different IDs
-    const nameMap = {};
+    // ✅ REMOVED STEP 4-6: No longer removing duplicate names!
+    // Products with same name but different IDs are VARIANTS and should be kept
+    
+    // ✅ Optional: Log variant groups for debugging
+    const nameGroups = {};
     cachedProducts.forEach(product => {
       const name = product.name?.toLowerCase().trim();
       if (name) {
-        if (!nameMap[name]) {
-          nameMap[name] = [];
+        if (!nameGroups[name]) {
+          nameGroups[name] = [];
         }
-        nameMap[name].push({
+        nameGroups[name].push({
           id: product.id,
-          name: product.name,
-          stock: product.stock,
-          updatedAt: product.updatedAt
+          brand: product.brand,
+          size: product.size
         });
       }
     });
     
-    // ✅ STEP 5: For duplicate names, keep only the latest one
-    const idsToRemove = [];
-    
-    Object.keys(nameMap).forEach(name => {
-      if (nameMap[name].length > 1) {
-        console.warn(`⚠️ Found ${nameMap[name].length} products with name "${name}"`);
-        
-        const sorted = nameMap[name].sort((a, b) => {
-          const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-          const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-          return timeB - timeA;
-        });
-        
-        const toKeep = sorted[0];
-        console.log(`✅ Keeping latest:`, toKeep.id, '| Updated:', toKeep.updatedAt);
-        
-        for (let i = 1; i < sorted.length; i++) {
-          console.log(`🗑️ Marking for removal:`, sorted[i].id, '| Updated:', sorted[i].updatedAt);
-          idsToRemove.push(sorted[i].id);
-        }
+    // Log variant groups
+    Object.keys(nameGroups).forEach(name => {
+      if (nameGroups[name].length > 1) {
+        console.log(`📦 Product "${name}" has ${nameGroups[name].length} variants:`, nameGroups[name]);
       }
     });
-    
-    // ✅ STEP 6: Remove old duplicates from cache
-    if (idsToRemove.length > 0) {
-      console.log(`🗑️ Removing ${idsToRemove.length} old duplicate products from cache`);
-      cachedProducts = cachedProducts.filter(p => !idsToRemove.includes(p.id));
-    }
     
     // Sort products by name
     cachedProducts.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     
-    console.log(`✅ Final: ${cachedProducts.length} unique products loaded`);
+    console.log(`✅ Final: ${cachedProducts.length} products loaded (including all variants)`);
     
     // ✅ Save to cache
     try {
@@ -6196,49 +6175,38 @@ function isFeatureEnabled(featureName) {
     } catch (e) {
       console.error('❌ Failed to load recent sales:', e.message);
     }
-// ✅ Load all preferences (Translation Exclusions + Custom Text Names + Feature Flags)
-try {
-  // Initialize data structures
-  if (!window.translationExclusions) window.translationExclusions = new Set();
-  if (!window.customTextNames) window.customTextNames = {};
-  if (!window.featureFlags) window.featureFlags = getDefaultFeatureFlags();
 
-  // 1. Load Translation Exclusions
-  await loadTranslationExclusions();
+    // ✅ Load all preferences
+    try {
+      if (!window.translationExclusions) window.translationExclusions = new Set();
+      if (!window.customTextNames) window.customTextNames = {};
+      if (!window.featureFlags) window.featureFlags = getDefaultFeatureFlags();
 
-  // 2. Load Custom Text Names
-  await loadCustomTextNamesFromFirestore();
+      await loadTranslationExclusions();
+      await loadCustomTextNamesFromFirestore();
+      await loadFeatureFlags();
 
-  // 3. Load Feature Flags (NEW)
-  await loadFeatureFlags();
+      if (window.isTranslationExclusionMode) {
+        document.querySelectorAll('.translation-exclusion-checkbox').forEach(cb => {
+          const key = cb.getAttribute('data-i18n-key');
+          cb.checked = key ? window.translationExclusions.has(key) : false;
+        });
+      }
 
-  // 4. Re-sync checkbox UI if exclusion mode is open
-  if (window.isTranslationExclusionMode) {
-    document.querySelectorAll('.translation-exclusion-checkbox').forEach(cb => {
-      const key = cb.getAttribute('data-i18n-key');
-      cb.checked = key ? window.translationExclusions.has(key) : false;
-    });
-  }
-
-  // 5. Apply translations
-  translatePage();
-  
-  // 6. Apply feature flag visibility (NEW)
-  applyFeatureFlagVisibility();
-  // Remove loading state
-document.body.classList.remove('loading');
-document.body.classList.add('loaded');
+      translatePage();
+      applyFeatureFlagVisibility();
       
-} catch (e) {
-  console.warn('⚠️ Failed to load preferences:', e);
-  // Ensure data structures exist even on error
-  if (!window.translationExclusions) window.translationExclusions = new Set();
-  if (!window.customTextNames) window.customTextNames = {};
-  if (!window.featureFlags) window.featureFlags = getDefaultFeatureFlags();
-  translatePage();
-  applyFeatureFlagVisibility(); // ADD THIS LINE
-}
-
+      document.body.classList.remove('loading');
+      document.body.classList.add('loaded');
+          
+    } catch (e) {
+      console.warn('⚠️ Failed to load preferences:', e);
+      if (!window.translationExclusions) window.translationExclusions = new Set();
+      if (!window.customTextNames) window.customTextNames = {};
+      if (!window.featureFlags) window.featureFlags = getDefaultFeatureFlags();
+      translatePage();
+      applyFeatureFlagVisibility();
+    }
     
     showSyncIndicator('Synced!', 900);
     
@@ -6250,6 +6218,7 @@ document.body.classList.add('loaded');
       cachedProducts = JSON.parse(localStorage.getItem('inventory_products_cache') || '[]');
       cachedSales = JSON.parse(localStorage.getItem('inventory_sales_cache') || '[]');
       
+      // Only remove duplicate IDs, not duplicate names
       const uniqueMap = new Map();
       cachedProducts.forEach(p => {
         if (!uniqueMap.has(p.id)) {
@@ -6265,6 +6234,7 @@ document.body.classList.add('loaded');
     }
   }
 }
+
 
 
     
@@ -6844,7 +6814,7 @@ function categoryIconColor(cat){
   }
 /**
  * ==========================================
- * SAVE PRODUCT TO FIRESTORE - WITH TRANSLATION
+ * SAVE PRODUCT TO FIRESTORE - ALLOW VARIANTS
  * ==========================================
  */
  async function saveProductToSheet(product, isUpdate = false) {
@@ -6862,46 +6832,62 @@ function categoryIconColor(cat){
       return { success: false, error: translations.notAuthenticated || 'Not authenticated' };
     }
     
-    const { doc, setDoc, collection, getDocs, query, where } = window.firebaseImports;
+    const { doc, setDoc, collection, getDocs } = window.firebaseImports;
     const userId = user.uid;
     
-    // ✅ CHECK FOR DUPLICATES BEFORE SAVING
+    // ✅ CHECK FOR TRUE DUPLICATES (same name + brand + size) BEFORE SAVING
     if (isUpdate) {
-      console.log('🔍 Checking for duplicate products...');
+      console.log('🔍 Checking for duplicate products (name + brand + size)...');
       
       const productsRef = collection(window.db, 'tenants', userId, 'products');
       const snapshot = await getDocs(productsRef);
       
       let duplicateFound = false;
+      let duplicateId = null;
+      
       snapshot.forEach(doc => {
         const data = doc.data();
-        // Check if another document has same name but different ID
-        if (data.name === product.name && doc.id !== product.id) {
-          console.warn('⚠️ Found duplicate product with different ID:', doc.id);
+        
+        // ✅ Only flag as duplicate if name, brand, AND size all match
+        // Different brand or size = different variant (allowed!)
+        const sameNameBrandSize = 
+          data.name?.toLowerCase().trim() === product.name?.toLowerCase().trim() &&
+          (data.brand || '').toLowerCase().trim() === (product.brand || '').toLowerCase().trim() &&
+          (data.size || '').toLowerCase().trim() === (product.size || '').toLowerCase().trim();
+        
+        // Check if it's a different document with same attributes
+        if (sameNameBrandSize && doc.id !== product.id) {
+          console.warn('⚠️ Found TRUE duplicate (same name+brand+size) with ID:', doc.id);
           duplicateFound = true;
+          duplicateId = doc.id;
         }
       });
       
       if (duplicateFound) {
-        console.error('❌ Duplicate product exists - aborting save');
-        return { success: false, error: translations.duplicateProductFound || 'Duplicate product found' };
+        console.error('❌ Duplicate product exists (same name, brand, and size) - aborting save');
+        return { 
+          success: false, 
+          error: `${translations.duplicateProductFound || 'Duplicate product found'} (ID: ${duplicateId})` 
+        };
       }
+      
+      console.log('✅ No duplicate found - different brand/size combination allowed');
     }
     
     // ✅ Create product reference with the product ID
     const productRef = doc(window.db, 'tenants', userId, 'products', product.id);
     
-    // ✅ Prepare clean product data with proper defaults for optional fields
+    // ✅ Prepare clean product data
     const productData = {
       id: product.id,
       name: product.name,
-      category: product.category || '', // ✅ Optional - empty string default
+      category: product.category || '',
       brand: product.brand || '',
       size: product.size || '',
-      unitType: product.unitType || 'Piece', // ✅ Optional - default to 'Piece'
+      unitType: product.unitType || 'Piece',
       piecesPerBox: product.piecesPerBox || 1,
       sftPerBox: product.sftPerBox || 0,
-      price: product.price || 0, // ✅ Optional - default to 0
+      price: product.price || 0,
       stock: product.stock,
       minStock: product.minStock || 5,
       imageUrl: product.imageUrl || '',
@@ -6916,9 +6902,9 @@ function categoryIconColor(cat){
     };
     
     console.log('📤 Saving to Firestore:', productData);
-    console.log('   - Category:', productData.category || '(empty)');
-    console.log('   - Unit Type:', productData.unitType);
-    console.log('   - Price:', productData.price);
+    console.log('   - Name:', productData.name);
+    console.log('   - Brand:', productData.brand || '(empty)');
+    console.log('   - Size:', productData.size || '(empty)');
     console.log('   - Stock:', productData.stock);
     
     // ✅ Use setDoc to create or update
@@ -6926,7 +6912,6 @@ function categoryIconColor(cat){
     
     console.log('✅ Product saved to Firestore successfully');
     console.log('   - Document ID:', product.id);
-    console.log('   - Updated stock:', productData.stock);
     
     return { 
       success: true, 
@@ -6941,7 +6926,6 @@ function categoryIconColor(cat){
     };
   }
 }
-
 
 
 
@@ -7559,16 +7543,16 @@ async function saveProduct() {
   
   // ✅ GET FORM VALUES
   const name = document.getElementById('productName').value.trim();
-  const category = document.getElementById('category').value || ''; // ✅ Optional
+  const category = document.getElementById('category').value || '';
   const brand = document.getElementById('brand').value.trim() || '';
   const size = document.getElementById('size').value.trim() || '';
-  const unitType = document.getElementById('unitType').value || 'Piece'; // ✅ Optional with default
+  const unitType = document.getElementById('unitType').value || 'Piece';
   const piecesPerBox = parseInt(document.getElementById('piecesPerBox').value) || 1;
   const sftPerBox = parseFloat(document.getElementById('sftPerBox').value) || 0;
   const priceInput = document.getElementById('price').value.trim();
-  const price = priceInput ? parseFloat(priceInput) : 0; // ✅ Optional with default 0
+  const price = priceInput ? parseFloat(priceInput) : 0;
   
-  // ✅ GET STOCK DATA (validates stock status OR quantity)
+  // ✅ GET STOCK DATA
   const stockData = getStockData();
   if (!stockData) {
     alert(translations.stockOrStatusRequired || '⚠️ Please provide either stock quantity or select a stock status!');
@@ -7577,9 +7561,9 @@ async function saveProduct() {
   
   const minStock = parseInt(document.getElementById('minStock').value) || 5;
   
-  console.log('🔍 Form data:', { name, category, brand, unitType, price, stockData, editingProductId });
+  console.log('🔍 Form data:', { name, brand, size, category, unitType, price, stockData, editingProductId });
   
-  // ✅ VALIDATION: Only product name is mandatory now
+  // ✅ VALIDATION: Only product name is mandatory
   if (!name) {
     console.error('❌ Validation failed: Product name missing');
     alert(translations.productNameRequired || '⚠️ Product name is required!');
@@ -7592,11 +7576,9 @@ async function saveProduct() {
   let productId;
   
   if (isEditing) {
-    // ✅ EDITING: Use existing ID
     productId = editingProductId;
     console.log('✏️ Editing existing product:', productId);
   } else {
-    // ✅ NEW: Generate new ID
     productId = Date.now().toString(36) + Math.random().toString(36).substr(2);
     console.log('➕ Creating new product:', productId);
   }
@@ -7623,17 +7605,18 @@ async function saveProduct() {
   };
   
   console.log('📦 Product object:', product);
+  console.log('   - Name:', product.name);
+  console.log('   - Brand:', product.brand || '(none)');
+  console.log('   - Size:', product.size || '(none)');
   
   // ✅ UPDATE LOCAL CACHE FIRST
   const idx = cachedProducts.findIndex(p => p.id === productId);
   const previous = idx !== -1 ? Object.assign({}, cachedProducts[idx]) : null;
   
   if (idx !== -1) {
-    // ✅ EDITING: Update existing product
     console.log('🔄 Updating existing product in cache at index:', idx);
     cachedProducts[idx] = product;
   } else {
-    // ✅ NEW: Add new product
     console.log('➕ Adding new product to cache');
     cachedProducts.push(product);
   }
@@ -7645,7 +7628,7 @@ async function saveProduct() {
   // ✅ RENDER IMMEDIATELY WITH LOCAL DATA
   renderProducts();
   
-  // ✅ Refresh brand cache (if function exists)
+  // ✅ Refresh brand cache
   if (typeof refreshBrandAutocompleteCache === 'function') {
     refreshBrandAutocompleteCache();
   }
@@ -7679,18 +7662,18 @@ async function saveProduct() {
     if (resp && resp.success) {
       console.log('✅ Product saved successfully to Firestore');
       console.log('   - Product ID:', productId);
-      console.log('   - Stock value:', product.stock);
+      console.log('   - Name:', product.name);
+      console.log('   - Brand:', product.brand || '(none)');
+      console.log('   - Size:', product.size || '(none)');
       
-      // ✅ CRITICAL: Force update cache with final saved data
+      // ✅ Force update cache with final saved data
       const cacheIdx = cachedProducts.findIndex(p => p.id === productId);
       if (cacheIdx !== -1) {
-        // Create a clean copy with all data
         cachedProducts[cacheIdx] = {
           ...product,
-          id: productId // Ensure ID is preserved
+          id: productId
         };
         console.log('✅ Updated product in cache at index:', cacheIdx);
-        console.log('   - Cached stock:', cachedProducts[cacheIdx].stock);
       }
       
       // ✅ SAVE TO LOCALSTORAGE IMMEDIATELY
@@ -7701,7 +7684,7 @@ async function saveProduct() {
         console.warn('⚠️ Failed to save cache:', cacheError);
       }
       
-      // ✅ Force UI update with cached data
+      // ✅ Force UI update
       renderProducts();
       
       showSyncIndicator(translations.saved || 'Saved', 900);
@@ -7728,20 +7711,17 @@ async function saveProduct() {
         console.warn('⚠️ Cache revert failed:', error);
       }
       
-      alert(translations.saveFailedReverted || 'Save failed - reverted locally.');
+      alert(resp.error || translations.saveFailedReverted || 'Save failed - reverted locally.');
       showSyncIndicator(translations.saveFailed || 'Save failed', 2000);
     }
   } catch (err) {
     console.error('❌ Error in saveProduct:', err);
-    console.error('   - Error message:', err.message);
-    console.error('   - Error stack:', err.stack);
     
     // ✅ REVERT TO PREVIOUS STATE
     if (previous && idx !== -1) {
       cachedProducts[idx] = previous;
       console.log('↩️ Reverted to previous product state');
     } else if (!isEditing) {
-      // Only remove if it was a new product
       const removeIdx = cachedProducts.findIndex(p => p.id === productId);
       if (removeIdx !== -1) {
         cachedProducts.splice(removeIdx, 1);
@@ -16381,7 +16361,7 @@ window.navigateToAllProducts = navigateToAllProducts;
 
 let currentGroupName = null;
 let attributeRowCounter = 0;
-
+let excludedVariants = new Set();
 
 /**
  * ==========================================
@@ -16948,18 +16928,12 @@ function openCreateGroupModal() {
 
 
 
-
-
-// Close Create Group Modal - FIXED
 function closeCreateGroupModal() {
   console.log('🔒 Closing Create Group Modal');
   
   const modal = document.getElementById('createGroupModal');
   if (modal) {
-    // Remove active class
     modal.classList.remove('active');
-    
-    // Hide with inline styles
     modal.style.display = 'none';
   }
   
@@ -16981,6 +16955,9 @@ function closeCreateGroupModal() {
   // Reset attribute counter
   attributeRowCounter = 0;
   
+  // ✅ Reset excluded variants
+  excludedVariants.clear();
+  
   // Reset button
   const submitBtn = document.getElementById('btnSaveGroup');
   if (submitBtn) {
@@ -16990,6 +16967,7 @@ function closeCreateGroupModal() {
   
   console.log('✅ Modal closed and reset');
 }
+
 
 
     
@@ -17173,62 +17151,285 @@ function generateVariantCombinations(attributes) {
   });
 }
 
+/**
+ * ==========================================
+ * GENERATE VARIANT NAME (EXCLUDE BRAND & SIZE)
+ * ==========================================
+ * For SAVED product name - excludes Brand and Size
+ */
+ function generateVariantName(groupName, attributes) {
+  if (!attributes || Object.keys(attributes).length === 0) {
+    return groupName;
+  }
+  
+  // List of attributes to EXCLUDE from product name (case-insensitive)
+  const excludedAttributes = ['brand', 'size', 'manufacturer'];
+  
+  // Filter attributes: Keep only non-Brand/Size attributes
+  const displayAttributes = Object.entries(attributes)
+    .filter(([key, value]) => {
+      const lowerKey = key.toLowerCase();
+      return !excludedAttributes.includes(lowerKey) && value;
+    })
+    .map(([key, value]) => value);
+  
+  // If no attributes to display, return just the group name
+  if (displayAttributes.length === 0) {
+    return groupName;
+  }
+  
+  // Return group name with remaining attributes
+  return `${groupName}-${displayAttributes.join('-')}`;
+}
 
-// Generate Variant Name
-function generateVariantName(groupName, attributes) {
-  const values = Object.values(attributes);
-  if (values.length === 0) return groupName;
+
+/**
+ * ==========================================
+ * GENERATE UNIQUE VARIANT KEY (INCLUDE ALL ATTRIBUTES)
+ * ==========================================
+ * For tracking exclusions - includes Brand, Size, and ALL attributes
+ * This ensures each variant has a unique identifier
+ */
+function generateVariantKey(groupName, attributes) {
+  if (!attributes || Object.keys(attributes).length === 0) {
+    return groupName;
+  }
+  
+  // Create unique key from ALL attribute values in consistent order
+  const sortedEntries = Object.entries(attributes)
+    .sort(([keyA], [keyB]) => keyA.localeCompare(keyB)); // Sort for consistency
+  
+  const attrString = sortedEntries
+    .map(([key, value]) => `${key}:${value}`)
+    .join('|');
+  
+  return `${groupName}|${attrString}`;
+}
+
+// Examples:
+// generateVariantName("Jacket", {Brand: "Bisleri", Size: "Small"}) 
+//   → "Jacket" (excludes brand/size)
+//
+// generateVariantKey("Jacket", {Brand: "Bisleri", Size: "Small"})
+//   → "Jacket|Brand:Bisleri|Size:Small" (includes everything for uniqueness)
+
+
+/**
+ * ==========================================
+ * GENERATE VARIANT PREVIEW NAME (INCLUDE ALL)
+ * ==========================================
+ * For PREVIEW display - includes Brand, Size, and all attributes
+ */
+function generateVariantPreviewName(groupName, attributes) {
+  if (!attributes || Object.keys(attributes).length === 0) {
+    return groupName;
+  }
+  
+  // Include ALL attribute values in preview
+  const values = Object.values(attributes).filter(val => val);
+  
+  if (values.length === 0) {
+    return groupName;
+  }
+  
   return `${groupName}-${values.join('-')}`;
 }
 
 
-// Update Variant Preview (Real-time)
+/**
+ * ==========================================
+ * UPDATE VARIANT PREVIEW WITH DELETE ICONS
+ * ==========================================
+ */
 function updateVariantPreview() {
-  const groupName = document.getElementById('groupName').value.trim() || 'Product';
+  const groupName = document.getElementById('groupName')?.value.trim() || 'Product';
   const attributes = parseAttributesFromForm();
-  const variants = generateVariantCombinations(attributes);
+  const allVariants = generateVariantCombinations(attributes);
+  
+  // ✅ FIX: Filter using UNIQUE KEY (not product name)
+  const variants = allVariants.filter(attr => {
+    const variantKey = generateVariantKey(groupName, attr);
+    return !excludedVariants.has(variantKey);
+  });
   
   // Update count
-  document.getElementById('variantCount').textContent = variants.length;
+  const variantCountEl = document.getElementById('variantCount');
+  if (variantCountEl) {
+    variantCountEl.textContent = variants.length;
+  }
   
   // Update preview list
   const container = document.getElementById('variantPreviewContainer');
   if (!container) return;
   
-  if (variants.length === 0) {
+  if (variants.length === 0 && allVariants.length === 0) {
     container.innerHTML = `
-      <div class="variant-preview-item">
+      <div style="padding:10px 12px;background:#e3f2fd;border-radius:8px;color:#1976d2;">
         Add attributes to see preview...
       </div>
     `;
     return;
   }
   
-  // Show first 10 variants
-  const previewLimit = 10;
+  if (variants.length === 0 && allVariants.length > 0) {
+    container.innerHTML = `
+      <div style="padding:10px 12px;background:#fff3cd;border-radius:8px;color:#856404;">
+        All variants deleted! Add attributes or restore deleted items.
+        <button onclick="clearExcludedVariants()" 
+                style="margin-top:8px;padding:6px 12px;background:#007bff;color:#fff;border:none;border-radius:6px;font-size:13px;">
+          🔄 Restore All
+        </button>
+      </div>
+    `;
+    return;
+  }
+  
+  // Show first 20 variants
+  const previewLimit = 20;
   let html = '';
   
   variants.slice(0, previewLimit).forEach(attr => {
-    const variantName = generateVariantName(groupName, attr);
+    // ✅ Use PREVIEW name (includes Brand & Size for display)
+    const previewName = generateVariantPreviewName(groupName, attr);
+    
+    // ✅ Use UNIQUE KEY for exclusion tracking
+    const variantKey = generateVariantKey(groupName, attr);
+    
+    // ✅ Use SAVED name for display info
+    const savedName = generateVariantName(groupName, attr);
+    
+    // Attribute display
+    const attrDisplay = Object.entries(attr)
+      .map(([key, val]) => `${key}: ${val}`)
+      .join(' • ');
+    
     html += `
-      <div class="variant-preview-item">
-        <span class="icon">✓</span>
-        ${escapeHtml(variantName)}
+      <div class="variant-preview-item" 
+           data-variant-key="${escapeHtml(variantKey)}"
+           style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;margin-bottom:6px;background:#f0f7ff;border:1px solid #d1e7ff;border-radius:6px;transition:all 0.2s;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;color:#0066cc;font-size:14px;margin-bottom:2px;">
+            ${escapeHtml(previewName)}
+          </div>
+          <div style="font-size:11px;color:#28a745;background:#d4edda;padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:4px;">
+            Saved as: ${escapeHtml(savedName)}
+          </div>
+          <div style="font-size:12px;color:#666;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            ${attrDisplay}
+          </div>
+        </div>
+        <button type="button" 
+                onclick="excludeVariant('${escapeHtml(variantKey)}')"
+                style="flex-shrink:0;margin-left:8px;padding:6px 10px;background:#dc3545;color:#fff;border:none;border-radius:6px;font-size:16px;cursor:pointer;transition:all 0.2s;"
+                onmouseover="this.style.background='#c82333'"
+                onmouseout="this.style.background='#dc3545'"
+                title="Delete this variant">
+          🗑️
+        </button>
       </div>
     `;
   });
   
-  // Show "and X more" if needed
+  // Show "and X more"
   if (variants.length > previewLimit) {
     html += `
-      <div class="variant-preview-more">
+      <div style="padding:8px 12px;text-align:center;color:#666;font-size:13px;background:#f8f9fa;border-radius:6px;margin-top:4px;">
         ... and ${variants.length - previewLimit} more
+      </div>
+    `;
+  }
+  
+  // Show excluded count
+  if (excludedVariants.size > 0) {
+    html += `
+      <div style="padding:10px 12px;margin-top:12px;background:#fff3cd;border-radius:8px;border:1px solid #ffc107;display:flex;justify-content:space-between;align-items:center;">
+        <span style="color:#856404;font-size:13px;">
+          ${excludedVariants.size} variant${excludedVariants.size > 1 ? 's' : ''} deleted
+        </span>
+        <button onclick="clearExcludedVariants()" 
+                style="padding:6px 12px;background:#007bff;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;">
+          🔄 Restore All
+        </button>
       </div>
     `;
   }
   
   container.innerHTML = html;
 }
+
+
+/**
+ * ==========================================
+ * VARIANT EXCLUSION FUNCTIONS
+ * ==========================================
+ */
+
+// Exclude a variant (using unique key)
+function excludeVariant(variantKey) {
+  console.log('🗑️ Excluding variant with key:', variantKey);
+  
+  // Add to excluded set
+  excludedVariants.add(variantKey);
+  
+  // Update preview
+  updateVariantPreview();
+  
+  // Optional: Show toast
+  if (typeof showToast === 'function') {
+    showToast(`Removed variant from preview`, 'info');
+  }
+}
+
+// Clear all excluded variants
+function clearExcludedVariants() {
+  console.log('🔄 Restoring all excluded variants');
+  excludedVariants.clear();
+  updateVariantPreview();
+  
+  if (typeof showToast === 'function') {
+    showToast('All variants restored', 'success');
+  }
+}
+
+// Get filtered variants (using unique key)
+function getFilteredVariants(groupName, attributes) {
+  const allVariants = generateVariantCombinations(attributes);
+  
+  return allVariants.filter(attr => {
+    const variantKey = generateVariantKey(groupName, attr);
+    return !excludedVariants.has(variantKey);
+  });
+}
+
+// ✅ Make functions global
+window.generateVariantName = generateVariantName;
+window.generateVariantKey = generateVariantKey;
+window.generateVariantPreviewName = generateVariantPreviewName;
+window.excludeVariant = excludeVariant;
+window.clearExcludedVariants = clearExcludedVariants;
+window.getFilteredVariants = getFilteredVariants;
+
+
+/**
+ * Clear all excluded variants (restore all)
+ */
+function clearExcludedVariants() {
+  console.log('🔄 Restoring all excluded variants');
+  
+  excludedVariants.clear();
+  updateVariantPreview();
+  
+  // Optional: Show toast
+  if (typeof showToast === 'function') {
+    showToast('All variants restored', 'success');
+  }
+}
+
+
+// Make functions global
+window.excludeVariant = excludeVariant;
+window.clearExcludedVariants = clearExcludedVariants;
+window.getFilteredVariants = getFilteredVariants;
 
     
 
@@ -17286,9 +17487,7 @@ function navigateToGroupDetail(groupId, groupName) {
  * FORM SUBMISSION HANDLERS - FIREBASE VERSION
  * ==========================================
  */
-
-// Handle Create Group Form Submission
-async function handleCreateGroup(event) {
+ async function handleCreateGroup(event) {
   event.preventDefault();
   console.log('📝 Creating product group...');
   
@@ -17343,9 +17542,14 @@ async function handleCreateGroup(event) {
     
     console.log('✅ Validation passed!');
     
-    // Generate variants
-    const variants = generateVariantCombinations(attributes);
-    console.log(`📊 Will create ${variants.length} variants`);
+    // ✅ Generate variants (excluding deleted ones)
+    const variants = getFilteredVariants(groupName, attributes);
+    
+    if (variants.length === 0) {
+      throw new Error('❌ No variants to create. All variants were deleted from preview.\n\nPlease restore some variants or adjust attributes.');
+    }
+    
+    console.log(`📊 Will create ${variants.length} variants (${excludedVariants.size} excluded)`);
     
     const { collection, addDoc } = window.firebaseImports;
     
@@ -17366,7 +17570,7 @@ async function handleCreateGroup(event) {
     
     console.log('✅ Group created:', groupDocRef.id);
     
-    // Save all variants
+    // Save all variants (only non-excluded ones)
     const productsRef = collection(window.db, 'tenants', user.uid, 'products');
     const variantPromises = variants.map(attrs => {
       const variantName = generateVariantName(groupName, attrs);
@@ -17387,6 +17591,7 @@ async function handleCreateGroup(event) {
         stock: 0,
         minStock: 0,
         size: attrs.Size || '',
+        brand: attrs.Brand || '',
         createdAt: new Date().toISOString(),
         userId: user.uid
       });
@@ -17398,6 +17603,9 @@ async function handleCreateGroup(event) {
     
     // Show success message
     showSuccessToast(`✅ Created "${groupName}" with ${variants.length} variants!`);
+    
+    // Reset excluded variants for next group
+    excludedVariants.clear();
     
     // Close modal
     closeCreateGroupModal();
@@ -17414,6 +17622,56 @@ async function handleCreateGroup(event) {
     submitBtn.disabled = false;
     submitBtn.innerHTML = originalText;
   }
+}
+
+/**
+ * ==========================================
+ * EXTRACT ATTRIBUTE VALUE (CASE-INSENSITIVE)
+ * ==========================================
+ * Extracts a value from attributes object using multiple possible key names
+ * 
+ * @param {Object} attributes - The attributes object (e.g., {Brand: 'Somany', Size: 'Large'})
+ * @param {Array} possibleKeys - Array of possible key names to check (case-insensitive)
+ * @returns {String} - The found value or empty string
+ */
+ function extractAttributeValue(attributes, possibleKeys) {
+  if (!attributes || typeof attributes !== 'object') {
+    return '';
+  }
+  
+  // Try each possible key
+  for (const key of possibleKeys) {
+    // Check exact match first
+    if (attributes[key] !== undefined && attributes[key] !== null) {
+      return String(attributes[key]).trim();
+    }
+    
+    // Check case-insensitive match
+    const attrKeys = Object.keys(attributes);
+    const matchedKey = attrKeys.find(k => k.toLowerCase() === key.toLowerCase());
+    
+    if (matchedKey && attributes[matchedKey] !== undefined && attributes[matchedKey] !== null) {
+      return String(attributes[matchedKey]).trim();
+    }
+  }
+  
+  return '';
+}
+
+// Make it global
+window.extractAttributeValue = extractAttributeValue;
+
+/**
+ * ==========================================
+ * DEBUG: LOG VARIANT CREATION
+ * ==========================================
+ */
+ function debugVariantCreation(variantName, attrs, extractedValues) {
+  console.log('🔍 Variant Debug:', {
+    name: variantName,
+    rawAttributes: attrs,
+    extracted: extractedValues
+  });
 }
 
 
@@ -35598,7 +35856,6 @@ onmouseout="this.style.background='#dc3545'; this.style.transform='scale(1)'; th
   
 </body>
 </html>
-
 
 
 
