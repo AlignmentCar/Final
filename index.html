@@ -54,12 +54,12 @@
   
   // Your Firebase configuration
   const firebaseConfig = {
-    apiKey: "AIzaSyAZ5gxZQIMVthFPlPh7pumEVZujBCqnWcY",
-  authDomain: "tileinventoryapp.firebaseapp.com",
-  projectId: "tileinventoryapp",
-  storageBucket: "tileinventoryapp.firebasestorage.app",
-  messagingSenderId: "593200886238",
-  appId: "1:593200886238:web:ca118d33b30a667fb56d4f"
+    apiKey: "AIzaSyA690onaA7gCcNMcJF7F66P3rlKIlYvLkI",
+  authDomain: "learning-7b277.firebaseapp.com",
+  projectId: "learning-7b277",
+  storageBucket: "learning-7b277.firebasestorage.app",
+  messagingSenderId: "422127747454",
+  appId: "1:422127747454:web:7bc64a2da3a94e260d732f"
   };
   
   // Initialize Firebase
@@ -334,7 +334,7 @@ onclick="return runIfNotExclusionMode(event, viewSavedInvoices)">
     <div class="d-flex align-items-center w-100">
         <input type="checkbox" class="translation-exclusion-checkbox me-2" data-i18n-key="vendor" onclick="handleTranslationCheckboxClick(event)">
         <i class="bi bi-building"></i>
-        <span data-i18n="vendor" class="translation-exclusion-label">Supplier</span>
+        <span data-i18n="vendor" class="translation-exclusion-label">vendor</span>
     </div>
   </div>
   
@@ -5171,10 +5171,10 @@ qtyInHand: "उपलब्ध माल",
 inStockItems: "Stock में माल",
 lowStockItems: "कम Stock प्रोडक्ट्स",
 inventory: "Inventory",
-recentPurchases: "हाल की खरीदारी",
-recentSales: "हाल की बिक्री",
+recentPurchases: "खरीदारी",
+recentSales: "बिक्री",
 recordSale: "बिक्री दर्ज करें",
-quickCreate: "झटपट बनाएं",
+quickCreate: "Quick Create",
 clickToFlip: "पलटें",
 instantProducts: "तुरंत Add करें",
 addProduct: "सामान Add करें",
@@ -13629,11 +13629,7 @@ function calculateInvoiceTotal() {
 
 // Load Default Terms & Conditions
 function loadDefaultTerms() {
-  const defaultTerms = `1. Payment due within 14 days of invoice date
-2. Late payments subject to 2% monthly interest charge
-3. Goods once sold cannot be returned or exchanged
-4. Delivery charges may apply for orders under ₹10,000
-5. Company not responsible for damages during transit`;
+  const defaultTerms = ``;
   
   document.getElementById('invoiceTerms').value = defaultTerms;
 }
