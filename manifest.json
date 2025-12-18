@@ -2,8 +2,8 @@
   "name": "Tile & Sanitaryware Inventory",
   "short_name": "Inventory",
   "description": "Inventory management system for tiles and sanitaryware products",
-  "start_url": "/PurchaseOrderFixing/",
-  "scope": "/PurchaseOrderFixing/",
+  "start_url": "/Final/",
+  "scope": "/Final/",
   "display": "standalone",
   "background_color": "#0d6efd",
   "theme_color": "#0d6efd",
@@ -23,3 +23,4 @@
     }
   ]
 }
+
