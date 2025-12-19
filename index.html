@@ -179,7 +179,7 @@ onAuthStateChanged(auth, async (user) => {
      ========================================== -->
 <!-- Hamburger Menu Button - ABOVE NAVBAR -->
 <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" 
-        style="top: 110px !important; z-index: 9999 !important;">
+        style="top: 10px !important; z-index: 9999 !important;">
   <i class="bi bi-list"></i>
 </button>
 
@@ -517,9 +517,9 @@ onclick="return runIfNotExclusionMode(event, viewSavedInvoices)">
       
       <!-- Row 1: App Name + Language Switcher -->
       <div class="d-flex align-items-center justify-content-between gap-2">
-        <span class="navbar-brand mb-0 h1">
+        <span class="navbar-brand mb-0 h1" style="margin-left: 60px; font-size: 1.5rem; font-weight: 600;">
           <i class="bi bi-boxes"></i> 
-          <!-- ✅ NEW: Dynamic business name -->
+          <!-- ✅ Dynamic business name -->
           <span id="navbarBusinessName">Loading...</span>
         </span>
 
@@ -16714,9 +16714,7 @@ function renderProductGroups(groups) {
         </div>
         
         <div class="group-actions" onclick="event.stopPropagation()">
-          <button class="btn-icon-small btn-delete-small" onclick="confirmDeleteGroup('${group.groupId}', '${escapeHtml(group.groupName)}')">
-            🗑️
-          </button>
+          
         </div>
       </div>
     `;
@@ -16778,12 +16776,7 @@ function renderGroupVariants(variants) {
           </div>
         </div>
         <div class="variant-actions">
-          <button class="btn-icon-small btn-edit-small" onclick="openEditVariantModal('${variant.variantId}')">
-            <i class="bi bi-pencil"></i>
-          </button>
-          <button class="btn-icon-small btn-delete-small" onclick="confirmDeleteVariant('${variant.variantId}', '${escapeHtml(variant.variantName)}')">
-            <i class="bi bi-trash"></i>
-          </button>
+          
         </div>
       </div>
     `;
